@@ -133,7 +133,11 @@ _PANDA_LINKS = (
     ("left_finger", 7, (0.0, 0.020, 0.045), 0.012, 0.030),
     ("right_finger", 7, (0.0, -0.020, 0.045), 0.012, 0.030),
 )
-_PANDA_HOME = (0.0, -0.785, 0.0, -2.356, 0.0, 1.571, 0.785)
+#: Home configuration: gripper pointing down, 220 mm above the workspace
+#: centre, with the largest joint-limit margin found by a multi-start IK search
+#: over the reachable set. A home pose with margin is what lets a policy warm
+#: start from it and converge on the first waypoint every time.
+_PANDA_HOME = (-0.5515, -0.6806, -0.6242, -2.1594, 0.5958, 0.9607, 0.6299)
 
 # --- UR5e (alternate embodiment) ------------------------------------------
 _UR5E_DOF = 6

@@ -99,41 +99,78 @@ def _look_at_quat(eye: np.ndarray, target: np.ndarray) -> tuple[float, float, fl
 
 
 #: (x, y, z) offset of each joint frame from its parent, in metres.
-_CHAIN = (
-    (0.0, 0.0, 0.150),
-    (0.0, 0.0, 0.000),
-    (0.0, -0.020, 0.150),
-    (0.0, 0.0, 0.100),
-    (0.0, 0.0, 0.100),
-    (0.0, 0.0, 0.080),
-    (0.0, 0.0, 0.060),
+#: Per-joint body pose relative to its parent, following the Franka Emika Panda
+#: kinematic structure: ``(pos_xyz, axisangle_xyz_angle, capsule_length,
+#: capsule_radius)``. The alternating quarter-turns about x and y are what turn
+#: the DH serial chain into a human-like arm; a chain of parallel z-axes would
+#: be kinematically correct but physically absurd (it would be a flagpole).
+#: Per-joint body frame relative to its parent, following the Franka Emika Panda
+#: kinematic structure. Each row is ``(pos_xyz, euler_xyz, axisangle_xyz_angle,
+#: capsule_length, capsule_radius)`` and at most one of ``euler``/``axisangle`` is
+#: non-zero. The frames alternate quarter-turns about x and y, which is what
+#: turns a DH serial chain into an arm that can actually reach a table.
+_CHAIN: tuple[tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float, float], float, float], ...] = (
+    # joint 1 - base yaw, 333 mm above the mounting plate
+    ((0.000, 0.000, 0.333), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.150, 0.070),
+    # joint 2 - shoulder pitch
+    ((0.000, 0.000, 0.000), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.150, 0.062),
+    # joint 3 - elbow, 316 mm along the upper arm
+    ((0.000, 0.000, 0.316), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.130, 0.058),
+    # joint 4 - forearm roll, laterally offset by a/4
+    ((0.0825, 0.0825, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.785398163397), 0.120, 0.052),
+    # joint 5 - wrist pitch, 384 mm along the forearm
+    ((-0.0825, 0.384, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, -0.785398163397), 0.100, 0.046),
+    # joint 6 - wrist roll
+    ((0.0880, 0.000, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.785398163397), 0.080, 0.040),
+    # joint 7 - flange roll
+    ((0.107, 0.000, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, -0.785398163397), 0.050, 0.035),
 )
-#: Hinge axis of each arm joint in its parent frame.
-_AXES = ("1 0 0", "0 0 1", "0 0 1", "1 0 0", "0 0 1", "1 0 0", "0 0 1")
-#: Capsule length (m) and radius (m) of each of the seven arm links.
-_LINK_LENGTHS = (0.13, 0.13, 0.11, 0.10, 0.09, 0.06, 0.055)
-_LINK_RADII = (0.060, 0.060, 0.055, 0.050, 0.045, 0.040, 0.035)
+
+#: Every arm joint rotates about its own local z axis; the body frames above
+#: supply all the structure.
+_JOINT_AXIS = "0 0 1"
+
+#: Capsule length (m) and radius (m) of each arm link, used for collision notes.
+_LINK_LENGTHS = tuple(row[3] for row in _CHAIN)
+_LINK_RADII = tuple(row[4] for row in _CHAIN)
+
+
+def _frame_attr(
+    pos: tuple[float, float, float],
+    euler: tuple[float, float, float],
+    axisangle: tuple[float, float, float, float],
+) -> str:
+    """Render a body's ``pos`` plus whichever orientation attribute is set.
+
+    MuJoCo's ``axisangle`` is ``axis_x axis_y axis_z angle`` -- an *axis*, not a
+    rotation vector. Encoding it as a vector silently produces a zero rotation,
+    which collapses the kinematic structure, so the two are kept distinct here.
+    """
+    x, y, z = pos
+    attributes = f'pos="{_f(x)} {_f(y)} {_f(z)}"'
+    if any(abs(v) > 1e-12 for v in euler):
+        attributes += f' euler="{" ".join(_f(v) for v in euler)}"'
+    elif abs(axisangle[3]) > 1e-12:
+        attributes += f' axisangle="{" ".join(_f(v) for v in axisangle)}"'
+    return attributes
 
 
 def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
     """Emit a 7-DOF serial arm with a parallel gripper as MJCF.
 
-    The chain is a DH-derived kinematic tree with one position actuator per arm
-    joint plus one per finger. Joint and actuator names are
-    ``joint1..joint7`` / ``act1..act7``, matching
-    :attr:`RobotConfig.arm_joint_names`, so the mapping from policy joint index
-    to MuJoCo actuator index is the identity.
+    Joints and actuators are named ``joint1..joint7`` / ``act1..act7``, matching
+    :attr:`RobotConfig.arm_joint_names`, so the mapping from a policy's joint
+    index to a MuJoCo actuator is the identity.
 
     Returns:
-        ``(worldbody_xml, actuator_xml)``. The two blocks are returned
-        separately because MJCF requires the ``<actuator>`` element to be a
-        sibling of ``<worldbody>``, not a child of it.
+        ``(worldbody_xml, actuator_xml)``. The blocks are returned separately
+        because MJCF requires ``<actuator>`` to be a sibling of ``<worldbody>``.
     """
     dof = scenario.robot.dof
     if dof != 7:
         raise SimulationError(
             f"MuJoCoBackend currently models a 7-DOF arm; scenario requests dof={dof}. "
-            "The UR5e embodiment is scheduled for Phase 2.",
+            "The UR5e embodiment is not yet available in the MuJoCo backend.",
             code="simulation.embodiment_unsupported",
             requested_dof=dof,
         )
@@ -144,10 +181,6 @@ def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
     kp = (80.0,) * 7
     damping = (4.0,) * 7
 
-    # The nesting depth is grown and shrunk explicitly: a serial chain of
-    # link0..link7 plus a hand has nine open <body> elements, and hand-writing
-    # the closing tags is exactly the kind of off-by-one that produces an
-    # invalid MJCF.
     body: list[str] = ['    <body name="link0" pos="0 0 0">']
     body.append(
         '      <geom name="link0_geom" type="capsule" fromto="0 0 0 0 0 0.14" '
@@ -155,31 +188,42 @@ def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
     )
     indent = "      "
     for index in range(7):
-        dx, dy, dz = _CHAIN[index]
-        body.append(f'{indent}<body name="link{index + 1}" pos="{_f(dx)} {_f(dy)} {_f(dz)}">')
+        pos, euler, axisangle, link_len, radius = _CHAIN[index]
+        body.append(f'{indent}<body name="link{index + 1}" {_frame_attr(pos, euler, axisangle)}>')
         indent += "  "
         body.append(
-            f'{indent}<joint name="joint{index + 1}" type="hinge" axis="{_AXES[index]}" '
-            f'range="{_f(lower[index])} {_f(upper[index])}" damping="{_f(damping[index])}" armature="0.1"/>'
+            f'{indent}<joint name="joint{index + 1}" type="hinge" axis="{_JOINT_AXIS}" '
+            f'range="{_f(lower[index])} {_f(upper[index])}" damping="{_f(damping[index])}" '
+            f'armature="0.1"/>'
         )
         body.append(
             f'{indent}<geom name="link{index + 1}_geom" type="capsule" '
-            f'fromto="0 0 0 0 0 {_f(_LINK_LENGTHS[index])}" size="{_f(_LINK_RADII[index])}" '
+            f'fromto="0 0 0 0 0 {_f(link_len)}" size="{_f(radius)}" '
             f'rgba="0.72 0.74 0.78 1" contype="1" conaffinity="1"/>'
         )
 
     # Flange and parallel gripper, nested inside the last arm link.
-    body.append(f'{indent}<body name="hand" pos="0 0 0.055">')
+    body.append(f'{indent}<body name="hand" pos="0 0 0.048">')
     indent += "  "
-    body.append(f'{indent}<geom name="hand_geom" type="box" size="0.035 0.035 0.03" rgba="0.20 0.20 0.22 1" contype="1" conaffinity="1"/>')
-    body.append(f'{indent}<site name="ee" pos="0 0 0.055" size="0.006" rgba="0 0 0 0" type="sphere"/>')
+    body.append(
+        f'{indent}<geom name="hand_geom" type="box" size="0.035 0.035 0.028" '
+        f'rgba="0.20 0.20 0.22 1" contype="1" conaffinity="1"/>'
+    )
+    body.append(
+        f'{indent}<site name="ee" pos="0 0 0.060" size="0.006" rgba="0 0 0 0" type="sphere"/>'
+    )
     for side, sign in (("left", 1.0), ("right", -1.0)):
-        body.append(f'{indent}<body name="{side}_finger" pos="0 {_f(0.035 * sign)} 0.03">')
+        body.append(f'{indent}<body name="{side}_finger" pos="0 {_f(0.035 * sign)} 0.028">')
         indent += "  "
-        rng_axis = "0 1 0"
-        rng_range = "0 0.04" if sign > 0 else "-0.04 0"
-        body.append(f'{indent}<joint name="{side}_finger_joint" type="slide" axis="{rng_axis}" range="{rng_range}" damping="5"/>')
-        body.append(f'{indent}<geom name="{side}_finger_geom" type="box" size="0.008 0.008 0.022" rgba="0.85 0.30 0.10 1" contype="1" conaffinity="1"/>')
+        finger_range = "0 0.04" if sign > 0 else "-0.04 0"
+        body.append(
+            f'{indent}<joint name="{side}_finger_joint" type="slide" axis="0 1 0" '
+            f'range="{finger_range}" damping="5"/>'
+        )
+        body.append(
+            f'{indent}<geom name="{side}_finger_geom" type="box" size="0.009 0.009 0.026" '
+            f'rgba="0.85 0.30 0.10 1" contype="1" conaffinity="1"/>'
+        )
         body.append(f"{indent[:-2]}</body>")
         indent = indent[:-2]
     body.append(f"{indent[:-2]}</body>")   # close hand
@@ -196,8 +240,8 @@ def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
             f'    <position name="act{index + 1}" joint="joint{index + 1}" kp="{_f(kp[index])}" '
             f'kv="{_f(kv_i)}" ctrlrange="{_f(lower[index])} {_f(upper[index])}" forcerange="-87 87"/>'
         )
-    actuator.append('    <position name="left_finger_act" joint="left_finger_joint" kp="500" kv="10" ctrlrange="0 0.04" forcerange="-20 20"/>')
-    actuator.append('    <position name="right_finger_act" joint="right_finger_joint" kp="500" kv="10" ctrlrange="-0.04 0" forcerange="-20 20"/>')
+    actuator.append('    <position name="left_finger_act" joint="left_finger_joint" kp="600" kv="12" ctrlrange="0 0.04" forcerange="-40 40"/>')
+    actuator.append('    <position name="right_finger_act" joint="right_finger_joint" kp="600" kv="12" ctrlrange="-0.04 0" forcerange="-40 40"/>')
     actuator.append("  </actuator>")
 
     return "\n".join(body), "\n".join(actuator)

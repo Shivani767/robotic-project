@@ -104,15 +104,24 @@ def test_seed_changes_the_scene() -> None:
 
 
 def test_joint_positions_are_arm_joints_not_free_joints(mj_backend: MuJoCoBackend) -> None:
-    """Regression guard: qpos[:dof] once read the object's free joint."""
+    """Regression guard: qpos[:dof] once read the object's free joint.
+
+    The arm occupies the leading DOF slots only by MJCF convention, so the
+    backend addresses joints by name. This test pins that guarantee.
+    """
     scenario = ScenarioConfig()
     handle = mj_backend.reset(scenario, seed=5)
     observed = mj_backend.observe(handle).robot.joint_positions
     truth = mj_backend.ground_truth(handle).true_joint_positions
     assert np.allclose(observed, truth)
-    # Home configuration, after gravity settling.
-    assert abs(observed[0]) < 0.5
-    assert abs(observed[1] - scenario.robot.home_position[1]) < 0.5
+    # The home pose has the gripper pointing down over the workspace; after
+    # gravity settling the arm must still be recognisably near it.
+    home = np.array(scenario.robot.home_position)
+    assert float(np.abs(np.array(observed) - home).max()) < 0.5
+    # The end effector must be above the table, not at the origin: a free-joint
+    # mix-up would place it at the object's position near z=0.025.
+    ee_z = mj_backend.ground_truth(handle).true_ee_pose.position.z
+    assert ee_z > 0.1, f"EE height {ee_z:.3f} m looks like an object pose, not the arm"
 
 
 def test_stepping_advances_physics(mj_backend: MuJoCoBackend) -> None:
