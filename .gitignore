@@ -1,0 +1,46 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+dist/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dashboard/dist/
+dashboard/node_modules/
+
+# Results and artifacts (regenerate with `robot-ci experiment run`)
+experiments/results/*
+!experiments/results/.gitkeep
+*.jsonl
+*.sqlite
+*.db
+
+# ROS 2 / colcon
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+
+# C++
+cpp/build/
+cmake-build-*/
+*.o
+*.so
+*.dylib
+
+# MuJoCo generated scenes
+*.mjb
+
+# OS / editors
+.DS_Store
+.idea/
+.vscode/
+*.swp
