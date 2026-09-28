@@ -79,8 +79,15 @@ def main() -> int:
         mujoco.mj_step(model, data)
     print(f"physics      : OK (nq={model.nq} nv={model.nv} z={data.qpos[2]:.4f} m)")
 
+    # MuJoCo resolves its GL backend at import time, and the valid values are
+    # platform-specific (osmesa/egl are Linux-only and are *rejected* on
+    # macOS). Candidate order therefore matches robot_ci.simulation.mujoco.
+    candidates = {
+        "darwin": ("cgl", "glfw"),
+        "linux": ("egl", "osmesa", "glfw"),
+    }.get(sys.platform, ("glfw",))
     render_ok = False
-    for backend in ("osmesa", "egl", "glfw"):
+    for backend in candidates:
         os.environ["MUJOCO_GL"] = backend
         try:
             renderer = mujoco.Renderer(model, 64, 64)
@@ -97,7 +104,10 @@ def main() -> int:
             print(f"render       : {backend} failed -> {type(exc).__name__}: {str(exc)[:120]}")
 
     if not render_ok:
-        print("\nRESULT: physics OK but offscreen rendering FAILED.")
+        print(
+            f"\nRESULT: physics OK but offscreen rendering FAILED. "
+            f"Tried backends: {', '.join(candidates)}."
+        )
         return 1
     print("\nRESULT: MuJoCo physics + offscreen rendering both work. Local CPU research loop is viable.")
     return 0

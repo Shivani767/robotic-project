@@ -122,24 +122,36 @@ and immediately smoke-tested. This is the single most important Phase 0 finding.
 | `MjModel.from_xml_string` | **OK** |
 | `mj_step` physics | **OK** — 50 steps of a free box, `qpos[2] = 0.0499 m` (settled on the plane) |
 | `mj_forward` kinematics | **OK** — `data.xmat.shape == (2, 9)` |
-| `MUJOCO_GL=osmesa` + `mujoco.Renderer` | **OK** — real `(64, 64, 3)` uint8 image, `mean=18.36`, `std=40.31` (non-constant => real geometry, not a blank buffer) |
-| `MUJOCO_GL=egl` | not reached (osmesa succeeded first) |
-| `MUJOCO_GL=glfw` | not reached |
+| `MUJOCO_GL=cgl` + `mujoco.Renderer` | **OK** — real `(64, 64, 3)` uint8 image, `mean=18.36`, `std=40.31` (non-constant => real geometry, not a blank buffer) |
+| `MUJOCO_GL=egl` | **rejected at import** — Linux-only value, MuJoCo raises on macOS |
+| `MUJOCO_GL=osmesa` | **rejected at import** — Linux-only value, MuJoCo raises on macOS |
+| `MUJOCO_GL=glfw` | also works on this host (same pixels) |
+| render throughput | **1.4 ms/frame** at 160x120 (cgl) |
 
 **Conclusion:** MuJoCo provides **full rigid-body physics, kinematics, collision
 detection and offscreen RGB/depth rendering on this MacBook with no GPU**. The core
 research platform is therefore fully local and CPU-only. Cloud GPU is an *optional*
 accelerator for perception models and large batch sweeps, never a requirement.
 
-**Note on the GL backend.** macOS has no EGL, so MuJoCo must be told explicitly to use
-software rasterization:
+**Note on the GL backend.** MuJoCo resolves its OpenGL backend **at import time**
+and the valid values are platform-specific. On macOS only `cgl` and `glfw` are
+accepted; `egl` and `osmesa` are Linux-only and make `import mujoco` raise:
 
-```bash
-export MUJOCO_GL=osmesa   # CPU software rendering; always works headless
+```
+RuntimeError: invalid value for environment variable MUJOCO_GL: osmesa
 ```
 
-`robot_ci.simulation.mujoco` sets this itself before the first `mujoco` import, so
-users never have to remember it. At the small resolutions this project uses
+`robot_ci.simulation.mujoco` selects the correct value *before* the first import,
+so users never have to set anything. The mapping is:
+
+| Platform | Selected backend | Reason |
+|---|---|---|
+| macOS | `cgl` | Apple OpenGL; `egl` and `osmesa` are unavailable |
+| Linux + GPU | `egl` | hardware offscreen context |
+| Linux + X11 | `glfw` | on-screen GL context |
+
+Measured throughput at the project's default 160x120 resolution is **1.4 ms per
+frame**, which is ample for batch sweeps on the 10 available CPU cores.
 
 ## 7. GPU / CUDA / NVIDIA
 
