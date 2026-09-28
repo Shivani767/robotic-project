@@ -1,0 +1,162 @@
+[build-system]
+requires = ["hatchling>=1.24"]
+build-backend = "hatchling.build"
+
+[project]
+name = "robot-ci"
+version = "0.1.0"
+description = "Behavioral regression testing and automatic counterexample discovery for physical AI"
+readme = "README.md"
+requires-python = ">=3.11,<3.13"
+license = { text = "MIT" }
+authors = [{ name = "Robotics CI contributors" }]
+keywords = ["robotics", "regression-testing", "simulation", "counterexample", "ros2"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: C++",
+  "Topic :: Scientific/Engineering",
+]
+
+# Runtime dependencies are intentionally minimal and CPU-only.
+# Isaac Sim, ROS 2, MoveIt and CUDA are NOT dependencies of this package.
+dependencies = [
+  "pydantic>=2.7,<3",
+  "numpy>=1.26",
+  "typer>=0.12",
+  "rich>=13.7",
+  "PyYAML>=6.0",
+]
+
+[project.optional-dependencies]
+# Notebook / analysis backend (Colab, Kaggle) and publication figures.
+analysis = [
+  "scipy>=1.11",
+  "pandas>=2.0",
+  "matplotlib>=3.7",
+  "seaborn>=0.13",
+  "statsmodels>=0.14",
+]
+# Bayesian optimization for counterexample search (Phase 5). Optional on purpose:
+# the default searchers are pure NumPy so that a CPU-only laptop stays sufficient.
+bayes = ["scikit-learn>=1.3"]
+dev = [
+  "pytest>=8.0",
+  "pytest-cov>=4.1",
+  "ruff>=0.5",
+  "mypy>=1.10",
+  "types-PyYAML>=6.0",
+]
+
+[project.scripts]
+robot-ci = "robot_ci.cli.main:run"
+
+[project.urls]
+Homepage = "https://github.com/robot-ci/robot-ci"
+Documentation = "https://github.com/robot-ci/robot-ci/tree/main/docs"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/robot_ci"]
+
+[tool.hatch.build.targets.sdist]
+include = ["src/robot_ci", "scenarios", "experiments", "docs", "tests", "README.md"]
+
+# ---------------------------------------------------------------------------
+# Ruff
+# ---------------------------------------------------------------------------
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+src = ["src", "tests"]
+extend-exclude = [".venv", "dashboard", "ros2_ws", "build", "dist"]
+
+[tool.ruff.lint]
+select = [
+  "E", "W",    # pycodestyle
+  "F",         # pyflakes
+  "I",         # isort
+  "B",         # bugbear
+  "C4",        # comprehensions
+  "UP",        # pyupgrade
+  "SIM",       # simplify
+  "RUF",       # ruff-specific
+  "PTH",       # pathlib
+  "TID",       # tidy imports
+  "ARG",       # unused arguments
+  "D",         # pydocstyle
+]
+ignore = [
+  "D203",   # conflicts with D211
+  "D213",   # conflicts with D212
+  "B008",   # typer uses function calls in defaults
+  "E501",   # long lines are unavoidable in Pydantic Field(...) definitions;
+            # the line-length limit is still enforced for everything else via
+            # the formatter, and readability is preserved by the layout used.
+  "D105",   # magic methods (properties, __add__) are self-documenting
+  "UP042",  # StrEnum is 3.11+; str+Enum keeps the schema JSON-friendly on 3.11
+  "D107",   # __init__ is documented on the class
+  "B027",   # SimulatorBackend has intentional optional (non-abstract) hooks
+  "ARG002", # backend hooks take arguments a stateless implementation ignores
+  "ARG001", # ditto for free functions
+  "ARG004",
+  "RUF012", # Pydantic models use ClassVar-free mutable defaults by design
+  "RUF046", # explicit int() documents intent at sweep boundaries
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["D100", "D101", "D102", "D103", "D104", "ARG001", "ARG002", "SIM105", "D301", "E501"]
+"scripts/*" = ["E402", "T201"]
+"__init__.py" = ["F401"]
+"src/robot_ci/cli/*" = ["D401"]
+
+[tool.ruff.lint.pydocstyle]
+convention = "google"
+
+# ---------------------------------------------------------------------------
+# Pytest
+# ---------------------------------------------------------------------------
+[tool.pytest.ini_options]
+minversion = "8.0"
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = [
+  "-ra",
+  "--strict-markers",
+  "--strict-config",
+]
+markers = [
+  "unit: fast isolated unit test",
+  "integration: multi-module pipeline test",
+  "e2e: end-to-end CLI test",
+  "slow: long running test",
+]
+filterwarnings = ["error::DeprecationWarning:robot_ci.*"]
+
+# ---------------------------------------------------------------------------
+# MyPy
+# ---------------------------------------------------------------------------
+[tool.mypy]
+python_version = "3.12"
+files = ["src/robot_ci"]
+strict = false
+warn_unused_configs = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+no_implicit_optional = true
+disallow_untyped_defs = true
+check_untyped_defs = true
+warn_return_any = false
+ignore_missing_imports = true
+exclude = ["dashboard", "ros2_ws", "build"]
+
+[[tool.mypy.overrides]]
+module = ["isaacsim.*", "omni.*", "pxr.*", "rclpy.*", "moveit.*", "torch.*"]
+ignore_missing_imports = true
+
+[tool.coverage.run]
+branch = true
+source = ["src/robot_ci"]
+omit = ["*/__main__.py", "*/cli/*"]
