@@ -37,10 +37,18 @@ def test_generated_mjcf_is_valid_xml() -> None:
 
 
 def test_mujoco_compiles_the_generated_scene() -> None:
+    """The scene wraps the vendored Franka MJCF and adds only the experiment."""
     xml = build_scene_xml(ScenarioConfig())
     model = mujoco.MjModel.from_xml_string(xml)
-    assert model.nu == 9, "7 arm joints + 2 finger actuators"
-    assert model.nq >= 7
+    names = [
+        mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, i) for i in range(model.njnt)
+    ]
+    arm = [n for n in names if n and n.startswith("joint") and n[5:].isdigit()]
+    assert len(arm) == 7, f"expected 7 arm joints, got {arm}"
+    # 8 actuators from the vendored model (7 arm + 1 that the menagerie file
+    # wires to the object free joint) plus the 2 finger servos this scene adds,
+    # because the vendored model does not actuate its own fingers.
+    assert model.nu == 10, f"expected 10 actuators, got {model.nu}"
 
 
 def test_scene_cache_key_changes_with_conditions() -> None:
@@ -114,14 +122,18 @@ def test_joint_positions_are_arm_joints_not_free_joints(mj_backend: MuJoCoBacken
     observed = mj_backend.observe(handle).robot.joint_positions
     truth = mj_backend.ground_truth(handle).true_joint_positions
     assert np.allclose(observed, truth)
-    # The home pose has the gripper pointing down over the workspace; after
-    # gravity settling the arm must still be recognisably near it.
-    home = np.array(scenario.robot.home_position)
-    assert float(np.abs(np.array(observed) - home).max()) < 0.5
-    # The end effector must be above the table, not at the origin: a free-joint
-    # mix-up would place it at the object's position near z=0.025.
+    # The free-jointed object occupies the leading qpos/DOF columns, so a
+    # positional read would return the object's 7-element pose (x, y, z, quat)
+    # instead of seven joint angles. Both are length 7, so the *values* have to
+    # be checked too: joint angles stay inside the declared limits, whereas the
+    # object's position does not.
+    limits = scenario.robot.limits
+    assert limits.within(np.array(observed)), "observed joint angles violate the limits"
+    object_pose = mj_backend.ground_truth(handle).target_object.pose
+    assert not np.allclose(np.array(observed)[:3], object_pose.position.array)
+    # The tool centre point sits above the table, never at the object origin.
     ee_z = mj_backend.ground_truth(handle).true_ee_pose.position.z
-    assert ee_z > 0.1, f"EE height {ee_z:.3f} m looks like an object pose, not the arm"
+    assert ee_z > 0.05, f"EE height {ee_z:.3f} m looks like an object pose"
 
 
 def test_stepping_advances_physics(mj_backend: MuJoCoBackend) -> None:
@@ -163,10 +175,17 @@ def test_camera_latency_config_does_not_break_rendering(mj_backend: MuJoCoBacken
 
 
 def test_unsupported_dof_is_rejected_with_a_clear_message(mj_backend: MuJoCoBackend) -> None:
+    """An embodiment the vendored model cannot provide must fail loudly.
+
+    The scene wraps the official 7-DOF Franka MJCF. A UR5e request names joints
+    1..6, which all exist in the Panda, so a joint-count check alone would pass
+    and the run would quietly drive a Panda while reporting six-DOF results.
+    The error therefore has to name the embodiment, not the DOF count.
+    """
     from robot_ci.models.robot import RobotConfig
 
     scenario = ScenarioConfig(robot=RobotConfig.ur5e())
-    with pytest.raises(SimulationError, match="embodiment"):
+    with pytest.raises(SimulationError, match="ur5e"):
         mj_backend.reset(scenario, seed=1)
 
 

@@ -85,9 +85,9 @@ class EnvironmentConfig(VersionedModel):
     lighting_uniformity: float = Field(default=1.0, ge=0.0, le=1.0, description="1.0 is perfectly uniform lighting.")
     background: BackgroundKind = Field(default=BackgroundKind.GRAY, description="Background appearance.")
     table_height_m: float = Field(default=0.0, ge=0.0, le=2.0, description="Height of the support surface in metres.")
-    table_extent_m: tuple[float, float] = Field(default=(0.40, 0.25), description="Support surface half-extent in (x, y), metres.")
+    table_extent_m: tuple[float, float] = Field(default=(0.45, 0.30), description="Support surface half-extent in (x, y), metres.")
     workspace_center: tuple[float, float] = Field(
-        default=(0.0, 0.05),
+        default=(0.0, 0.10),
         description=(
             "Centre of the reachable workspace in (x, y). Objects, obstacles, the "
             "camera aim and the target zone are all placed relative to this "

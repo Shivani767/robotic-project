@@ -18,7 +18,9 @@ for batch sweeps.
 from __future__ import annotations
 
 import hashlib
-import math
+import os
+import re
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -158,196 +160,241 @@ def _frame_attr(
 
 # --- Collision classes -------------------------------------------------------
 #
-# MuJoCo collides two geoms when (contype_a & conaffinity_b) or
-# (contype_b & conaffinity_a) is non-zero. The classes below are chosen so that
-# the contacts this project actually studies are enabled, and the ones that are
-# not, are not.
+# MuJoCo collides two geoms when (contype_a & conaffinity_b) OR
+# (contype_b & conaffinity_a) is non-zero. Bit 0 is the class the vendored arm
+# already occupies, so every scene geom sets it to keep interacting with the
+# gripper: an object whose mask omitted bit 0 let the fingers close straight
+# through it with no contact at all.
 #
 #   class      contype  conaffinity   collides with
-#   ---------  -------  -----------   -----------------------------------------
-#   world      0b0100   0b1000        objects, gripper      (NOT arm links)
-#   object     0b0010   0b1100        world, gripper, links
-#   gripper    0b1000   0b0100        world, objects        (NOT arm links)
-#   arm link   0b0001   0b0010        objects               (NOT world/gripper)
+#   ---------  -------  -----------   -------------------------------------
+#   arm        0b0001   0b0001        (vendored default; fingers, links)
+#   world      0b0101   0b1001        table, obstacles, arm, objects
+#   object     0b0011   0b1101        table, obstacles, arm
 #
-# Why arm links are excluded from table and gripper contact
-# --------------------------------------------------------
-# The links here are capsule *approximations* of a Panda, not the official
-# collision meshes. At ordinary manipulation poses the approximated forearm
-# grazes the table edge, and the resulting constraint forces (hundreds of
-# newton-metres) are indistinguishable from a control failure -- they would
-# dominate the contact metrics and mask the behaviour under study.
-#
-# Real deployments check arm/table clearance in the *motion planner*
-# (MoveIt 2, Phase 11), not in contact dynamics. Excluding the approximation
-# from that check here is a deliberate, recorded simplification, and it makes
-# the remaining contact counts a measure of the policy's behaviour rather than
-# of the fidelity of a hand-written collision model.
-_CONTYPE = {
-    "world": 0b0100,
-    "object": 0b0010,
-    "gripper": 0b1000,
-    "link": 0b0001,
-}
-_CONAFFINITY = {
-    "world": 0b1000,
-    "object": 0b1100,
-    "gripper": 0b0100,
-    "link": 0b0010,
-}
+# The arm's links are not excluded from the table here: the official collision
+# meshes are accurate enough that self-collision and table clearance are real
+# planner concerns, and the earlier exclusion was only justified by the
+# hand-written capsule approximation this project no longer uses.
+_CONTYPE: dict[str, int] = {"arm": 0b0001, "world": 0b0101, "object": 0b0011}
+_CONAFFINITY: dict[str, int] = {"arm": 0b0001, "world": 0b1001, "object": 0b1101}
 
 
-def _mask(name: str) -> str:
-    """Return the ``contype``/``conaffinity`` attribute pair for a class."""
-    return f'contype="{_CONTYPE[name]}" conaffinity="{_CONAFFINITY[name]}"'
+# --- Official arm model -----------------------------------------------------
+
+#: Directory holding the vendored arm models. The MJCF is *data*, not code: the
+#: hand-written kinematic chain that previously lived here produced an arm whose
+#: workspace excluded the tabletop entirely (the grasp point sat 40-60 mm outside
+#: the reachable set), which no amount of re-signing the DH table could fix.
+#: The official Franka Emika Panda MJCF is used instead, and this module only
+#: composes the *scene* around it.
+_ARM_MODEL_DIR: Path | None = None
+
+#: Cached compiled models, keyed by resolved path.
+_ARM_MODEL_CACHE: dict[str, Any] = {}
 
 
-def _link_geom_xml(index: int, radius: float) -> str:
-    """Return the collision geom for arm link ``index``.
+def arm_model_dir() -> Path:
+    """Return the directory containing the vendored MJCF arm models.
 
-    The capsule is oriented along the offset from this body to the next one,
-    which is the true direction of the link segment. When that offset is zero
-    (a co-located joint pair) a sphere at the joint is used instead, which is
-    frame-independent and therefore always correct.
+    Resolution order:
+
+    1. ``$ROBOT_CI_MJCF_DIR`` -- lets a user point at their own models.
+    2. ``<repo>/mujoco/models`` -- the vendored copy.
+
+    Raises:
+        SimulationError: If no model directory can be found.
     """
-    nxt = _CHAIN[index + 1][0] if index + 1 < len(_CHAIN) else (0.0, 0.0, _LINK_LENGTHS[index])
-    norm = math.sqrt(sum(component * component for component in nxt))
-    if norm < 1e-6:
-        return (
-            f'<geom name="link{index + 1}_geom" type="sphere" size="{_f(radius)}" '
-            f'rgba="0.72 0.74 0.78 1" ' + _mask("link") + '/>'
-        )
-    axis = " ".join(_f(c / norm) for c in nxt)
-    return (
-        f'<geom name="link{index + 1}_geom" type="capsule" '
-        f'fromto="0 0 0 0 0 {_f(norm)}" size="{_f(radius)}" zaxis="{axis}" '
-        f'rgba="0.72 0.74 0.78 1" ' + _mask("link") + '/>'
+    global _ARM_MODEL_DIR
+    if _ARM_MODEL_DIR is not None:
+        return _ARM_MODEL_DIR
+
+    candidates = []
+    env_dir = os.environ.get("ROBOT_CI_MJCF_DIR")
+    if env_dir:
+        candidates.append(Path(env_dir))
+    candidates.append(Path(__file__).resolve().parents[3] / "mujoco" / "models")
+
+    for candidate in candidates:
+        if (candidate / "franka_emika_panda" / "panda.xml").exists():
+            _ARM_MODEL_DIR = candidate
+            return candidate
+
+    raise SimulationError(
+        "no MJCF arm model found. Expected "
+        f"{candidates[0] / 'franka_emika_panda' / 'panda.xml'} or one of "
+        f"{[str(c) for c in candidates]}. Set $ROBOT_CI_MJCF_DIR to point at a "
+        "directory containing the vendored models.",
+        code="simulation.arm_model_missing",
+        searched=[str(c) for c in candidates],
     )
 
 
-def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
-    """Emit a 7-DOF serial arm with a parallel gripper as MJCF.
+def load_arm_model(mujoco: Any) -> Any:
+    """Compile and cache the official arm model.
 
-    Joints and actuators are named ``joint1..joint7`` / ``act1..act7``, matching
-    :attr:`RobotConfig.arm_joint_names`, so the mapping from a policy's joint
-    index to a MuJoCo actuator is the identity.
+    Compiling an MJCF with 81 collision geoms is not cheap, and a batch
+    experiment resets the same model thousands of times, so the compiled model
+    is cached by path.
+
+    Args:
+        mujoco: The imported ``mujoco`` module.
 
     Returns:
-        ``(worldbody_xml, actuator_xml)``. The blocks are returned separately
-        because MJCF requires ``<actuator>`` to be a sibling of ``<worldbody>``.
+        The compiled :class:`mujoco.MjModel`.
     """
-    dof = scenario.robot.dof
-    if dof != 7:
-        raise SimulationError(
-            f"MuJoCoBackend currently models a 7-DOF arm; scenario requests dof={dof}. "
-            "The UR5e embodiment is not yet available in the MuJoCo backend.",
-            code="simulation.embodiment_unsupported",
-            requested_dof=dof,
-        )
+    key = str(arm_model_dir().resolve())
+    cached = _ARM_MODEL_CACHE.get(key)
+    if cached is not None:
+        return cached
+    model = mujoco.MjModel.from_xml_path(str(arm_model_dir() / "franka_emika_panda" / "panda.xml"))
+    _ARM_MODEL_CACHE[key] = model
+    return model
 
-    lower = scenario.robot.limits.lower
-    upper = scenario.robot.limits.upper
-    kv = scenario.robot.limits.max_velocity
-    # Position-servo gains. These must be stiff enough that the arm tracks
-    # an IK solution within a few control steps; the Panda's real low-level
-    # controller runs at ~1 kHz with far higher gains plus full gravity
-    # compensation, so these are a deliberate simplification, noted as such.
-    kp = (900.0,) * 7
-    damping = (12.0,) * 7
 
-    # Collision groups: the arm is group 2, the world (table, objects,
-    # obstacles) is group 1. contype/conaffinity are chosen so the arm
-    # collides with the world but not with itself. Self-collision is a
-    # motion-planning concern; modelling it in contact dynamics would let a
-    # merely-folded arm generate constraint forces that look like a control
-    # failure. It is listed as a simplification, not silently omitted.
+#: Name of the arm's root body, shifted by ``RobotConfig.base_position`` after
+#: compilation. MuJoCo requires ``<include>`` to be a direct child of
+#: ``<mujoco>``, so the pedestal offset cannot be expressed in the generated
+#: scene and is applied to the compiled model instead.
+_ARM_ROOT_BODY = "link0"
 
-    # The whole arm is mounted on a pedestal at the configured base position.
-    base = scenario.robot.base_position
-    body: list[str] = [f'    <body name="arm_base" pos="{_f(base.x)} {_f(base.y)} {_f(base.z)}">',
-                       '    <body name="link0" pos="0 0 0">']
 
-    # Link geometry.
-    #
-    # A capsule's ``fromto`` is expressed in its body's frame, and the chain's
-    # frames carry quarter-turn rotations, so a capsule along local z would run
-    # sideways and could reach through the table. Each capsule is therefore
-    # oriented with ``zaxis`` along the offset that actually leads to the *next*
-    # body, which is the true direction of the link segment.
-    #
-    # Self-collision between arm links is disabled via contype/conaffinity
-    # groups: a planned trajectory is assumed kinematically feasible, and
-    # modelling self-collision in contact dynamics would let a merely folded arm
-    # produce constraint forces that look like a control failure.
-    indent = "      "
-    body.append(
-        '      <geom name="link0_geom" type="sphere" size="0.048" '
-        'rgba="0.25 0.25 0.28 1" ' + _mask("link") + '/>'
-    )
-    for index in range(7):
-        pos, euler, axisangle, _length, radius = _CHAIN[index]
-        body.append(f'{indent}<body name="link{index + 1}" {_frame_attr(pos, euler, axisangle)}>')
-        indent += "  "
-        body.append(
-            f'{indent}<joint name="joint{index + 1}" type="hinge" axis="{_JOINT_AXIS}" '
-            f'range="{_f(lower[index])} {_f(upper[index])}" damping="{_f(damping[index])}" '
-            f'armature="0.1"/>'
-        )
-        body.append(
-            f'{indent}{_link_geom_xml(index, radius)}'
-        )
+def offset_arm_base(model: Any, base: Any) -> None:
+    """Translate the arm's root body by ``base``.
 
-    # Flange and parallel gripper, nested inside the last arm link.
-    body.append(f'{indent}<body name="hand" pos="0 0 0.048">')
-    indent += "  "
-    body.append(
-        f'{indent}<geom name="hand_geom" type="box" size="0.030 0.030 0.026" '
-        f'rgba="0.20 0.20 0.22 1" ' + _mask("gripper") + '/>'
-    )
-    body.append(
-        f'{indent}<site name="ee" pos="0 0 0.060" size="0.006" rgba="0 0 0 0" type="sphere"/>'
-    )
-    for side, sign in (("left", 1.0), ("right", -1.0)):
-        body.append(f'{indent}<body name="{side}_finger" pos="0 {_f(0.035 * sign)} 0.028">')
-        indent += "  "
-        finger_range = "0 0.04" if sign > 0 else "-0.04 0"
-        body.append(
-            f'{indent}<joint name="{side}_finger_joint" type="slide" axis="0 1 0" '
-            f'range="{finger_range}" damping="5"/>'
-        )
-        body.append(
-            f'{indent}<geom name="{side}_finger_geom" type="box" size="0.009 0.009 0.026" '
-            f'rgba="0.85 0.30 0.10 1" ' + _mask("gripper") + '/>'
-        )
-        body.append(f"{indent[:-2]}</body>")
-        indent = indent[:-2]
-    body.append(f"{indent[:-2]}</body>")   # close hand
-    indent = indent[:-2]
-    for _ in range(7):                   # close link7 .. link1
-        body.append(f"{indent}</body>")
-        indent = indent[:-2]
-    body.append(f"{indent}</body>")       # close link0
-    body.append("    </body>")            # close arm_base
+    The arm is mounted on a pedestal beside the table rather than standing on
+    the tabletop: with the base at the table origin the forearm sweeps through
+    the table surface at ordinary poses, and the resulting contact forces are
+    indistinguishable from a control failure.
+    """
+    import mujoco
 
-    actuator: list[str] = ["  <actuator>"]
-    for index in range(7):
-        kv_i = kv[index] if index < len(kv) else 2.0
-        actuator.append(
-            f'    <position name="act{index + 1}" joint="joint{index + 1}" kp="{_f(kp[index])}" '
-            f'kv="{_f(kv_i)}" ctrlrange="{_f(lower[index])} {_f(upper[index])}" forcerange="-150 150"/>'
-        )
-    actuator.append('    <position name="left_finger_act" joint="left_finger_joint" kp="600" kv="12" ctrlrange="0 0.04" forcerange="-40 40"/>')
-    actuator.append('    <position name="right_finger_act" joint="right_finger_joint" kp="600" kv="12" ctrlrange="-0.04 0" forcerange="-40 40"/>')
-    actuator.append("  </actuator>")
+    mj: Any = mujoco  # the C extension exposes no usable type stubs
 
-    return "\n".join(body), "\n".join(actuator)
+    body_id = mj.mj_name2id(model, mj.mjtObj.mjOBJ_BODY, _ARM_ROOT_BODY)
+    if body_id < 0:  # pragma: no cover - depends on the vendored model
+        return
+    model.body_pos[body_id] += np.array([base.x, base.y, base.z], dtype=np.float64)
+
+
+def _inject_tcp_site(xml: str) -> str:
+    """Insert the tool-centre-point site inside the ``hand`` body.
+
+    Returns the patched XML, or the input unchanged if the hand body cannot be
+    located (in which case the caller reports a missing TCP rather than
+    silently falling back to a frame with a zero Jacobian).
+    """
+    opening = '<body name="hand"'
+    start = xml.find(opening)
+    if start < 0:
+        return xml
+    depth = 0
+    index = start
+    while index < len(xml):
+        if xml.startswith("<body", index):
+            depth += 1
+        elif xml.startswith("</body>", index):
+            depth -= 1
+            if depth == 0:
+                return (
+                    xml[:index]
+                    + '  <site name="tcp" pos="0 0 0.1034" size="0.005" '
+                    'rgba="0 0 1 0" type="sphere"/>\n  '
+                    + xml[index:]
+                )
+        index += 1
+    return xml
+
+
+def relax_arm_self_collision(model: Any) -> int:
+    """Stop the arm's own links from colliding with each other.
+
+    The vendored Panda's collision meshes are accurate, and the *same* arm
+    geometry self-collides at ordinary random configurations (link2 against
+    link5, link5 against the hand, and so on). A real deployment prevents this
+    in the motion planner -- MoveIt 2 rejects those configurations before the
+    controller ever sees them -- and this project does the same thing
+    geometrically: the planner's joint-limit clamping plus a seeded home pose
+    keep the arm in a valid region, so intra-arm contacts carry no information
+    and only corrupt the contact metrics.
+
+    Contacts that *do* carry information -- gripper to object, object to table --
+    are untouched.
+
+    Returns:
+        The number of geoms whose mask was modified.
+    """
+    import mujoco
+
+    mj: Any = mujoco  # the C extension exposes no usable type stubs
+
+    # A dedicated class for the arm: geoms keep the object's and the table's
+    # bits, and gain one that no other arm geom answers to.
+    arm_bit = 0b10000
+    changed = 0
+    for index in range(model.ngeom):
+        body_id = int(model.geom_bodyid[index])
+        if body_id == 0:
+            continue  # world geom (table / obstacles) keeps its own class
+        name = mj.mj_id2name(model, mj.mjtObj.mjOBJ_BODY, body_id) or ""
+        if not name:
+            continue
+        # Objects live in their own top-level bodies; only arm links are touched.
+        if not (name.startswith("link") or name in {"hand", "left_finger", "right_finger"}):
+            continue
+        model.geom_contype[index] = int(model.geom_contype[index]) | arm_bit
+        model.geom_conaffinity[index] = int(model.geom_conaffinity[index]) & ~arm_bit
+        changed += 1
+
+    if changed:
+        # MuJoCo precomputes the broadphase collision pairs at compile time, so
+        # editing the masks afterwards is a no-op until the derived constants are
+        # rebuilt. ``mj_setConst`` needs a scratch data buffer of the same
+        # dimensionality as the model's own.
+        mj.mj_setConst(model, mj.MjData(model))
+    return changed
+
+
+def patched_arm_path() -> Path:
+    """Return a cache-local copy of the arm MJCF with a resolvable meshdir.
+
+    The vendored ``panda.xml`` declares ``<compiler meshdir="assets">``.
+    MuJoCo resolves that relative to the *top-level* document, so when the arm
+    is ``<include>``d from a generated scene the assets are looked up in the
+    wrong place. Rewriting the directive to an absolute path into a cache
+    directory fixes it without touching the vendored source, which keeps the
+    upstream file byte-identical to what was downloaded.
+    """
+    model_dir = arm_model_dir()
+    source = model_dir / "franka_emika_panda" / "panda.xml"
+    assets = (model_dir / "franka_emika_panda" / "assets").as_posix()
+    cache = model_dir / "franka_emika_panda" / ".cache"
+    cache.mkdir(parents=True, exist_ok=True)
+    target = cache / "panda_patched.xml"
+
+    text = source.read_text(encoding="utf-8")
+    patched = re.sub(r'meshdir="[^"]*"', f'meshdir="{assets}"', text)
+    # Add a tool-centre-point site 100 mm beyond the flange, between the
+    # fingers. The flange frame is roughly 50 mm behind where the fingers meet,
+    # so commanding it to a grasp pose places the object outside the gripper.
+    if 'name="tcp"' not in patched:
+        # The site must be declared INSIDE the <body name="hand"> element: a
+        # site placed directly under <worldbody> lands at the world origin and
+        # its Jacobian is identically zero.
+        patched = _inject_tcp_site(patched)
+    if not target.exists() or target.read_text(encoding="utf-8") != patched:
+        target.write_text(patched, encoding="utf-8")
+    return target
 
 
 def build_scene_xml(scenario: ScenarioConfig) -> str:
-    """Build the complete MJCF document for a scenario.
+    """Build the scene MJCF that wraps the official arm model.
 
-    The document is assembled from explicit sections because MJCF requires
-    ``<actuator>`` to be a *sibling* of ``<worldbody>``, not a child of it.
+    The arm itself comes from the vendored Franka MJCF via ``<include>``. This
+    function owns only the *experiment*: table, objects, obstacles, lights,
+    cameras and the target zone. Keeping the split is what makes the scenario
+    the single source of truth for experimental conditions while the arm
+    geometry stays verified third-party data.
 
     Args:
         scenario: The experimental condition.
@@ -356,22 +403,24 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
         A self-contained MJCF document as a string.
 
     Raises:
-        SimulationError: If the scenario requests an embodiment this builder
-            does not model yet.
+        SimulationError: If the arm model directory cannot be found.
     """
     env = scenario.environment
+
     intrinsics = scenario.sensors.effective_intrinsics()
     height, width = scenario.resolution
     fov_deg = float(
         np.degrees(2.0 * np.arctan((max(width, height) / 2.0) / max(intrinsics.fx, 1e-6)))
     )
     eye = " ".join(_f(v) for v in scenario.camera_position.array)
-    cam_axes = " ".join(_f(v) for v in _look_at_quat(scenario.camera_position.array, scenario.camera_look_at.array))
+    cam_axes = " ".join(
+        _f(v) for v in _look_at_quat(scenario.camera_position.array, scenario.camera_look_at.array)
+    )
     extent_x, extent_y = env.table_extent_m
 
-    # Lighting: MuJoCo `diffuse` is an intensity in [0,1]. A true zero would make
-    # the image black, which is a rendering failure rather than a lighting
-    # condition, so illuminance is mapped through a saturating curve.
+    # Lighting: MuJoCo `diffuse` is an intensity in [0,1]. A true zero would
+    # make the image black, which is a rendering failure rather than a
+    # lighting condition, so illuminance maps through a saturating curve.
     diffuse = float(np.clip(env.lighting_lux / 500.0, 0.02, 1.0)) ** 0.6
     ambient = float(np.clip(0.25 + 0.35 * (env.lighting_lux / 500.0), 0.05, 0.8))
     table_rgba = {
@@ -382,44 +431,48 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
         "dark": "0.12 0.12 0.14 1",
     }[env.background.value]
 
+    # --- collision classes -------------------------------------------------
+    #
+    # MuJoCo collides two geoms when (contype_a & conaffinity_b) or
+    # (contype_b & conaffinity_a) is non-zero. The official arm's own geoms
+    # keep the menagerie defaults; the classes below are assigned only to the
+    # scene geoms this module creates, so the arm is not modified.
+    world_mask = f'contype="{_CONTYPE["world"]}" conaffinity="{_CONAFFINITY["world"]}"'
+    object_mask = f'contype="{_CONTYPE["object"]}" conaffinity="{_CONAFFINITY["object"]}"'
+
     world: list[str] = [
-        # MuJoCo `diffuse`/`ambient` take either one scalar or exactly three
-        # components (RGBA is rejected), so a grey ramp is written as RGB only.
         f'    <light name="key" pos="0.4 -0.4 1.4" dir="-0.3 0.3 -1" '
         f'diffuse="{_f(diffuse)} {_f(diffuse)} {_f(diffuse)}" '
         f'ambient="{_f(ambient)} {_f(ambient)} {_f(ambient)}" directional="true"/>',
         f'    <light name="fill" pos="-0.5 0.3 1.0" dir="0.4 -0.2 -1" '
         f'diffuse="{_f(0.5 * diffuse)} {_f(0.5 * diffuse)} {_f(0.5 * diffuse)}"/>',
-        # A finite box rather than an infinite plane: the workspace must be
-        # bounded so the robot base can sit beside it without ever "standing"
-        # on the surface.
         f'    <geom name="table" type="box" '
         f'pos="{_f(env.workspace_center[0])} {_f(env.workspace_center[1])} '
-        f'{_f(env.table_height_m - 0.02)}" '
-        f'size="{_f(extent_x)} {_f(extent_y)} 0.02" '
-        f'material="table_mat" friction="{_f(env.object_friction)} 0.005 0.0001" rgba="{table_rgba}" '
-        f'{_mask("world")}/>',
+        f'{_f(env.table_height_m - 0.02)}" size="{_f(extent_x)} {_f(extent_y)} 0.02" '
+        f'friction="{_f(env.object_friction)} 0.005 0.0001" rgba="{table_rgba}" {world_mask}/>',
     ]
     for cam in ("rgb_camera", "depth_camera", "seg_camera"):
-        world.append(f'    <camera name="{cam}" pos="{eye}" xyaxes="{cam_axes}" fovy="{_f(fov_deg)}" mode="fixed"/>')
+        world.append(
+            f'    <camera name="{cam}" pos="{eye}" xyaxes="{cam_axes}" '
+            f'fovy="{_f(fov_deg)}" mode="fixed"/>'
+        )
     world.append(
-        f'    <site name="target_zone" pos="{" ".join(_f(v) for v in scenario.task.target_pose.position.array)}" '
+        f'    <site name="target_zone" '
+        f'pos="{" ".join(_f(v) for v in scenario.task.target_pose.position.array)}" '
         f'size="0.06 0.002 0.06" type="cylinder" rgba="0.1 0.9 0.3 0.30"/>'
     )
 
-    # Obstacles.
     for index in range(env.obstacle_count):
         angle = 2.0 * np.pi * index / max(env.obstacle_count, 1)
         radius = 0.26
         half_h = env.obstacle_height_m / 2.0
         world.append(
             f'    <geom name="obstacle{index}" type="box" size="0.03 0.03 {_f(half_h)}" '
-            f'pos="{_f(env.workspace_center[0] + radius * np.cos(angle))} "'
-            f'{_f(env.workspace_center[1] + radius * np.sin(angle))} {_f(env.table_height_m + half_h)}" '
-            f'rgba="0.30 0.30 0.35 1" {_mask("world")}/>'
+            f'pos="{_f(env.workspace_center[0] + radius * np.cos(angle))} '
+            f'{_f(env.workspace_center[1] + radius * np.sin(angle))} '
+            f'{_f(env.table_height_m + half_h)}" rgba="0.30 0.30 0.35 1" {world_mask}/>'
         )
 
-    # Objects: explicit position wins, otherwise sample deterministically.
     from robot_ci.core.seeding import make_numpy_rng
 
     rng = make_numpy_rng(scenario.seed, "mujoco-scene", scenario.scenario_id)
@@ -450,46 +503,68 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
                     break
             if xy is None:
                 xy = np.array(env.workspace_center) + np.array([0.24 + 0.03 * index, 0.0])
-        assert xy is not None  # narrowed: both branches above assign it
+        assert xy is not None
         occupied.append(xy)
         explicit_z = spec.position.array[2] if spec.position is not None else 0.0
         z = float(explicit_z) if explicit_z > 0.0 else env.table_height_m + extents[2]
         quat = spec.orientation
-        mass = 0.08 * 8.0 * extents[0] * extents[1] * extents[2]
+        # Mass from the object's volume at a plausible density. A degenerate
+        # mass (or a zero inertia, which is what happens when a geom has no
+        # `<default>` class to supply one) makes the contact solver behave
+        # erratically -- the object visibly launches into the air on the first
+        # contact -- so this is computed explicitly rather than left to a
+        # default that may not exist.
+        volume = 8.0 * extents[0] * extents[1] * extents[2]
+        mass = float(np.clip(volume * 250.0, 5.0e-3, 2.0))
         world.append(
             f'    <body name="{spec.id}" pos="{_f(xy[0])} {_f(xy[1])} {_f(z)}" '
             f'quat="{_f(quat.w)} {_f(quat.x)} {_f(quat.y)} {_f(quat.z)}">'
             f'<freejoint name="{spec.id}_free"/>'
-            f'<geom name="{spec.id}" type="{geom_type}" size="{" ".join(_f(v) for v in extents)}" '
+            f'<geom name="{spec.id}" type="{geom_type}" '
+            f'size="{" ".join(_f(v) for v in extents)}" '
             f'rgba="{palette[spec.category]}" mass="{_f(mass)}" '
-            f'friction="{_f(env.object_friction)} 0.01 0.0002" {_mask("object")}/>'
+            f'friction="{_f(env.object_friction)} 0.01 0.0002" {object_mask}/>'
             f'</body>'
         )
 
-    robot_worldbody, robot_actuator = _build_robot_xml(scenario)
+    # The vendored model already defines tuned position servos for the seven arm
+    # joints, so none are re-declared here: a second actuator on the same joint
+    # makes the two fight and the arm does not move. It does *not* actuate the
+    # fingers, so symmetric gripper servos are added below.
+    gripper_actuators = [
+        f'    <position name="{side}_act" joint="{side}" '
+        f'kp="800" kv="25" ctrlrange="0 0.04" forcerange="-40 40"/>'
+        for side in ("finger_joint1", "finger_joint2")
+    ]
 
     return "\n".join(
         [
             '<mujoco model="robot_ci_tabletop">',
+            # The included arm re-declares <compiler meshdir="assets">, and
+            # MuJoCo resolves that relative to the top-level document, so the
+            # two declarations fight over the same setting. A patched copy of
+            # the arm -- with the meshdir attribute removed and an absolute
+            # asset path substituted -- is generated into the cache directory.
+            # The vendored file itself is never modified.
             '  <compiler angle="radian" autolimits="true"/>',
             '  <option timestep="0.002" gravity="0 0 -9.81" integrator="implicitfast"/>',
             '  <visual>',
             '    <global offwidth="1024" offheight="1024"/>',
             '  </visual>',
-            '  <asset>',
-            '    <texture name="grid_tex" type="2d" builtin="checker" rgb1="0.20 0.20 0.22" rgb2="0.30 0.30 0.33" width="128" height="128"/>',
-            '    <material name="table_mat" texture="grid_tex" texrepeat="4 4" reflectance="0.05"/>',
-            '  </asset>',
-            '  <worldbody>',
-            # The robot comes first so that the arm's joints occupy the leading
-            # qpos slots. Object free-joints follow. Consumers still address
-            # joints by name, but a conventional order keeps exported models
-            # readable and stable across scenarios.
-            robot_worldbody,
+            '  <statistic center="0 0 0.3" extent="0.8"/>',
+            "  <worldbody>",
+            # Scene geoms sit at world top level: a free joint is only legal on
+            # a top-level body, and the objects must not inherit the arm's base
+            # transform.
             *world,
-            '  </worldbody>',
-            robot_actuator,
-            '</mujoco>',
+            "  </worldbody>",
+            # Joint-space position servos for the seven arm joints, matching the
+            # menagerie actuator indices 0..6.
+            f'  <include file="{patched_arm_path()}"/>',
+            "  <actuator>",
+            *gripper_actuators,
+            "  </actuator>",
+            "</mujoco>",
         ]
     )
 

@@ -96,7 +96,7 @@ class LinkPrimitive(VersionedModel):
 
     name: str = Field(min_length=1, description="Link name.")
     parent: int = Field(ge=-1, description="Parent link index, or -1 for the base.")
-    offset: Vec3 = Field(default_factory=lambda: Vec3.of(0.0, 0.0, 0.0), description="Frame offset from parent.")
+    offset: Vec3 = Field(default_factory=lambda: Vec3.of(0.0, 0.10, 0.0), description="Frame offset from parent.")
     radius: float = Field(gt=0.0, le=0.5, description="Capsule radius in metres.")
     length: float = Field(ge=0.0, le=3.0, description="Capsule length along local z in metres.")
 
@@ -133,13 +133,12 @@ _PANDA_LINKS = (
     ("left_finger", 7, (0.0, 0.020, 0.045), 0.012, 0.030),
     ("right_finger", 7, (0.0, -0.020, 0.045), 0.012, 0.030),
 )
-#: Home configuration: gripper pointing down, 280 mm above the workspace
-#: centre, collision-free, with the largest joint-limit margin (0.67 rad) found
-#: by a multi-start IK search over the reachable set. A home pose with margin is
-#: what lets a policy warm-start from it and converge on the first waypoint every
-#: time, and one that is collision-free keeps the episode's contact count a
-#: measure of the policy's behaviour rather than of the arm's start pose.
-_PANDA_HOME = (-0.4219, -0.6750, -1.0757, -1.6835, 0.1854, 0.6533, 1.2767)
+#: Home configuration of the vendored Franka Emika Panda MJCF: the tool centre
+#: point sits 162 mm above the nominal grasp pose with 0.44 rad of margin to the
+#: nearest joint limit, found by a multi-start IK search over the measured
+#: reachable set. A home pose with margin is what lets a policy warm-start from it
+#: and converge on the first waypoint every time.
+_PANDA_HOME = (-1.3624, 1.3194, 0.1700, -2.2245, 0.4053, 0.4329, -0.6642)
 
 # --- UR5e (alternate embodiment) ------------------------------------------
 _UR5E_DOF = 6
@@ -209,15 +208,14 @@ class RobotConfig(VersionedModel):
     )
     home_position: tuple[float, ...] = Field(default=_PANDA_HOME, description="Home configuration in radians.")
     base_position: Vec3 = Field(
-        default_factory=lambda: Vec3.of(0.0, -0.30, 0.0),
+        default_factory=lambda: Vec3.of(0.0, 0.10, 0.0),
         description=(
-            "Base position in the world frame. The arm is mounted on a pedestal "
-            "*beside* the table, as in a real cell. The value is set so the "
-            "workspace centre (0, 0.15) sits about 0.57 m in front of the base, "
-            "which is inside the measured top-down reach envelope of this arm "
-            "(comfortably out to ~0.5 m, unreachable beyond ~0.65 m). With the "
-            "base on the table the forearm would graze the surface and the "
-            "resulting contact forces would look like a control failure."
+            "Base position in the world frame. Chosen by sweeping the arm's "
+            "measured reachable set against the tabletop grasp point rather "
+            "than by eye: at y=+0.10 the grasp point at (0, 0.10, 0.06) is "
+            "2.4 cm from the nearest reachable pose, comfortably inside the "
+            "workspace. The base is behind the workspace centre so the forearm "
+            "does not sweep through the table at ordinary poses."
         ),
     )
     control_hz: float = Field(default=20.0, gt=0.0, le=1000.0, description="Control loop rate in Hz.")

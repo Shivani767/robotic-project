@@ -9,11 +9,11 @@ environment:
   background: gray
   table_height_m: 0.0
   table_extent_m:
-  - 0.4
-  - 0.25
+  - 0.45
+  - 0.3
   workspace_center:
   - 0.0
-  - 0.05
+  - 0.1
   object_friction: 0.6
   clutter_count: 9
   clutter_separation_m: 0.09
@@ -252,17 +252,17 @@ robot:
     radius: 0.012
     length: 0.03
   home_position:
-  - -0.4219
-  - -0.675
-  - -1.0757
-  - -1.6835
-  - 0.1854
-  - 0.6533
-  - 1.2767
+  - -1.3624
+  - 1.3194
+  - 0.17
+  - -2.2245
+  - 0.4053
+  - 0.4329
+  - -0.6642
   base_position:
     schema_version: 1.0.0
     x: 0.0
-    y: -0.3
+    y: 0.1
     z: 0.0
   control_hz: 20.0
   max_gripper_width_m: 0.08

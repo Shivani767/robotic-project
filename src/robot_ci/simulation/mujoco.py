@@ -230,8 +230,56 @@ class MuJoCoBackend(SimulatorBackend):
                 scenario_id=scenario.scenario_id,
                 xml_path=str(path),
             ) from exc
+        # Mount the arm on its pedestal. <include> must be a direct child of
+        # <mujoco>, so the offset is applied to the compiled model.
+        from robot_ci.simulation.mujoco_env import offset_arm_base, relax_arm_self_collision
+
+        self._check_embodiment(model, scenario)
+        offset_arm_base(model, scenario.robot.base_position)
+        relax_arm_self_collision(model)
         self._models[key] = model
         return model, str(path)
+
+    def _check_embodiment(self, model: Any, scenario: ScenarioConfig) -> None:
+        """Fail loudly when the scenario's arm is not the one that was vendored.
+
+        The scene wraps the official 7-DOF Franka Emika Panda MJCF. A UR5e
+        request names joints 1..6, which all happen to exist in the Panda, so a
+        joint-count check alone would pass and the run would quietly drive a
+        Panda while reporting six-DOF results. The check is therefore on the
+        *model* the vendored file provides, which the MJCF names.
+        """
+        mujoco = self._mujoco
+        provided = {
+            name
+            for name in (
+                mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, i)
+                for i in range(model.njnt)
+            )
+            if name
+        }
+        requested = scenario.robot.model
+        if requested.value == "panda":
+            missing = [
+                f"joint{i}" for i in range(1, 8) if f"joint{i}" not in provided
+            ]
+            if missing:
+                raise SimulationError(
+                    f"the vendored model is missing {missing}",
+                    code="simulation.embodiment_unsupported",
+                    requested_model=requested.value,
+                )
+            return
+        raise SimulationError(
+            f"scenario requests a {requested.value} arm, but the MuJoCo backend "
+            "currently ships the official Franka Emika Panda MJCF only "
+            f"(joints present: {sorted(n for n in provided if n.startswith('joint'))}). "
+            "Add the model under mujoco/models/ and wire it into "
+            "robot_ci.simulation.mujoco_env to support other embodiments.",
+            code="simulation.embodiment_unsupported",
+            requested_model=requested.value,
+            available_models=["panda"],
+        )
 
     def _renderer(self, model: Any, height: int, width: int) -> Any:
         """Return a cached renderer for a given resolution."""
@@ -292,6 +340,36 @@ class MuJoCoBackend(SimulatorBackend):
         self._active[handle.episode_id] = handle._opaque
         return handle
 
+    def _arm_dof_indices(self, model: Any, dof: int) -> np.ndarray:
+        """Return the DOF indices belonging to the arm joints.
+
+        Gravity compensation must be limited to these. A free-jointed object in
+        the same model occupies the first six DOF columns, and adding its bias
+        force as an external force pushes it into the air.
+        """
+        mujoco = self._mujoco
+        indices: list[int] = []
+        for index in range(dof):
+            jid = mujoco.mj_name2id(
+                model, mujoco.mjtObj.mjOBJ_JOINT, f"joint{index + 1}"
+            )
+            if jid >= 0:
+                indices.append(int(model.jnt_dofadr[jid]))
+        return np.asarray(indices, dtype=np.int64)
+
+    @staticmethod
+    def _actuator_for_joint(model: Any, joint_id: int) -> int:
+        """Return the actuator index driving ``joint_id``, or -1.
+
+        Actuator indices do not follow joint indices, and on the vendored Panda
+        the last actuator drives the *gripper*, not joint7. Resolving the link
+        through ``actuator_trnid`` is the only reliable mapping.
+        """
+        for index in range(model.nu):
+            if int(model.actuator_trnid[index, 0]) == joint_id:
+                return index
+        return -1
+
     def _arm_joint_ids(self, model: Any, dof: int) -> list[int]:
         """Return the MuJoCo joint ids of the arm, in policy order."""
         mujoco = self._mujoco
@@ -302,35 +380,43 @@ class MuJoCoBackend(SimulatorBackend):
         return ids
 
     def _write_arm(self, model: Any, data: Any, targets: np.ndarray) -> None:
-        """Command and teleport the arm to ``targets``.
+        """Command the arm to ``targets`` and teleport it there.
 
         Both the control signal and the joint state are written, so an episode
-        never begins or evaluates mid-transient. Everything is addressed by
-        name: free-jointed objects share ``qpos`` with the arm, and their
-        ordering depends on the MJCF, so positional slicing is unsafe.
+        never begins or evaluates mid-transient.
+
+        Two indexing hazards are handled explicitly, both of which silently
+        produce a frozen arm if ignored:
+
+        * free-jointed objects share ``qpos`` with the arm, so joints are found
+          by name rather than sliced positionally;
+        * actuator indices do **not** follow joint indices, and the last
+          actuator of the vendored Panda drives the gripper, not joint7, so the
+          control link is resolved through ``actuator_trnid``.
         """
         for index, jid in enumerate(self._arm_joint_ids(model, len(targets))):
             if jid < 0:
                 continue
             value = float(targets[index])
-            data.ctrl[jid] = value
+            act_id = self._actuator_for_joint(model, jid)
+            if act_id >= 0:
+                data.ctrl[act_id] = value
             data.qpos[model.jnt_qposadr[jid]] = value
             data.qvel[model.jnt_dofadr[jid]] = 0.0
 
-    @staticmethod
-    def _write_gripper(model: Any, data: Any, width_m: float) -> None:
-        """Set both fingers so their total aperture is ``width_m``.
+    def _write_gripper(self, model: Any, data: Any, width_m: float) -> None:
+        """Command the gripper to an aperture of ``width_m``.
 
-        Each finger travels at most 0.04 m from its rest pose, so the total
-        aperture is ``2 * min(0.04, width_m / 2)``.
+        The vendored model drives both finger joints with a single symmetric
+        actuator, where 0 is closed and 0.04 each is fully open, so the
+        commanded value is half the requested aperture.
         """
-        half = max(0.0, min(0.04, width_m / 2.0))
-        for index in range(model.nu):
-            name = model.actuator(index).name
-            if name == "left_finger_act":
-                data.ctrl[index] = half
-            elif name == "right_finger_act":
-                data.ctrl[index] = -half
+        mujoco = self._mujoco
+        aperture = max(0.0, min(0.04, width_m / 2.0))
+        finger = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "finger_joint1")
+        act_id = self._actuator_for_joint(model, finger) if finger >= 0 else -1
+        if act_id >= 0:
+            data.ctrl[act_id] = aperture
 
     def _settle_objects(self, model: Any, data: Any, scenario: ScenarioConfig, seed: int) -> None:
         """Jitter and re-settle object poses from the episode seed.
@@ -437,13 +523,17 @@ class MuJoCoBackend(SimulatorBackend):
 
         # Physics substeps at the MuJoCo timestep for stable contact.
         substeps = max(1, int(round(dt / float(model.opt.timestep))))
+        # Gravity compensation is applied to the ARM DOF only. Writing it to
+        # every DOF also pushes the free-floating objects upward: the object
+        # visibly launches into the air within a few steps, which destroys every
+        # placement measurement while looking like a control failure.
+        arm_dofs = self._arm_dof_indices(model, robot.dof)
+
         for _ in range(substeps):
-            # Gravity compensation: cancel the bias force the arm needs just to
-            # hold itself up, so the position servo spends its effort on the
-            # task instead of on gravity. Without this the arm visibly sags
-            # toward every target and the waypoint dwell never triggers.
             mujoco.mj_forward(model, data)
-            data.qfrc_applied[: model.nv] = data.qfrc_bias[: model.nv]
+            bias = np.array(data.qfrc_bias, copy=True)
+            data.qfrc_applied[:] = 0.0
+            data.qfrc_applied[arm_dofs] = bias[arm_dofs]
             mujoco.mj_step(model, data)
         data.qfrc_applied[:] = 0.0
         mujoco.mj_forward(model, data)
@@ -491,10 +581,14 @@ class MuJoCoBackend(SimulatorBackend):
         return ContactState.NONE
 
     def _finger_width(self, model: Any, data: Any) -> float:
-        """Return the current aperture between the two fingers, in metres."""
-        left = self._slide_position(model, data, "left_finger_joint")
-        right = self._slide_position(model, data, "right_finger_joint")
-        return float(abs(left - right))
+        """Return the current aperture between the two fingers, in metres.
+
+        Both official ``finger_joint`` values run from 0 (closed) to 0.04 (open),
+        so the aperture is their sum rather than their difference.
+        """
+        left = self._slide_position(model, data, "finger_joint1")
+        right = self._slide_position(model, data, "finger_joint2")
+        return float(left + right)
 
     def _slide_position(self, model: Any, data: Any, joint_name: str) -> float:
         """Return the scalar position of a named slide joint."""
@@ -504,14 +598,32 @@ class MuJoCoBackend(SimulatorBackend):
             return 0.0
         return float(data.qpos[model.jnt_qposadr[jid]])
 
-    def _ee_pose(self, model: Any, data: Any) -> Pose:
-        """Return the end-effector pose from the ``ee`` site."""
+    def _ee_body(self, model: Any) -> int:
+        """Return the tool-centre-point frame id.
+
+        The tool centre point sits between the fingers, not at the flange, so a
+        grasp command lands the object inside the gripper rather than 50 mm
+        behind it.
+        """
         mujoco = self._mujoco
-        sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "ee")
-        if sid < 0:
+        for name in ("tcp", "ee"):
+            sid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, name)
+            if sid >= 0:
+                return sid
+        return mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "hand")
+
+    def _ee_pose(self, model: Any, data: Any) -> Pose:
+        """Return the tool-centre-point pose."""
+        mujoco = self._mujoco
+        frame = self._ee_body(model)
+        if frame < 0:
             return Pose()
-        position = np.array(data.site_xpos[sid], dtype=np.float64)
-        mat = np.array(data.site_xmat[sid], dtype=np.float64).reshape(3, 3)
+        if mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_SITE, "tcp") == frame:
+            position = np.array(data.site_xpos[frame], dtype=np.float64)
+            mat = np.array(data.site_xmat[frame], dtype=np.float64).reshape(3, 3)
+        else:
+            position = np.array(data.xpos[frame], dtype=np.float64)
+            mat = np.array(data.xmat[frame], dtype=np.float64).reshape(3, 3)
         return Pose(position=Vec3.from_iterable(position), orientation=self._mat_to_quat(mat))
 
     @staticmethod

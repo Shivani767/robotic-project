@@ -230,7 +230,51 @@ class MuJoCoJacobianProvider(JacobianProvider):
     mujoco: Any
     model: Any
     data: Any
-    site_name: str = "ee"
+    site_name: str = ""
+    def _arm_columns(self, count: int) -> np.ndarray:
+        """Return the Jacobian columns corresponding to the arm joints.
+
+        A free-jointed object in the same model occupies the first six DOF
+        columns, so the arm joints are **not** at columns ``0..n-1``. Slicing
+        positionally silently produced a rank-1 Jacobian that made every solve
+        fail. The mapping is read from the model instead of assumed.
+        """
+        mujoco = self.mujoco
+        columns: list[int] = []
+        for index in range(count):
+            jid = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_JOINT, f"joint{index + 1}")
+            if jid < 0:
+                continue
+            columns.append(int(self.model.jnt_dofadr[jid]))
+        if len(columns) != count:
+            # Fall back to identity mapping only if the joints are not named.
+            return np.arange(count)
+        return np.asarray(columns, dtype=np.int64)
+
+    def _frame_id(self) -> int:
+        """Return the id of the tool-centre-point frame.
+
+        ``tcp`` is preferred over the flange (``hand``) because the flange sits
+        behind the fingers: commanding it to a grasp pose places the object
+        outside the gripper. ``site_name`` overrides both when a caller has a
+        different site available.
+        """
+        mujoco = self.mujoco
+        if self.site_name:
+            found = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_SITE, self.site_name
+            )
+            if found >= 0:
+                return found
+        for name in ("tcp", "ee"):
+            found = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, name)
+            if found >= 0:
+                return found
+        found = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_BODY, "hand")
+        if found >= 0:
+            return found
+        raise KeyError("no end-effector frame: no 'tcp' or 'ee' site and no 'hand' body")
+
     def _evaluate(self, q: np.ndarray, want_jacobian: bool) -> Any:
         """Evaluate kinematics at ``q`` without disturbing the live simulation.
 
@@ -244,22 +288,42 @@ class MuJoCoJacobianProvider(JacobianProvider):
         saved_qpos = np.array(self.data.qpos, copy=True)
         saved_qvel = np.array(self.data.qvel, copy=True)
         try:
+            # Address the joints by name: with a free-jointed object in the
+            # scene the arm joints start at qpos index 6, not 0, so a positional
+            # write silently moves the *object* and leaves the arm frozen.
             for index, value in enumerate(q):
-                self.data.qpos[index] = float(value)
-            self.data.qvel[:] = 0.0
+                jid = mujoco.mj_name2id(
+                    self.model, mujoco.mjtObj.mjOBJ_JOINT, f"joint{index + 1}"
+                )
+                if jid < 0:
+                    continue
+                self.data.qpos[self.model.jnt_qposadr[jid]] = float(value)
+                self.data.qvel[self.model.jnt_dofadr[jid]] = 0.0
             mujoco.mj_forward(self.model, self.data)
-            site_id = mujoco.mj_name2id(
-                self.model, mujoco.mjtObj.mjOBJ_SITE, self.site_name
+            frame = self._frame_id()
+            frame_is_site = (
+                mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, "tcp") == frame
+                or (self.site_name and frame == mujoco.mj_name2id(
+                    self.model, mujoco.mjtObj.mjOBJ_SITE, self.site_name))
             )
             if not want_jacobian:
+                if frame_is_site:
+                    return (
+                        np.array(self.data.site_xpos[frame], copy=True),
+                        np.array(self.data.site_xmat[frame], copy=True).reshape(3, 3),
+                    )
                 return (
-                    np.array(self.data.site_xpos[site_id], copy=True),
-                    np.array(self.data.site_xmat[site_id], copy=True).reshape(3, 3),
+                    np.array(self.data.xpos[frame], copy=True),
+                    np.array(self.data.xmat[frame], copy=True).reshape(3, 3),
                 )
             jacp = np.zeros((3, self.model.nv))
             jacr = np.zeros((3, self.model.nv))
-            mujoco.mj_jacSite(self.model, self.data, jacp, jacr, site_id)
-            return np.vstack([jacp[:, : len(q)], jacr[:, : len(q)]])
+            if frame_is_site:
+                mujoco.mj_jacSite(self.model, self.data, jacp, jacr, frame)
+            else:
+                mujoco.mj_jacBody(self.model, self.data, jacp, jacr, frame)
+            columns = self._arm_columns(len(q))
+            return np.vstack([jacp[:, columns], jacr[:, columns]])
         finally:
             self.data.qpos[:] = saved_qpos
             self.data.qvel[:] = saved_qvel
