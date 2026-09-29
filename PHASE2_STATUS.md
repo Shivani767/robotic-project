@@ -98,3 +98,159 @@ actually represents. If that fails, switch to SCARA with the reason recorded.
 ```
 
 **No manipulation success rate is claimed anywhere in this repository.**
+
+---
+
+# Pad-Targeted IK Experiment
+
+**Date:** 2026-09-28 · Script: `scripts/pad_target_ik_experiment.py` ·
+Tests: `tests/integration/test_pad_targeted_ik.py`
+
+This section is appended to the record above, which is left intact. The
+`success = 0.000` pick-and-place result **has not changed** and is still
+visible above; the experiment below is a diagnostic, not a fix.
+
+## Hypothesis
+
+The grasp target is aimed at the generic `tcp` site. If the `tcp` site is not
+where the jaws actually grip, the arm converges to a pose that looks correct
+and the pads close beside the object. The hypothesis was that the failure lay
+in the chain
+
+```
+object target -> target frame -> IK target -> IK solution
+    -> joint state -> forward kinematics -> actual finger-pad geometry
+```
+
+and the experiment was to build the target from the **measured** pad midpoint
+instead of the `tcp` site, and measure where the chain diverges.
+
+## Setup
+
+- Model: vendored Franka Emika Panda MJCF, unchanged.
+- IK: existing `solve_ik_refined`, unchanged, with limits resolved **by name**.
+- Object 16 mm cube on the table at `y = +0.30`; base at `y = -0.30`.
+- Phases executed: **home → approach → descend → grasp → close only.** No
+  lift, transit or place.
+- No contact, friction, model, mass or joint-limit changes.
+
+### Coordinate-frame definition
+
+```
+desired pad midpoint = object centre                (the jaws centre on it)
+pad midpoint         = tcp + R_hand @ d             (d = measured offset)
+=> desired tcp       = object centre - R_hand @ d
+```
+
+`d` is measured from the compiled model as `pad_mid - tcp` expressed in the
+hand frame; `R_hand` is the *target* rotation. No constant is introduced.
+
+## Measured geometry (compiled model)
+
+| Quantity | Measured |
+|---|---|
+| `d` (tcp → pad midpoint, hand frame) | `[0.0, 0.0, -0.5] mm`, norm **0.50 mm** |
+| World-frame correction applied | **0.50 mm** |
+| Pad separation, fingers closed (q = 0) | **11.0 mm** |
+| Pad separation, fingers open (q = 0.04) | **91.0 mm** |
+| Pad vertical half-height at grasp | **9.18 mm** |
+| Arm joints resolved by name | ids 1–7, `qposadr` 7–13, `dofadr` 6–12 |
+| `ee` site | does not exist (id −1); IK falls back to `tcp` (id 1) |
+
+**Correction to an earlier measurement.** Phase 2 recorded a maximum opening
+of 26.2 mm. That figure was measured on the finger *body origins*, not the pad
+collision geoms. The true envelope is **11.0 → 91.0 mm**. The earlier claim
+that a 50 mm cube was ungraspable was therefore unfounded; the object was
+resized to 16 mm on the strength of a bad measurement.
+
+## Results
+
+Orientation feasibility, measured on the compiled model at the grasp pose:
+
+| Orientation | Feasible | IK err | Table clearance | obj along sep-axis | mid→obj |
+|---|---|---:|---:|---:|---:|
+| x+90 (the production "side" grasp) | **no** | 6.4 mm | **−35.5 mm** | −2.1 mm | 5.9 mm |
+| x−90 | **no** | 0.7 mm | **−37.1 mm** | 0.4 mm | 1.1 mm |
+| **x180 (top-down)** | **yes** | 1.7 mm | +8.0 mm | −1.1 mm | 1.6 mm |
+| y180 | yes | 1.8 mm | +9.9 mm | −0.9 mm | 2.2 mm |
+| z180 | no | 49.0 mm | +51.2 mm | 13.7 mm | 48.5 mm |
+| identity | no | 48.3 mm | +47.4 mm | −20.6 mm | 47.9 mm |
+
+10 deterministic trials, seeds 1–10:
+
+| Metric | Value |
+|---|---|
+| IK success rate | **1.000** |
+| pad-target success rate | **1.000** |
+| finger-contact rate | **0.400** |
+| stable grasp rate | **0.400** |
+| object displacement (mean / max) | 0.25 / 0.97 mm |
+| mean / max / min pad error | 1.34 / 1.75 / 0.62 mm |
+| tcp↔pad midpoint (mean / max) | **0.50 / 0.50 mm** |
+| target↔FK (mean / max) | 1.46 / 1.93 mm |
+| target↔pad midpoint (mean / max) | 1.58 / 2.35 mm |
+| case distribution | **A:10 B:0 C:0 D:0** |
+
+## Diagnosis
+
+**Case A** in all 10 trials: the IK target is reached (1.46 mm mean), and the
+pad midpoint lands where the geometry asked (1.58 mm mean). **The kinematic
+chain is sound** — the target-frame transform, the joint mapping and the
+solver's agreement with the model are all correct. The experiment eliminated
+hypotheses (1), (2) and (3).
+
+The grasp still fails, for a geometric reason the experiment quantified:
+
+- A **vertical** jaw separation axis is impossible for an object resting on
+  the table. With a 91 mm open separation, centring the jaws on the object puts
+  the lower pad **35.5–37.1 mm inside the tabletop**. This is why the
+  production "side grasp" orientation cannot work at any IK accuracy.
+- With a **horizontal** axis (top-down) the pads straddle the object to within
+  1.75 mm and clear the table — but the jaws then **jam on the tabletop**. The
+  pad half-height is 9.18 mm while the object centre sits 7.97 mm above the
+  table, so the pad's lower edge is **0.16 mm below the surface**. The jaws
+  stall at 38.8 mm of separation around a 16 mm object and register **zero
+  finger-to-object contacts** in 6 of 10 trials.
+
+The usable jaw-height window is `[table + 9.18, object_top 15.97] mm`, only
+**6.80 mm** wide, and an object-centre jaw target at 7.97 mm falls **below it**.
+
+## Tests added
+
+`tests/integration/test_pad_targeted_ik.py` — 8 tests, all re-deriving their
+numbers from the compiled model:
+
+1. TCP is the pad midpoint, across 6 poses × 3 finger openings (< 2 mm).
+2. Gripper envelope is 11 → 91 mm and linear in the finger joint — explicitly
+   guarding against re-measuring the body origins.
+3. `jnt_range[:7]` is *not* the arm range (the free-joint trap).
+4. Finger actuators map one-to-one through `actuator_trnid`.
+5. A vertical jaw separation cannot clear the table.
+6. Top-down is reachable, the solver's residual matches an independent model
+   read to 1e-6, and the pads straddle the object.
+7. The jaw-height window is quantified and the object-centre target is
+   recorded as falling below it.
+8. Object contacts must be split by counterpart — the object always rests on
+   the table, so an unsplit count reports a meaningless 1.0 contact rate.
+
+## Conclusion
+
+The geometry chain is explained end to end. The IK solver, the joint mapping
+and the pad/TCP relationship are **not** at fault. The remaining blocker is a
+**collision-geometry** problem: the object is small relative to the pad height,
+so the feasible jaw window is 6.8 mm wide and an object-centre target falls
+outside it. The measurements are consistent with this being the cause of the
+zero contact rate; they do not by themselves establish that raising the jaw
+will produce a grasp.
+
+## Remaining uncertainty
+
+- The measurements establish a geometric *inconsistency* between the jaw target
+  and the pad-clearance requirement. They do not establish that correcting the
+  jaw height yields a successful grasp.
+- The 26.2 mm → 91.0 mm correction implies the 16 mm object is smaller than
+  the gripper envelope requires for a robust grasp (11–17% of opening). Whether
+  to restore a larger object is a separate decision and was **not** taken here.
+- The production grasp orientation is still the infeasible x+90 constant. It was
+  left in place so this record is not rewritten; the experiment measures it
+  rather than silently replacing it.
