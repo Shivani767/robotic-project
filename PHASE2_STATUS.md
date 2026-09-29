@@ -569,3 +569,172 @@ The next experiment is a *force-limited* grip — cap the commanded interference
 solver absorb it. Success remains **0** for now. This is recorded as a negative
 result because "more friction fixes grasping" is the intuitive move, and it does
 not work here.
+
+---
+
+# Phase 2 — Force-Limited Gripper Experiment
+
+**Date:** 2026-09-29
+
+## 1. Hypothesis
+
+The grasp mechanism can hold the object, but the current control path is
+unstable. The hypothesis is that excessive commanded gripper
+closure/contact penetration causes unstable object dynamics, and that a
+bounded gripper contact control will remove the instability while preserving
+legitimate physical contact. Earlier findings support this (position control
+with ~5.9 mm per-finger commanded overshoot, ~187x the measured force
+required to hold a 5 g object, and finger closure through to almost zero).
+
+## 2. Existing position-control behavior
+
+The current control path writes the requested aperture directly through the
+finger actuators. In `POSITION` mode, the requested aperture becomes the
+direct actuator command without slewing or engagement limits. Diagnostic
+measurements confirmed:
+
+- finger stiffness: 800 N/m (gainprm[0], model-derived)
+- object mass: 0.005 kg (5 g); required grip force per pad: 0.0245 N
+- peak force during closure: 4.57 N
+- fingers closed almost fully after closure (qpos ≈ 0.0001), showing
+ejection
+- morphology unchanged; collision unchanged
+
+Friction sweeps showed no systematic relationship between friction and grasp
+quality, so the design deliberately holds friction constant.
+
+## 3. Experimental design
+
+The current control (CONTROL A, POSITION mode) is compared against a bounded
+gripper controller (CONTROL B, BOUNDED mode) with contact-width engagement
+limits and no slew by default. Only gripper control varies; collision, friction,
+geometry, policy grid, sensor config, cameras, masses and randomisation stay
+fixed. Both controllers run against the same policy on seeds [1, 2, 3, 4, 5].
+
+## 4. Controller implementation
+
+A new `GripperController` (`src/robot_ci/control/gripper.py`) provides:
+
+- `reset()`
+- `command_open()`
+- `command_close(contact_width_m)`
+- `step(requested_width_m, measured_width_m)`
+- `get_state()`
+- `get_diagnostics()`
+
+The controller floors the requested aperture so the resulting contact force
+cannot exceed the target. Since the actuator is position-controlled, the force
+limit is translated to an engagement limit as `e_max = F_max / k`. The target
+aims to stay within force budget, with the collision model unchanged. A slew
+mechanism exists but is off by default, so closing dynamics are isolated from
+the penetration/force effect. Mode selection is via `gripper_control_mode`,
+defaulting to POSITION for exact backward compatibility; the configuration
+preserves pre-existing `max_gripper_force_n` behavior while adding the
+small, documented controller-specific target.
+
+## 5. Seed selection
+
+The experiment uses exactly seeds [1-5]: the same dataset previously showing
+negative lift, instability, launch and success cases. This ensures the results
+are directly informative about the known failure modes rather than randomly
+sampled cases.
+
+## 6. Measurements
+
+Where possible, metrics exposed include:
+
+- Gripper: commanded aperture, actual finger position, finger separation,
+contact detection, contact count, actuator force from the solver (no inferred
+force metric)
+- Object: position before/after close, displacement, object height while
+contacted, launch detection, negative lift detection; object speed is tracked
+but presently requires validation because the velocity-index estimate may not
+be tied correctly to the object's free-joint DOFs
+- Control: closure diagnostics and maximum commanded/measured engagement
+
+If a metric cannot be obtained from MuJoCo, it is reported as unavailable,
+not copied or fabricated.
+
+## 7. Comparison (CONTROL A vs CONTROL B)
+
+Position control (CONTROL A: 5 seeds x 1 controller):
+
+- peak forces around 4.3-4.6 N (and one spike to 13.895 N on seed 3)
+- commanded engagement consistently ~15.80 mm
+- held heights varied by seed (30.1, 56.7, 1.4, 33.2, 122.3 mm)
+- seed 3 displaced ~389.5 mm; seed 5 launched 35,394.2 mm (True launch)
+
+Bounded control (CONTROL B: 5 seeds x 4 force targets):
+
+- target force 0.25 N: peak forces ~1.0-1.2 N (except seed 3 spike); held:
+0.0, 74.0, 0.1, 33.2, 80.5 mm; commanded engagement only 0.63 mm; no launches
+- target force 0.50 N: same ~1.0 N forces; held: -0.0, 86.2, 0.1, -0.0, 120.7
+mm (seed 5 launched); engagement 1.25 mm; no other launches
+- target force 1.00 N: held: -0.0, 97.4, 0.1, 33.8, 122.4 mm (seed 5
+launched); engagement 2.50 mm; no other launches
+- target force 2.00 N: held: 0.0, 75.1, 0.1, 33.3, 122.6 mm (seed 5 launched);
+engagement 5.00 mm; no other launches
+
+Bounded control cut peak forces on the main seeds (e.g. seed 1 from 4.6 N to
+~1.2 N). The 13.895 N spike on seed 3 appears in CONTROL A and all CONTROL B
+settings, indicating that this severe transient is independent of the gripper
+force bound. Removing excessive penetration therefore did not remove the
+seed-3 instability.
+
+Seed 5 continued to launch at every bounded force setting. Boundedness did not
+prevent this. This behavior is seed-specific rather than being caused by the
+gripper controller. The comparison therefore neither broadly improves nor
+worsens grasp stability: it creates different seed-dependent outcomes.
+
+## 8. Interpretation
+
+The penetration → force → motion chain is measurable, but the bounded-force
+intervention does not uniformly stabilize the object:
+
+- bounded mode substantially reduces commanded engagement (15.80 mm →
+0.63-5.00 mm depending on force target)
+- bounded mode reduces measured peak finger force on most seeds by about a
+factor of four relative to CONTROL A
+- grasp success remains seed-dependent; bounded control improves some seeds
+(seeds 2, 5 in height) but leaves others unchanged or worse (seeds 1, 4 show
+zero/to-low held height), while seed 3 remains a large uncontrolled transient
+- object launch persists for seed 5 across every controller/force setting,
+suggesting that its instability arises from a different mechanism than the
+bounded penetration budget
+
+Therefore, excessive commanded closure is one contributor, but eliminating it
+is not sufficient to produce a robust grasp: **the force/penetration hypothesis
+is not sufficient.**
+
+## 9. Limitations
+
+- The velocity metric should be rechecked: `qvel[6:9]` may include coupled
+actuator DOFs rather than the target object's translational velocity, so peak
+speed numbers should not be used as quantitative object motion evidence until
+corrected using MuJoCo's COM velocity (`cvel`) or the free-joint DOF indices.
+- The experiment reduces `max_steps` to 90 in a smoketest only; for the final
+verification, the same 300-step production configuration should be repeated if
+needed.
+- The ramp (slew) remains off. A future experiment could test approach
+velocity separately, but it was intentionally held constant here.
+- The 1.0 N force target had been a default; the sweep explicitly tests
+0.25-2.0 N. The current evidence does not justify changing the production
+default away from POSITION mode.
+
+## 10. Conclusion
+
+The controlled 5 × 2 comparison shows that bounded gripper control reduces
+commanded and measured engagement and substantially lowers contact force on
+most seeds while preserving genuine contact, but it does not produce
+consistent improvement or prevent seed-specific launch behavior.
+
+So the result supports a narrower conclusion:
+
+> Excessive contact/penetration is a contributor, but it is not sufficient to
+explain the observed seed-dependent instability.
+
+The existing production task result remains:
+
+```text
+task_success = 0.000
+```

@@ -23,6 +23,7 @@ from typing import Any
 
 import numpy as np
 
+from robot_ci.control.gripper import GripperController
 from robot_ci.core.errors import BackendUnavailableError, SimulationError
 from robot_ci.core.logging import get_logger
 from robot_ci.core.seeding import derive_seed
@@ -317,7 +318,10 @@ class MuJoCoBackend(SimulatorBackend):
 
         home = scenario.robot.home_array()
         self._write_arm(model, data, home, teleport=True)
-        self._write_gripper(model, data, scenario.robot.max_gripper_width_m)
+        gripper_controller = self._make_gripper_controller(model, scenario)
+        self._write_gripper(
+            model, data, scenario.robot.max_gripper_width_m, controller=gripper_controller
+        )
         self._settle_objects(model, data, scenario, episode_seed)
         mujoco.mj_forward(model, data)
 
@@ -335,6 +339,7 @@ class MuJoCoBackend(SimulatorBackend):
                 "decay_rng": np.random.default_rng(derive_seed(episode_seed, "mujoco", "decay")),
                 "max_steps": scenario.task.max_steps,
                 "gripper_target": scenario.robot.max_gripper_width_m,
+                "gripper_controller": gripper_controller,
             }
         )
         self._active[handle.episode_id] = handle._opaque
@@ -414,14 +419,33 @@ class MuJoCoBackend(SimulatorBackend):
                 data.qpos[model.jnt_qposadr[jid]] = value
                 data.qvel[model.jnt_dofadr[jid]] = 0.0
 
-    def _write_gripper(self, model: Any, data: Any, width_m: float) -> None:
+    def _write_gripper(
+        self,
+        model: Any,
+        data: Any,
+        width_m: float,
+        *,
+        controller: Any = None,
+    ) -> None:
         """Command the gripper to an aperture of ``width_m``.
 
         The vendored model drives both finger joints with a single symmetric
         actuator, where 0 is closed and 0.04 each is fully open, so the
         commanded value is half the requested aperture.
+
+        When a :class:`~robot_ci.control.gripper.GripperController` is supplied
+        it is given the request and the measured aperture, and *it* decides what
+        to write. In POSITION mode it returns the request unchanged, so the
+        actuator sees exactly the same signal as before the controller existed;
+        in BOUNDED mode it floors the request so the position error, and
+        therefore the contact force, cannot exceed the configured target.
         """
         mujoco = self._mujoco
+        if controller is not None:
+            width_m = controller.step(
+                requested_width_m=float(width_m),
+                measured_width_m=self._finger_width(model, data),
+            )
         aperture = max(0.0, min(0.04, width_m / 2.0))
         written = 0
         for joint_name in ("finger_joint1", "finger_joint2"):
@@ -437,6 +461,55 @@ class MuJoCoBackend(SimulatorBackend):
                 "no actuator drives a finger joint; the gripper cannot be commanded",
                 code="simulation.gripper_unactuated",
             )
+
+    def _finger_stiffness(self, model: Any) -> float:
+        """Return the finger actuator's stiffness in newtons per metre.
+
+        The fingers are driven by `general` actuators with a fixed gain, so the
+        stiffness *is* ``gainprm[0]``. It is read from the compiled model rather
+        than written down because it is the constant that turns a position bound
+        into a force bound: hard-coding it would silently mean the wrong force
+        on any other model, which is the class of error this whole controller
+        exists to remove.
+        """
+        mujoco = self._mujoco
+        for index in range(model.nu):
+            if int(model.actuator_trntype[index]) not in (0, 1, 2):
+                continue
+            jid = int(model.actuator_trnid[index, 0])
+            name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_JOINT, jid) or ""
+            if "finger" in name:
+                return float(model.actuator_gainprm[index][0])
+        raise SimulationError(
+            "no joint actuator drives a finger; the gripper stiffness is unknown",
+            code="simulation.gripper_unactuated",
+        )
+
+    def _make_gripper_controller(self, model: Any, scenario: ScenarioConfig) -> GripperController:
+        """Build the episode's gripper controller from the model and the config.
+
+        The contact width comes from the scenario's target object, so the force
+        bound is expressed relative to the thing actually being gripped rather
+        than to a constant.
+        """
+        robot = scenario.robot
+        target = scenario.target
+        contact_width = 2.0 * float(target.size_m) if target is not None else None
+        controller = GripperController(
+            mode=robot.gripper_control_mode,
+            stiffness_n_per_m=self._finger_stiffness(model),
+            target_contact_force_n=robot.gripper_target_contact_force_n,
+            max_closure_speed_m_s=robot.gripper_max_closure_speed_m_s,
+            control_dt_s=1.0 / robot.control_hz,
+            open_width_m=robot.max_gripper_width_m,
+            closed_width_m=float(robot.gripper_closed_separation_m),
+            closure_ramp_enabled=bool(robot.gripper_closure_ramp_enabled),
+        )
+        controller.reset(
+            commanded_width_m=robot.max_gripper_width_m,
+            contact_width_m=contact_width,
+        )
+        return controller
 
     def _settle_objects(self, model: Any, data: Any, scenario: ScenarioConfig, seed: int) -> None:
         """Jitter and re-settle object poses from the episode seed.
@@ -519,10 +592,14 @@ class MuJoCoBackend(SimulatorBackend):
                     code="simulation.bad_action_shape",
                 )
             self._write_arm(model, data, robot.limits.clamped(targets) * action.scale)
-            self._write_gripper(model, data, float(action.gripper_width_m or 0.0))
+            self._write_gripper(
+                model, data, float(action.gripper_width_m or 0.0), controller=state.get("gripper_controller")
+            )
             state["gripper_target"] = float(action.gripper_width_m or 0.0)
         elif action.type is ActionType.GRIPPER:
-            self._write_gripper(model, data, float(action.gripper_width_m or 0.0))
+            self._write_gripper(
+                model, data, float(action.gripper_width_m or 0.0), controller=state.get("gripper_controller")
+            )
             state["gripper_target"] = float(action.gripper_width_m or 0.0)
         elif action.type is ActionType.CARTESIAN_DELTA:
             # Without an IK solver in Phase 1, a Cartesian command is projected

@@ -47,6 +47,32 @@ class ControllerType(str, Enum):
     """Cartesian impedance control; requires a compliant model."""
 
 
+class GripperControlMode(str, Enum):
+    """How a requested aperture is turned into finger actuator commands.
+
+    The distinction matters because the fingers are driven by *position*
+    actuators with a finite stiffness. Asking such an actuator for a separation
+    smaller than the object is asking for a position error, and a position error
+    times a stiffness is a force -- an unbounded one, up to the actuator's force
+    limit, with no relationship to how much force the object needs.
+    """
+
+    POSITION = "position"
+    """Write the requested aperture straight through, as before.
+
+    Simple and faithful to the request, but the contact force is whatever the
+    resulting position error produces. For an object this light that can be two
+    orders of magnitude more than is needed to hold it.
+    """
+    BOUNDED = "bounded"
+    """Bound the commanded engagement so contact force cannot exceed a target.
+
+    The fingers are still position-actuated and the collision model is
+    untouched; only the requested aperture is floored, so that the position
+    error can never exceed ``force / stiffness``.
+    """
+
+
 class JointLimits(VersionedModel):
     """Symmetric per-joint limits in radians."""
 
@@ -270,6 +296,55 @@ class RobotConfig(VersionedModel):
     control_hz: float = Field(default=20.0, gt=0.0, le=1000.0, description="Control loop rate in Hz.")
     max_gripper_width_m: float = Field(default=0.08, gt=0.0, le=0.5, description="Fully open aperture in metres.")
     max_gripper_force_n: float = Field(default=20.0, gt=0.0, le=500.0, description="Peak closing force in N.")
+    gripper_control_mode: GripperControlMode = Field(
+        default=GripperControlMode.POSITION,
+        description=(
+            "How a requested aperture becomes finger actuator commands. "
+            "POSITION writes the request through unchanged; BOUNDED floors the "
+            "requested aperture so the resulting contact force cannot exceed "
+            "`gripper_target_contact_force_n`. POSITION is the default so that "
+            "existing results are reproduced exactly unless a run asks for "
+            "bounded contact control."
+        ),
+    )
+    gripper_target_contact_force_n: float = Field(
+        default=1.0,
+        gt=0.0,
+        le=100.0,
+        description=(
+            "Contact force the BOUNDED mode is allowed to apply per finger, in "
+            "newtons. Converted to an engagement using the finger actuator's "
+            "measured stiffness, so this is a force limit rather than a "
+            "position limit: `engagement = force / stiffness`. The object in "
+            "the default scene weighs 0.049 N, so holding it needs about "
+            "1/40th of the default; the value is a controller parameter and is "
+            "swept in the bounded-contact experiment rather than assumed."
+        ),
+    )
+    gripper_max_closure_speed_m_s: float = Field(
+        default=0.05,
+        gt=0.0,
+        le=10.0,
+        description=(
+            "Slew rate for BOUNDED mode when `gripper_closure_ramp_enabled` is "
+            "set, in metres per second. Full travel of ~69 mm therefore takes "
+            "about 28 steps at the default 20 Hz, which bounds the impulse "
+            "delivered to the object. Unused by POSITION mode, which writes a "
+            "step."
+        ),
+    )
+    gripper_closure_ramp_enabled: bool = Field(
+        default=False,
+        description=(
+            "Whether BOUNDED mode ramps the commanded aperture instead of "
+            "stepping it. Off by default, and deliberately so: ramping and "
+            "bounding are two different mechanisms -- one limits the impulse at "
+            "contact, the other limits the steady-state force -- and changing "
+            "both at once makes the result unattributable. The bounded-contact "
+            "experiment holds the ramp off so that the force bound is measured "
+            "on its own. Turning it on is a separate experiment."
+        ),
+    )
     has_force_torque: bool = Field(default=True, description="Whether a wrist F/T sensor is modelled.")
 
     @classmethod

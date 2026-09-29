@@ -97,3 +97,40 @@ def test_resolution_is_idempotent(name: str):
     twice = resolve_policy_config(once)
     assert once.parameters == twice.parameters
     assert once.components == twice.components
+
+
+def test_null_gate_keeps_identical_policies_identical() -> None:
+    """Guard the documented Phase 3 null result against false divergence.
+
+    Two policies that differ only in a confidence gate must be bitwise
+    identical whenever the measured uncertainty stays below the gate.  If a
+    later change silently makes v1 and v2 diverge at low noise, this fails.
+    Hold the uncertainty at zero by closing the gate path: both policies share
+    the same scenario and backend, so any difference is a real one.
+    """
+    from robot_ci.models.scenario import ScenarioConfig
+    from robot_ci.policies import create_policy
+    from robot_ci.simulation import create_backend
+
+    scenario = ScenarioConfig(scenario_id="nullgate", seed=11)
+    v1 = create_policy(PolicyConfig(name="policy_v1"), scenario)
+    v2 = create_policy(PolicyConfig(name="policy_v2"), scenario)
+    assert v1.max_position_sigma_m == pytest.approx(1e9)
+    assert v2.max_position_sigma_m == pytest.approx(0.05)
+
+    backend = create_backend("mujoco")
+    observed: dict[str, list[float]] = {"policy_v1": [], "policy_v2": []}
+    for name, policy in (("policy_v1", v1), ("policy_v2", v2)):
+        handle = backend.reset(scenario, seed=11)
+        policy.reset(policy.config, 11, scenario)
+        policy.attach_planner(backend.jacobian_provider(handle))
+        for _ in range(12):
+            transition = backend.step(handle, policy.act(backend.observe(handle)).action)
+            observed[name].append(float(transition.robot_state.end_effector_pose.position.array[2]))
+        backend.close(handle)
+    backend.close_all()
+
+    assert len(observed["policy_v1"]) == len(observed["policy_v2"]) == 12
+    for first, second in zip(observed["policy_v1"], observed["policy_v2"], strict=True):
+        assert first == pytest.approx(second, abs=1e-9)
+

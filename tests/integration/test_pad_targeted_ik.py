@@ -680,3 +680,80 @@ def test_finger_contact_resolved_by_body_not_geom_name(scene):
     assert mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "target_cube") >= 0
     assert backend._is_grasped(model, data, "target_cube") is False
 
+
+
+# ---------------------------------------------------------------------------
+# Gripper contact-control integration: the controller must stay tied to the
+# model it runs on, and POSITION mode must be indistinguishable from the bare
+# write path it replaces.
+# ---------------------------------------------------------------------------
+
+
+def test_finger_stiffness_is_read_from_the_model(scene):
+    """The actuator mapping stays model-derived, not hard-coded.
+
+    The helper must find the stiffness by joint name, and the number it returns
+    must equal the finger actuator's own gain. If the vendored model changes,
+    the force bound follows it instead of silently meaning the wrong force.
+    """
+    backend, _handle, model, _data = scene
+    stiffness = backend._finger_stiffness(model)
+    # Cross-check against a direct read: first joint-type actuator whose joint
+    # carries a finger in its name.
+    expected = None
+    for index in range(model.nu):
+        if int(model.actuator_trntype[index]) not in (0, 1, 2):
+            continue
+        name = mujoco.mj_id2name(
+            model, mujoco.mjtObj.mjOBJ_JOINT, int(model.actuator_trnid[index, 0])
+        ) or ""
+        if "finger" in name:
+            expected = float(model.actuator_gainprm[index][0])
+            break
+    assert expected is not None
+    assert stiffness == pytest.approx(expected)
+    assert stiffness > 0.0, "a non-positive stiffness would invert the force bound"
+
+
+def test_position_mode_writes_the_request_unchanged(scene):
+    """POSITION mode is bit-for-bit the old `_write_gripper` behaviour.
+
+    Regression safety for the experiment: with the default config every test,
+    and every previously recorded number, exercises the controller in POSITION
+    mode, so the controller must be observably identical to no controller at
+    all.
+    """
+    backend, handle, model, data = scene
+    controller = backend._make_gripper_controller(model, handle.scenario)
+    assert controller.mode.value == "position"
+
+    f1 = backend._actuator_for_joint(
+        model, mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "finger_joint1")
+    )
+    for width in (0.08, 0.04, 0.016, 0.0002, 0.0):
+        backend._write_gripper(model, data, width, controller=controller)
+        assert float(data.ctrl[f1]) == pytest.approx(max(0.0, min(0.04, width / 2.0)))
+
+
+def test_bounded_controller_floors_on_the_real_model(scene):
+    """The bound is enforced through the real backend, not just in the pure unit.
+
+    A request far below the object width must come back as the derived floor,
+    computed from this model's stiffness rather than any constant.
+    """
+    backend, _handle, model, _data = scene
+    from robot_ci.models.robot import GripperControlMode
+
+    scenario = ScenarioConfig(scenario_id="graspregress", seed=1)
+    robot = scenario.robot.model_copy(
+        update={"gripper_control_mode": GripperControlMode.BOUNDED}
+    )
+    bounded_scenario = scenario.model_copy(update={"robot": robot})
+    controller = backend._make_gripper_controller(model, bounded_scenario)
+
+    contact_width = 2.0 * float(scenario.target.size_m)
+    requested = 0.0002
+    out = controller.step(requested_width_m=requested, measured_width_m=0.08)
+    expected = contact_width - 2.0 * (robot.gripper_target_contact_force_n / controller.stiffness_n_per_m)
+    assert out == pytest.approx(max(expected, float(robot.gripper_closed_separation_m)))
+    assert out > requested, "the floor must lift a deep request, not accept it"
