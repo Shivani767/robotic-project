@@ -1,12 +1,15 @@
 """Audit the compiled model's collision semantics.
 
-Reports every geom's body, contype and conaffinity, then measures which
-pairs actually generate contacts. Written to answer three questions with
-evidence rather than assumption:
+Reports every geom's body, contype and conaffinity, then measures which pairs
+actually generate contacts. Written to answer three questions with evidence
+rather than assumption:
 
 1. What masks does the compiled model actually carry?
 2. Is a relaxation applied before or after the broadphase is built?
 3. Does a deliberately relaxed pair really stop contacting?
+
+Run with:
+    .venv/bin/python scripts/audit_collision.py
 """
 
 from __future__ import annotations
@@ -21,151 +24,112 @@ import numpy as np
 
 from robot_ci.models.scenario import ScenarioConfig
 from robot_ci.simulation import create_backend
-from robot_ci.simulation.mujoco_env import _CONAFFINITY, _CONTYPE
-
-ARM_GEOM_BODIES = ("link", "hand", "finger")
+from robot_ci.simulation.mujoco_env import _CONAFFINITY, _CONTYPE, _is_arm_body
 
 
-def body_of(model, geom_id: int) -> str:
-    return mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[geom_id])) or "world"
+def _body(model, geom_id: int) -> str:
+    """Name of the body a geom belongs to."""
+    return (
+        mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[geom_id]))
+        or "world"
+    )
 
 
-def is_arm(body: str) -> bool:
-    return body.startswith("link") or body in {"hand", "left_finger", "right_finger"}
+def _classify(model, geom_id: int) -> str:
+    """Classify a geom as arm, world, or by its body name."""
+    body = _body(model, geom_id)
+    return "arm" if _is_arm_body(body) else body
 
 
-def dump_masks(model) -> list[tuple[int, str, str, int, int]]:
+def _masks(model) -> list[tuple[str, str, int, int]]:
+    """Return (class, geom name, contype, conaffinity) for every geom."""
     rows = []
     for gid in range(model.ngeom):
         name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, gid) or f"<mesh {gid}>"
-        body = body_of(model, gid)
-        rows.append((gid, name, body, int(model.geom_contype[gid]), int(model.geom_conaffinity[gid])))
+        rows.append(
+            (
+                _classify(model, gid),
+                name,
+                int(model.geom_contype[gid]),
+                int(model.geom_conaffinity[gid]),
+            )
+        )
     return rows
 
 
-def pair_contacts(model, data, q, g1: int, g2: int) -> tuple[int, float]:
-    """Place the arm at ``q`` and measure contacts between two geoms.
-
-    Returns:
-        ``(count, min_distance)`` where ``count`` is the number of active
-        contacts between the pair over 20 physics substeps and ``min_distance``
-        is the deepest penetration seen (``-inf`` when there is none).
-    """
+def _arm_qpos(model, data, q: np.ndarray) -> None:
+    """Place the arm at q, addressing joints by name."""
     for index in range(7):
         jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, f"joint{index + 1}")
         if jid >= 0:
             data.qpos[model.jnt_qposadr[jid]] = float(q[index])
     data.qvel[:] = 0.0
-    count, deepest = 0, float("inf")
-    for _ in range(20):
-        mujoco.mj_step(model, data)
-        for c in range(data.ncon):
-            pair = {int(data.contact[c].geom1), int(data.contact[c].geom2)}
-            if pair == {g1, g2}:
-                count += 1
-                deepest = min(deepest, float(data.contact[c].dist))
-    return count, deepest
 
 
 def main() -> int:
+    """Print the collision audit."""
     print("=" * 78)
-    print("1. DECLARED SCENE CLASSES (from mujoco_env)")
+    print("1. DECLARED SCENE CLASSES")
     print("=" * 78)
     for name, ct in _CONTYPE.items():
-        print(f"   {name:<8} contype=0b{ct:05b} ({ct:>3})  conaffinity=0b{_CONAFFINITY[name]:05b} ({_CONAFFINITY[name]:>3})")
+        print(
+            f"   {name:<8} contype={ct:>3}  conaffinity={_CONAFFINITY[name]:>3}"
+        )
 
     backend = create_backend("mujoco")
     handle = backend.reset(ScenarioConfig(), seed=5)
     model, data = handle._opaque["model"], handle._opaque["data"]
+    rows = _masks(model)
 
     print()
     print("=" * 78)
-    print("2. COMPILED MODEL: arm geom masks (after any post-compile edit)")
+    print("2. COMPILED MODEL: distinct mask signatures")
     print("=" * 78)
-    rows = dump_masks(model)
-    arm_rows = [r for r in rows if is_arm(r[2])]
-    world_rows = [r for r in rows if r[2] in {"world", "target_cube"}]
-    print(f"   arm geoms: {len(arm_rows)}   world/object geoms: {len(world_rows)}")
-    for gid, name, body, ct, ca in arm_rows[:6]:
-        print(f"   {name:<22} body={body:<14} ct=0b{ct:05b} ca=0b{ca:05b}")
-    print("   ...")
-    for gid, name, body, ct, ca in arm_rows[-3:]:
-        print(f"   {name:<22} body={body:<14} ct=0b{ct:05b} ca=0b{ca:05b}")
-    print()
-    for gid, name, body, ct, ca in world_rows:
-        print(f"   {name:<22} body={body:<14} ct=0b{ct:05b} ca=0b{ca:05b}")
-
-    # Distinct mask signatures.
-    sig = {}
-    for gid, name, body, ct, ca in arm_rows:
-        sig.setdefault((ct, ca), []).append(body)
-    print()
-    print("   distinct arm mask signatures:")
-    for (ct, ca), bodies in sorted(sig.items()):
-        print(f"      ct=0b{ct:05b} ca=0b{ca:05b}  ->  {len(bodies)} geoms, bodies {sorted(set(bodies))}")
+    signatures: dict[tuple[str, int, int], int] = {}
+    for cls, _name, ct, ca in rows:
+        signatures[(cls, ct, ca)] = signatures.get((cls, ct, ca), 0) + 1
+    for (cls, ct, ca), count in sorted(signatures.items()):
+        print(f"   {cls:<12} contype={ct:<3} conaffinity={ca:<3}  x{count}")
 
     print()
     print("=" * 78)
-    print("3. COLLISION RULE CHECK  (contact iff (ctA & caB) or (ctB & caA))")
+    print("3. MASK ARITHMETIC  (contact iff (ctA & caB) or (ctB & caA))")
     print("=" * 78)
 
-    def hit(a, b):
-        return bool((a[0] & b[1]) or (b[0] & a[1]))
+    def allows(a: str, b: str) -> bool:
+        ct_a, ca_a = _CONTYPE[a], _CONAFFINITY[a]
+        ct_b, ca_b = _CONTYPE[b], _CONAFFINITY[b]
+        return bool((ct_a & ca_b) or (ct_b & ca_a))
 
-    def sample(kind):
-        for gid, name, body, ct, ca in rows:
-            if kind == "arm" and is_arm(body):
-                return (ct, ca), name, body
-            if kind == "object" and body == "target_cube":
-                return (ct, ca), name, body
-            if kind == "world" and body == "world":
-                return (ct, ca), name, body
-        raise KeyError(kind)
-
-    arm_m, arm_n, arm_b = sample("arm")
-    obj_m, obj_n, _ = sample("object")
-    wld_m, wld_n, _ = sample("world")
-    print(f"   arm    {arm_n:<20} ({arm_b})  ct=0b{arm_m[0]:05b} ca=0b{arm_m[1]:05b}")
-    print(f"   object {obj_n:<20}          ct=0b{obj_m[0]:05b} ca=0b{obj_m[1]:05b}")
-    print(f"   world  {wld_n:<20}          ct=0b{wld_m[0]:05b} ca=0b{wld_m[1]:05b}")
-    print()
-    print(f"   arm    vs arm    -> masks allow contact: {hit(arm_m, arm_m)}   (want False)")
-    print(f"   arm    vs object -> masks allow contact: {hit(arm_m, obj_m)}   (want True)")
-    print(f"   arm    vs world  -> masks allow contact: {hit(arm_m, wld_m)}   (want True)")
-    print(f"   object vs world  -> masks allow contact: {hit(obj_m, wld_m)}   (want True)")
+    for a, b, want in (
+        ("arm", "arm", False),
+        ("arm", "object", True),
+        ("arm", "world", True),
+        ("object", "world", True),
+    ):
+        got = allows(a, b)
+        print(f"   {a:<7} vs {b:<7} -> {got!s:<5} (want {want!s:<5}) {'OK' if got == want else 'FAIL'}")
 
     print()
     print("=" * 78)
-    print("4. EMPIRICAL: find a configuration where link2 and link5 actually contact")
+    print("4. EMPIRICAL: arm-vs-arm contacts over 400 random configurations")
     print("=" * 78)
-    g2 = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "link2_geom")
-    g5 = None
-    for gid, name, body, ct, ca in rows:
-        if body == "link5" and name.endswith(("_collision", "hand_c")) or (body == "link5" and "collision" in name):
-            g5 = gid
-            break
-    if g5 is None:
-        g5 = next(r[0] for r in rows if r[2] == "link5")
-    print(f"   link2_geom id={g2}  link5 geom id={g5} ({rows[g5][1]})")
-
-    lo = model.jnt_range[:7, 0].copy()
-    hi = model.jnt_range[:7, 1].copy()
-    found, tested = None, 0
-    for seed in range(4000):
-        q = np.random.default_rng(seed).uniform(lo, hi)
-        c, _d = pair_contacts(model, data, q, g2, g5)
-        tested += 1
-        if c:
-            found = (seed, q.copy(), c)
-            break
-    if found is None:
-        print(f"   no link2<->link5 contact found in {tested} random configurations")
-    else:
-        seed, q, c = found
-        print(f"   FOUND at seed {seed}: {c} contact steps between the pair")
-        print(f"   q = {np.round(q, 4).tolist()}")
-        print("   -> a seed is available; re-run the audit after relaxing to prove")
-        print("      the same seed produces zero contacts.")
+    jids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, f"joint{i + 1}") for i in range(7)]
+    lo = np.array([model.jnt_range[j, 0] for j in jids])
+    hi = np.array([model.jnt_range[j, 1] for j in jids])
+    arm_pairs = 0
+    total = 0
+    for seed in range(400):
+        _arm_qpos(model, data, np.random.default_rng(seed).uniform(lo, hi))
+        mujoco.mj_forward(model, data)
+        for c in range(data.ncon):
+            total += 1
+            if _classify(model, int(data.contact[c].geom1)) == "arm" and _classify(
+                model, int(data.contact[c].geom2)
+            ) == "arm":
+                arm_pairs += 1
+    print(f"   total contacts {total}, arm-vs-arm {arm_pairs}")
+    print(f"   relaxation effective: {arm_pairs == 0}")
 
     backend.close_all()
     return 0

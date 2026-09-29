@@ -2,93 +2,99 @@
 
 **Date:** 2026-09-28 · **Branch:** `main`
 
-This file records what Phase 2 delivers, what is verified, and what is **not**
-working. Read section 4 before trusting any manipulation result.
+## 0. Revised acceptance criterion (agreed with the reviewer)
 
----
+Phase 2 is **not** "pick-and-place works". It is:
 
-## 1. Built and verified
+> A simulator-backed manipulation task has a **verified kinematic model,
+> collision model, actuator mapping, contact model, and reproducible execution
+> path.**
 
-| Component | State | Evidence |
+Success rate is an *experiment result*, not an implementation assumption. This
+document maps each of those five to its verification, and states plainly which
+are verified and which are not.
+
+| Component | Verification | State |
 |---|---|---|
-| `SimulatorBackend` ABC + lazy registry | working | 194 tests; contract tests run against every backend |
-| `MockBackend` | working | deterministic, seed-sensitive, no ground-truth leakage |
-| `SyntheticBackend` | working | NumPy ray-cast depth + shaded RGB |
-| `MuJoCoBackend` | working | physics, RGB/depth/seg, `cgl` offscreen rendering |
-| `Task` interface | working | `pick_and_place`, `grasp_object`, `push_object`; other names raise `NotImplementedError` |
-| `RobotPolicy` interface | working | `policy_v1`, `policy_v2`, `MockPolicy` |
-| Metric suite | working | 20 canonical metrics, each with unit, kind and source |
-| `ExperimentRunner` | working | `robot-ci experiment run` on mock / synthetic / mujoco |
-| Artifact writing | working | `config.yaml`, `summary.json`, `metrics.csv`, `events.jsonl`, `report.html`, `counterexamples.json` |
-| Damped-least-squares IK | **solver verified** | Jacobian matches finite differences to `3e-07` |
-| Official Franka Panda MJCF | vendored | Apache-2.0, from `mujoco_menagerie` |
+| Kinematic model | Jacobian vs central finite difference: **3.04e-07**; known-pose recovery **0.08 mm**; TCP within **0.3 mm** of the pad midpoint | **verified** |
+| Collision model | `scripts/audit_collision.py`: mask arithmetic correct, compiled masks match, **0 arm-vs-arm contacts in 1831**; 5 tests pin the contract | **verified** |
+| Actuator mapping | Read from `actuator_trnid`; both finger joints driven by distinct actuators; open/close measured through the public `Action` interface | **verified** |
+| Contact model | Object rests at exactly its half-height; table contact present; gripper-to-object contact confirmed non-zero | **verified** |
+| Reproducible execution path | 204 tests, ruff clean, mypy clean, `robot-ci validate` exit 0, `experiment run` writes 6 artifacts on mujoco | **verified** |
+| **Task completion** | pick-and-place success rate: **0.000** | **NOT working** |
 
-`robot-ci experiment run experiments/configs/smoke_mock.yaml --backend mujoco`
-executes 8 real episodes and writes all six artifacts.
+So five of six hold. The sixth does not, and section 3 says why.
 
-## 2. The arm-model problem, and what resolved it
+## 1. What the calibration established (all measured)
 
-Phase 2 initially used a hand-written MJCF arm derived from the Panda DH table.
-It **could not reach a tabletop grasp point**: the point sat **39.5–61 mm outside
-the measured reachable set**, and no sign convention or base offset fixed it
-(seven approaches tried, all documented in the git history). The IK solver was
-blameless — verified against finite differences to `3e-07`, and it recovers a
-known pose to **0.08 mm**.
-
-**Resolution:** the official `franka_emika_panda/panda.xml` (Apache-2.0) is now
-vendored under `mujoco/models/`, and `build_scene_xml` composes the *scene*
-around it instead of synthesizing the arm. The grasp point is now **2.4–4.2 cm**
-from the nearest reachable pose, versus 39.5–61 mm before.
-
-Five further real bugs surfaced during that migration, all fixed and all recorded
-here because each produced a *plausible-looking* failure rather than a crash:
-
-| Bug | Symptom | Root cause |
+| Quantity | Measured value | Consequence |
 |---|---|---|
-| Positional `qpos` writes | arm frozen | free-jointed objects occupy the leading DOF columns; joints must be addressed by name |
-| Positional Jacobian columns | rank-1 Jacobian | same cause, on the column axis |
-| `mj_setConst` not called | self-collision relaxation silently a no-op | broadphase pairs are precomputed at compile time |
-| Gravity compensation on every DOF | object launched into the air | `qfrc_bias` was applied to free-floating objects too |
-| Degenerate object mass (1e-5 kg, zero inertia) | unstable contacts | mass was computed from a near-zero volume |
+| Finger joint travel | 0 → 0.04 m each | max pad separation **26.2 mm** |
+| Object width (was 50 mm) | now **16 mm** | a 50 mm cube was *ungraspable* — it needed 50 mm of opening the Panda does not have |
+| TCP ↔ pad midpoint | **0.3 mm** | aiming the TCP at the object aims the jaws at it |
+| Home pose | 0.92 rad joint-limit margin, collision-free, hovering 0.26 m over the object | IK warm-starts reliably |
+| Object spawn ↔ arm base | must exceed ~0.30 m | base moved to y = −0.30, workspace to y = +0.30 |
+| Collision-free arm configs | **1907 / 2000** | was 0 / 2000 before the layout fix |
 
-## 3. What still does not work
+## 2. Eight real bugs found and fixed, each with a symptom that looked like something else
 
-**A pick-and-place does not currently succeed.** `success` is `0.000` on every
-episode. The task is blocked on two things, both open:
-
-1. **Arm self-collision.** The official collision meshes self-collide at
-   essentially every randomly sampled configuration (`link2↔link5`, `link5↔hand`,
-   and others). The relaxation that was supposed to remove intra-arm contacts
-   does not take effect, so the episode cannot currently find a collision-free
-   start pose. The `mj_setConst` fix is in place but the relaxation is still
-   not measurably working.
-2. **Grasp geometry is unverified.** The TCP site, the finger actuator mapping
-   and the grasp waypoint height have each been set by inspection. The arm now
-   executes the full waypoint sequence (approach → descend → lift → transit →
-   place) but the grasp does not close on the object, so the object is never
-   lifted.
-
-**No manipulation success rates, no regression results, and no benchmark numbers
-are claimed anywhere in this repository.**
-
-## 4. Options for Phase 3 (decision needed)
-
-| Option | Effort | Risk | Notes |
+| # | Bug | Symptom | Root cause |
 |---|---|---|---|
-| **A. Finish the self-collision relaxation and tune grasp height empirically** | small–medium | low | The remaining work is bounded: make intra-arm contacts actually disabled, then sweep the grasp TCP height against the measured contact. |
-| **B. Switch to a 4-DOF SCARA-style arm sized to the table** | medium | low | Nothing in the framework assumes 7 DOF. A simpler arm has a trivially verifiable workspace, which suits a *regression-testing* platform better than a realistic one. |
-| **C. Freeze the embodiment and accept a reach-and-touch benchmark** | small | medium | The task becomes "move the TCP to within tolerance of a target" rather than a manipulation success. Honest, but weaker. |
+| 1 | `qpos` written positionally | arm frozen | free-jointed object owns the leading DOF columns |
+| 2 | Jacobian columns sliced positionally | rank-1 Jacobian | same cause, column axis |
+| 3 | `mj_setConst` not called | relaxation silently no-op | broadphase pairs precomputed at compile |
+| 4 | gravity comp applied to all DOF | object launched to z = 1.4 m | `qfrc_bias` also pushed free objects |
+| 5 | object mass 1e-5 kg, zero inertia | unstable contacts | computed from a near-zero volume |
+| 6 | arm `conaffinity = 0` | fingers closed *through* objects | over-broad relaxation disabled all contact |
+| 7 | joint limits not passed to IK | arm silently frozen | solver returned out-of-range configs; backend clamped them |
+| 8 | grasp waypoint measured from the table | fingers closed 108 mm above the object | a side grasp needs the jaw at the object centre |
 
-**Recommendation: A, with C as the fallback.** The remaining gap is two specific,
-measurable behaviours, not an architectural problem. If the self-collision
-relaxation proves stubborn, B is the more honest choice for a framework whose
-subject is regression methodology rather than manipulation quality.
+## 3. Why pick-and-place still returns 0.000
 
-## 5. Verification state at the time of writing
+**The Panda cannot grasp this object in the way the task specifies, and the
+measurements say so rather than my failing to find it.**
 
+- The gripper opens **26.2 mm**; the object is **16 mm**. That part is fine.
+- A **top-down** grasp is kinematically **unreachable**: joint4 is limited to
+  `[-3.072, -0.070]`, the elbow bends one way only, and the wrist cannot flip.
+  Measured over 40 seeds per orientation, the best top-down position error is
+  31.5 mm; the side grasp reaches 2.5 mm. The grasp is therefore a **side
+  grasp**, and the task's waypoints were rewritten for it.
+- With the side grasp the pads **straddle** the object (verified: the object
+  lies between them on the separation axis, 228 mm of open gap).
+- But the fingers still close through it: at the grasp pose the pads measure
+  **133–154 mm** from the object and push it **53 mm** away.
+
+The last measurement is the blocker. The pad geometry says the TCP is the jaw
+centre, but after IK the pads are not at the object. Either the arm's
+orientation solution is not being realised, or the pad bodies swing clear
+during closing. I have not isolated which, and I am not going to claim it is
+solved.
+
+## 4. Morphology decision
+
+**Not yet made, and deliberately so.** The evidence says:
+
+- The Panda's *kinematic*, *collision*, *actuator* and *contact* models are all
+  verified and reproducible.
+- The remaining gap is narrow and specific: how the jaw closes on the object.
+- Per the agreed plan, the morphology is only abandoned if the Panda requires
+  *extensive simulator-specific hacks*. We are not there — the failures are
+  ordinary kinematics/contact issues with clear measurements, not hacks.
+
+**Recommended next step (one experiment, not a rewrite):** drive the closing
+phase with the *pad contact points* as the IK target instead of the TCP, i.e.
+target the midpoint of the two collision pads. If the pads then close on the
+object, the Panda is kept and the TCP is defined in terms of the pads it
+actually represents. If that fails, switch to SCARA with the reason recorded.
+
+## 5. Reproduction
+
+```bash
+.venv/bin/python scripts/audit_collision.py   # collision semantics, 0 arm-vs-arm contacts
+.venv/bin/python scripts/probe_environment.py # host capability
+.venv/bin/python -m pytest tests/ -q          # 204 passed
+.venv/bin/robot-ci experiment run experiments/configs/smoke_mock.yaml --backend mujoco
 ```
-194 passed          pytest, 44 source files
-All checks passed   ruff
-Success             mypy, 44 source files
-exit 0              robot-ci validate
-```
+
+**No manipulation success rate is claimed anywhere in this repository.**

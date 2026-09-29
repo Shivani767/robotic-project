@@ -36,16 +36,22 @@ __all__ = [
     "scene_cache_key",
 ]
 
-#: Half-extents (x, y, z) in metres per object category. The spec's objects are
-#: a red cube, a blue cube, a green cylinder and a yellow can; the sizes below
-#: are chosen so all four are graspable by a Panda parallel gripper at the
-#: nominal 80 mm aperture.
+#: Half-extents (x, y, z) in metres per object category.
+#:
+#: The widths are set by the *measured* gripper envelope, not by convention. The
+#: vendored Panda's fingers travel 0.04 m each, which yields a maximum pad
+#: separation of **0.0262 m** (measured in ``scripts/probe_grasp_geometry.py``).
+#: A parallel gripper is stable when the object is 50-70% of its maximum
+#: opening, so a 16 mm cube (half-extent 8 mm, 61% of the envelope) is the
+#: default. A 50 mm cube -- the intuitive choice -- needs 50 mm of separation
+#: the Panda does not have, and is ungraspable for reasons that have nothing to
+#: do with the controller.
 _CATEGORY_HALF_EXTENTS: dict[ObjectCategory, tuple[float, float, float]] = {
-    ObjectCategory.CUBE: (0.025, 0.025, 0.025),
-    ObjectCategory.CYLINDER: (0.022, 0.022, 0.045),
-    ObjectCategory.SPHERE: (0.024, 0.024, 0.024),
-    ObjectCategory.CAN: (0.033, 0.033, 0.050),
-    ObjectCategory.LIFTER: (0.006, 0.050, 0.075),
+    ObjectCategory.CUBE: (0.008, 0.008, 0.008),
+    ObjectCategory.CYLINDER: (0.008, 0.008, 0.020),
+    ObjectCategory.SPHERE: (0.008, 0.008, 0.008),
+    ObjectCategory.CAN: (0.010, 0.010, 0.022),
+    ObjectCategory.LIFTER: (0.004, 0.020, 0.030),
 }
 
 
@@ -336,7 +342,7 @@ def relax_arm_self_collision(model: Any) -> int:
     Returns:
         The number of geoms whose masks were rewritten.
     """
-    import mujoco  # noqa: PLC0415 - imported lazily; MuJoCo is optional
+    import mujoco
 
     mj: Any = mujoco  # the C extension exposes no usable type stubs
 

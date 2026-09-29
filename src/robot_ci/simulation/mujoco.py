@@ -413,10 +413,20 @@ class MuJoCoBackend(SimulatorBackend):
         """
         mujoco = self._mujoco
         aperture = max(0.0, min(0.04, width_m / 2.0))
-        finger = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, "finger_joint1")
-        act_id = self._actuator_for_joint(model, finger) if finger >= 0 else -1
-        if act_id >= 0:
-            data.ctrl[act_id] = aperture
+        written = 0
+        for joint_name in ("finger_joint1", "finger_joint2"):
+            jid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, joint_name)
+            if jid < 0:
+                continue
+            act_id = self._actuator_for_joint(model, jid)
+            if act_id >= 0:
+                data.ctrl[act_id] = aperture
+                written += 1
+        if written == 0:  # pragma: no cover - guarded by the embodiment check
+            raise SimulationError(
+                "no actuator drives a finger joint; the gripper cannot be commanded",
+                code="simulation.gripper_unactuated",
+            )
 
     def _settle_objects(self, model: Any, data: Any, scenario: ScenarioConfig, seed: int) -> None:
         """Jitter and re-settle object poses from the episode seed.

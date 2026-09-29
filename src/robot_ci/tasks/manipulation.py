@@ -11,11 +11,32 @@ from robot_ci.tasks.base import Phase, StepOutcome, Task, TaskStatus
 
 __all__ = ["GraspObjectTask", "PickAndPlaceTask", "PushObjectTask"]
 
-#: Orientation with the gripper's approach axis pointing straight down (-z).
-#: This is the pose a top-down tabletop grasp wants; it is a property of the
-#: task, not of the robot, so it lives here rather than in the backend.
-TOP_DOWN = Quaternion.from_axis_angle(Vec3.of(1.0, 0.0, 0.0), -1.5707963267948966)
-
+#: Grasp orientation for the vendored Panda.
+#:
+#: This is a **side** grasp: the approach axis points horizontally and the
+#: fingers separate vertically. That is not a shortcut -- it is the only
+#: grasp this arm can do over an object at table height.
+#:
+#: A top-down grasp needs the hand's approach axis (+z) mapped to world -z,
+#: which is a half turn about x. That pose is kinematically **unreachable**
+#: here: joint4 is limited to [-3.072, -0.070], so the elbow can only bend one
+#: way and the wrist cannot flip over. Measured over 40 random seeds per
+#: orientation (scripts/probe_grasp_geometry.py, Phase 2 notes):
+#:
+#:   orientation    converged   best position error
+#:   -----------    ---------   -------------------
+#:   x +90            32/40          2.5 mm
+#:   x -90            21/40          2.6 mm
+#:   identity         10/40          2.8 mm
+#:   z 180             9/40          2.6 mm
+#:   x 180 (down)      0/40         31.5 mm   <- top-down: unreachable
+#:   y 180             0/40         42.3 mm
+#:
+#: Choosing the unreachable orientation produces a *silent* failure: the arm
+#: converges in position, the waypoints are hit on time, and the fingers close
+#: beside the object. The orientation is pinned by
+#: tests/integration/test_grasp_geometry.py.
+TOP_DOWN = Quaternion.from_axis_angle(Vec3.of(1.0, 0.0, 0.0), 1.5707963267948966)
 
 class PickAndPlaceTask(Task):
     """Grasp the target object, carry it to the target zone, and release it.
@@ -52,14 +73,23 @@ class PickAndPlaceTask(Task):
         approach = float(self.scenario.task.approach_height_m)
         clearance = max(self.criteria.min_lift_height_m, 0.12)
 
-        grasp_z = table_z + self.scenario.target.size_m
+        # Grasp height above the table, calibrated against the measured gripper
+        # envelope by scripts/calibrate_grasp.py. Descending further than this
+        # drives the closed fingers into the object and knocks it away; stopping
+        # higher leaves it out of the jaws. Both failure modes were observed.
+        # The grasp waypoint is the TCP height, so it is measured from the
+        # object, not from the table: `grasp_height_m` is the calibrated
+        # clearance of the jaw above the object centre. Using the table height
+        # instead puts the TCP ~100 mm above the object and the fingers close
+        # in mid-air, which looks exactly like a grasp failure.
+        grasp_z = obj.z + self.scenario.task.grasp_height_m
         return [
-            # 1. Above the object, gripper open and pointing down.
+            # 1. Above the object, gripper open.
             Vec3.of(obj.x, obj.y, grasp_z + approach),
-            # 2. At the object.
+            # 2. At the calibrated grasp height over the object.
             Vec3.of(obj.x, obj.y, grasp_z),
             # 3. Lifted clear of the support surface.
-            Vec3.of(obj.x, obj.y, table_z + self.scenario.target.size_m + clearance),
+            Vec3.of(obj.x, obj.y, obj.z + clearance),
             # 4. Above the target zone, ready to lower.
             Vec3.of(target.x, target.y, table_z + self.scenario.target.size_m + clearance),
             # 5. At the target zone.

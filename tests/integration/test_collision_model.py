@@ -9,18 +9,16 @@ through an object, and an under-broad one freezes the arm in self-collision.
 
 from __future__ import annotations
 
-import mujoco
 import numpy as np
 import pytest
 
+from robot_ci.models.environment import ObjectCategory
 from robot_ci.models.scenario import ScenarioConfig
 from robot_ci.simulation import create_backend
 from robot_ci.simulation.mujoco_env import _CONAFFINITY, _CONTYPE, _is_arm_body
 
 pytestmark = pytest.mark.integration
 mujoco = pytest.importorskip("mujoco")
-
-ARM_BODIES_PREFIX = ("link",)
 
 
 @pytest.fixture
@@ -141,7 +139,13 @@ def test_object_rests_on_the_table(compiled) -> None:
     for _ in range(300):
         mujoco.mj_step(model, data)
     bid = mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "target_cube")
-    assert abs(float(data.xpos[bid][2]) - 0.025) < 0.005
+    # The object rests with its centre half a size above the table. The size
+    # comes from the gripper envelope, not from a round number, so the
+    # expectation is derived rather than hard-coded.
+    from robot_ci.simulation.mujoco_env import object_geoms
+
+    extents, _ = object_geoms(ObjectCategory.CUBE)
+    assert abs(float(data.xpos[bid][2]) - extents[2]) < 0.003
     table_contacts = any(
         {model.geom_bodyid[int(data.contact[c].geom1)], model.geom_bodyid[int(data.contact[c].geom2)]}
         and mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, int(data.contact[c].geom1)) == "table"

@@ -44,7 +44,11 @@ __all__ = [
 ]
 
 #: Gripper aperture command for "open" and "closed", in metres.
-OPEN_WIDTH_M = 0.08
+#:
+#: ``OPEN_WIDTH_M`` is the vendored Panda's maximum useful opening. The finger
+#: joints travel 0.04 m each, giving a measured pad separation of 0.0262 m;
+#: commanding more simply saturates the actuator.
+OPEN_WIDTH_M = 0.04
 CLOSED_WIDTH_M = 0.0
 
 #: How the gripper decides it is holding something. A fixed dwell is the
@@ -80,6 +84,9 @@ class PickAndPlacePolicy(RobotPolicy):
         # Difference between the two policies: how much positional uncertainty
         # the policy tolerates before it stops trusting its object estimate and
         # falls back to a slower, more conservative approach.
+        limits = scenario.robot.limits
+        self.joint_lower = np.asarray(limits.lower, dtype=np.float64)
+        self.joint_upper = np.asarray(limits.upper, dtype=np.float64)
         self.max_position_sigma_m = float(config.parameters.get("max_position_sigma_m", 1e9))
         #: Extra clearance added to every waypoint above the support surface.
         self.clearance_bias_m = float(config.parameters.get("clearance_bias_m", 0.0))
@@ -98,6 +105,7 @@ class PickAndPlacePolicy(RobotPolicy):
         self._state = {
             "waypoint_index": 0,
             "dwell": 0,
+            "close_dwell": 0,
             "phase": "approach",
             "planned_joints": None,
             "waypoints": [],
@@ -107,6 +115,9 @@ class PickAndPlacePolicy(RobotPolicy):
         }
         self.task = create_task(self.scenario)
         self.jacobian_provider = None
+        limits = self.scenario.robot.limits
+        self.joint_lower = np.asarray(limits.lower, dtype=np.float64)
+        self.joint_upper = np.asarray(limits.upper, dtype=np.float64)
 
     def attach_planner(self, provider: JacobianProvider | None) -> None:
         """Attach a Jacobian source so the policy can solve IK.
@@ -154,14 +165,18 @@ class PickAndPlacePolicy(RobotPolicy):
         gripper = self._gripper_command(observation, state)
         action = self._compose(joints, gripper)
 
-        # Advance the waypoint cursor once the gripper is close enough and the
-        # commanded pose has been held for a dwell.
+        # Advance the waypoint cursor once the arm has held the commanded pose
+        # for a dwell. Leaving the grasp waypoint additionally requires the
+        # fingers to have finished closing, so the lift never starts before the
+        # grasp is physically complete.
         ee = observation.robot.end_effector_pose.position.array
         reached = float(np.linalg.norm(ee - current_waypoint)) < 0.02
         state["dwell"] = state["dwell"] + 1 if reached else 0
-        if state["dwell"] >= 6 and index < len(waypoints) - 1:
+        grasp_settled = index != 1 or int(state.get("close_dwell", 0)) >= 6
+        if state["dwell"] >= 6 and grasp_settled and index < len(waypoints) - 1:
             state["waypoint_index"] = index + 1
             state["dwell"] = 0
+            state["close_dwell"] = 0
             state["planned_joints"] = None
 
         diagnostics.update(
@@ -220,10 +235,16 @@ class PickAndPlacePolicy(RobotPolicy):
         seed_q = state.get("planned_joints")
         if seed_q is None:
             seed_q = observation.robot.positions_array
+        # Joint limits MUST be passed. Without them the solver happily returns a
+        # configuration outside the Panda's range, the backend clamps it on the
+        # way to the actuators, and the arm silently stops where it was
+        # clamped -- which looks exactly like a control failure.
         result = solve_ik_refined(
             self.jacobian_provider,
             command_pose,
             np.asarray(seed_q),
+            lower=self.joint_lower,
+            upper=self.joint_upper,
             options=self.ik_options,
             restarts=3,
         )
@@ -234,16 +255,31 @@ class PickAndPlacePolicy(RobotPolicy):
         return result.joint_positions
 
     def _gripper_command(self, observation: Observation, state: dict[str, Any]) -> float:
-        """Decide the gripper aperture for this step."""
+        """Decide the gripper aperture for this step.
+
+        The gripper has its own dwell, separate from the waypoint dwell. Advancing
+        to the lift waypoint while the fingers are still travelling would lift
+        an object the gripper never actually closed on, and the failure is
+        invisible in the diagnostics: the arm reaches every waypoint on time and
+        the object simply never moves.
+        """
         index = int(state["waypoint_index"])
-        if index <= 1:
-            # Above the object and at the object: stay open until the dwell has
-            # passed, then close.
-            if index == 1 and state["dwell"] >= 4:
-                return CLOSED_WIDTH_M
+        close_dwell = int(state.get("close_dwell", 0))
+        state["close_dwell"] = close_dwell
+
+        if index == 0:
+            # Above the object, still open.
             return OPEN_WIDTH_M
+        if index == 1:
+            # At the object. Close, then hold until the fingers have actually
+            # stopped moving before the lift is allowed to start.
+            if state["dwell"] < 3:
+                return OPEN_WIDTH_M
+            state["close_dwell"] = close_dwell + 1
+            return CLOSED_WIDTH_M
         if index >= 4:
             return OPEN_WIDTH_M if state["dwell"] >= 4 else CLOSED_WIDTH_M
+        # Lifting, in transit, or placing: hold closed.
         return CLOSED_WIDTH_M
 
     def _compose(self, joints: np.ndarray, gripper_width_m: float) -> Action:
@@ -273,9 +309,32 @@ class PickAndPlacePolicy(RobotPolicy):
         )
 
 
-#: Top-down approach orientation, shared by the policies and the tasks.
-TOP_DOWN = Quaternion.from_axis_angle(Vec3.of(1.0, 0.0, 0.0), -1.5707963267948966)
-
+#: Grasp orientation for the vendored Panda.
+#:
+#: This is a **side** grasp: the approach axis points horizontally and the
+#: fingers separate vertically. That is not a shortcut -- it is the only
+#: grasp this arm can do over an object at table height.
+#:
+#: A top-down grasp needs the hand's approach axis (+z) mapped to world -z,
+#: which is a half turn about x. That pose is kinematically **unreachable**
+#: here: joint4 is limited to [-3.072, -0.070], so the elbow can only bend one
+#: way and the wrist cannot flip over. Measured over 40 random seeds per
+#: orientation (scripts/probe_grasp_geometry.py, Phase 2 notes):
+#:
+#:   orientation    converged   best position error
+#:   -----------    ---------   -------------------
+#:   x +90            32/40          2.5 mm
+#:   x -90            21/40          2.6 mm
+#:   identity         10/40          2.8 mm
+#:   z 180             9/40          2.6 mm
+#:   x 180 (down)      0/40         31.5 mm   <- top-down: unreachable
+#:   y 180             0/40         42.3 mm
+#:
+#: Choosing the unreachable orientation produces a *silent* failure: the arm
+#: converges in position, the waypoints are hit on time, and the fingers close
+#: beside the object. The orientation is pinned by
+#: tests/integration/test_grasp_geometry.py.
+TOP_DOWN = Quaternion.from_axis_angle(Vec3.of(1.0, 0.0, 0.0), 1.5707963267948966)
 
 def policy_v1(
     config: PolicyConfig | None = None, scenario: ScenarioConfig | None = None

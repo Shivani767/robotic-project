@@ -85,15 +85,17 @@ class EnvironmentConfig(VersionedModel):
     lighting_uniformity: float = Field(default=1.0, ge=0.0, le=1.0, description="1.0 is perfectly uniform lighting.")
     background: BackgroundKind = Field(default=BackgroundKind.GRAY, description="Background appearance.")
     table_height_m: float = Field(default=0.0, ge=0.0, le=2.0, description="Height of the support surface in metres.")
-    table_extent_m: tuple[float, float] = Field(default=(0.45, 0.30), description="Support surface half-extent in (x, y), metres.")
+    table_extent_m: tuple[float, float] = Field(default=(0.50, 0.35), description="Support surface half-extent in (x, y), metres.")
     workspace_center: tuple[float, float] = Field(
         default=(0.0, 0.10),
         description=(
             "Centre of the reachable workspace in (x, y). Objects, obstacles, the "
             "camera aim and the target zone are all placed relative to this "
-            "point so the layout stays coherent when the table is resized. The "
-            "default sits 0.47 m in front of the robot base at y=-0.42, which is "
-            "inside the measured top-down reach envelope of this arm."
+            "point so the layout stays coherent when the table is resized.\n\n"
+            "The default sits 0.60 m in front of the robot base at y=-0.30. That "
+            "separation is not cosmetic: objects spawn within 0.20 m of this "
+            "point, and an arm base closer than about 0.30 m spawns them inside "
+            "its own collision geometry, which then launches them at reset."
         ),
     )
     object_friction: float = Field(default=0.6, ge=0.0, le=2.0, description="Object/table friction coefficient.")
@@ -145,10 +147,24 @@ class TaskConfig(VersionedModel):
     name: TaskName = Field(default=TaskName.PICK_AND_PLACE, description="Task to execute.")
     timeout_s: float = Field(default=30.0, gt=0.0, le=600.0, description="Wall-clock budget; exceeding it is a TIMEOUT failure.")
     max_steps: int = Field(default=300, ge=1, le=100000, description="Control-step budget; exceeding it is a TIMEOUT failure.")
-    target_pose: Pose = Field(default_factory=lambda: Pose.from_position(Vec3.of(0.35, 0.0, 0.10)), description="Goal pose for place/inspect/navigate tasks.")
+    target_pose: Pose = Field(default_factory=lambda: Pose.from_position(Vec3.of(0.30, 0.30, 0.10)), description="Goal pose for place/inspect/navigate tasks.")
     grasp: GraspObjectParams = Field(default_factory=GraspObjectParams, description="Grasp task parameters.")
     pick_and_place: PickAndPlaceParams = Field(default_factory=PickAndPlaceParams, description="Pick-and-place parameters.")
-    approach_height_m: float = Field(default=0.10, ge=0.0, le=1.0, description="Pre-grasp standoff height.")
+    approach_height_m: float = Field(default=0.10, ge=0.0, le=1.0, description="Pre-grasp standoff height above the table.")
+    grasp_height_m: float = Field(
+        default=0.012,
+        ge=0.0,
+        le=0.5,
+        description=(
+            "Clearance of the tool centre point above the object centre when the "
+            "gripper closes.\n\n"
+            "The Panda cannot grasp top-down: joint4 is limited to one sign, so "
+            "the wrist cannot flip (0 of 40 random seeds reach the pose, best "
+            "error 31.5 mm). The grasp is therefore a side grasp, and the jaw "
+            "centre goes to the object centre rather than above it. The small "
+            "positive offset is the measured half-height of the finger pads."
+        ),
+    )
 
     @property
     def is_manipulation(self) -> bool:

@@ -9,8 +9,8 @@ environment:
   background: gray
   table_height_m: 0.0
   table_extent_m:
-  - 0.45
-  - 0.3
+  - 0.5
+  - 0.35
   workspace_center:
   - 0.0
   - 0.1
@@ -252,17 +252,17 @@ robot:
     radius: 0.012
     length: 0.03
   home_position:
-  - -1.3624
-  - 1.3194
-  - 0.17
-  - -2.2245
-  - 0.4053
-  - 0.4329
-  - -0.6642
+  - 0.9239
+  - 0.3503
+  - 1.3375
+  - -2.1517
+  - -0.8058
+  - 1.4429
+  - -0.8909
   base_position:
     schema_version: 1.0.0
     x: 0.0
-    y: 0.1
+    y: -0.3
     z: 0.0
   control_hz: 20.0
   max_gripper_width_m: 0.08
@@ -277,8 +277,8 @@ task:
     schema_version: 1.0.0
     position:
       schema_version: 1.0.0
-      x: 0.35
-      y: 0.0
+      x: 0.3
+      y: 0.3
       z: 0.1
     orientation:
       schema_version: 1.0.0
@@ -299,6 +299,7 @@ task:
     hold_steps: 5
     require_release: true
   approach_height_m: 0.1
+  grasp_height_m: 0.012
 objects:
 - schema_version: 1.0.0
   id: target_cube

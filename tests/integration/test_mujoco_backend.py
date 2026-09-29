@@ -11,6 +11,7 @@ import numpy as np
 import pytest
 
 from robot_ci.core.errors import SimulationError
+from robot_ci.models.environment import ObjectCategory
 from robot_ci.models.scenario import ScenarioConfig
 from robot_ci.models.state import Action
 from robot_ci.simulation import create_backend
@@ -68,7 +69,13 @@ def test_object_rests_on_the_table(mj_backend: MuJoCoBackend) -> None:
     handle = mj_backend.reset(ScenarioConfig(), seed=5)
     target = mj_backend.ground_truth(handle).target_object
     assert target is not None
-    assert target.pose.position.z == pytest.approx(0.025, abs=0.01)
+    # The object rests with its centre half a size above the table. The size is
+    # set by the measured gripper envelope, so the expectation is derived from
+    # the model rather than hard-coded.
+    from robot_ci.simulation.mujoco_env import object_geoms
+
+    extents, _ = object_geoms(ObjectCategory.CUBE)
+    assert target.pose.position.z == pytest.approx(extents[2], abs=0.003)
 
 
 def test_render_produces_a_non_blank_image(mj_backend: MuJoCoBackend) -> None:
