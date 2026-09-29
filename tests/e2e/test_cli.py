@@ -16,6 +16,7 @@ from robot_ci.cli.common import (
     EXIT_CONFIG_ERROR,
     EXIT_NOT_IMPLEMENTED,
     EXIT_OK,
+    EXIT_REGRESSION,
 )
 from robot_ci.cli.main import app
 
@@ -183,7 +184,6 @@ def test_experiment_show_rejects_invalid_yaml(tmp_path: Path) -> None:
     "command",
     [
         ("experiment", "compare"),
-        ("regression",),
         ("counterexample", "search"),
         ("counterexample", "reproduce"),
         ("diagnosis",),
@@ -198,6 +198,57 @@ def test_later_phase_commands_report_not_implemented(command: tuple[str, ...]) -
     result = invoke(*command)
     assert result.exit_code == EXIT_NOT_IMPLEMENTED, f"{command} exited {result.exit_code}"
     assert "not implemented" in result.output.lower()
+
+
+def test_regression_command_detects_from_a_finished_experiment(tmp_path: Path) -> None:
+    """`robot-ci regression` is implemented: it reads summary.json, not a stub."""
+    from robot_ci.experiments.runner import EpisodeResult
+
+    results = []
+    for seed in range(4):
+        results.append(
+            EpisodeResult(
+                run_id=f"nominal__v1__s{seed}",
+                experiment_id="cli_check",
+                scenario_id="nominal",
+                policy="policy_v1",
+                seed=seed,
+                config_hash="sha256:test",
+                status="success",
+                success=True,
+                steps=10,
+                conditions={"scenario_id": "nominal"},
+            )
+        )
+        results.append(
+            EpisodeResult(
+                run_id=f"nominal__v2__s{seed}",
+                experiment_id="cli_check",
+                scenario_id="nominal",
+                policy="policy_v2",
+                seed=seed,
+                config_hash="sha256:test",
+                status="success" if seed < 2 else "failure",
+                success=seed < 2,
+                steps=10,
+                conditions={"scenario_id": "nominal"},
+            )
+        )
+    import json
+
+    summary = {
+        "experiment_id": "cli_check",
+        "baseline": "policy_v1",
+        "candidate": "policy_v2",
+        "results": [r.to_dict() for r in results],
+    }
+    target = tmp_path / "results"
+    target.mkdir()
+    (target / "summary.json").write_text(json.dumps(summary), encoding="utf-8")
+    result = invoke("regression", str(target), "--min-samples", "1")
+    assert result.exit_code == EXIT_REGRESSION, result.output
+    assert "blocking" in result.output
+    assert (target / "regression.json").exists()
 
 
 def test_test_command_is_reserved_for_phase_14() -> None:

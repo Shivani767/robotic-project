@@ -119,7 +119,45 @@ def set_by_path(config: ScenarioConfig, path: str, value: float) -> ScenarioConf
                 available=sorted(cursor)[:20] if isinstance(cursor, dict) else [],
             )
         cursor[leaf] = value
+    _auto_enable_corruption(data, path, value)
     return scenario_from_dict(data, source=f"set_by_path({path})")
+
+
+#: A sweep that writes a non-zero corruption magnitude must also flip the
+#: corruption's ``enabled`` master switch, or the sweep silently measures
+#: nothing: every cell loads validly, every episode runs, and the metrics are
+#: identical across the grid. The catalogue builders set ``enabled`` by hand,
+#: but grid expansion writes magnitudes programmatically, so the parent chain
+#: is armed here, in one place.
+_CORRUPTION_PARENTS: tuple[tuple[str, ...], ...] = (
+    ("sensors", "depth"),
+    ("sensors", "rgb"),
+    ("sensors", "camera"),
+    ("sensors", "robot_state"),
+    ("sensors", "force_torque"),
+)
+
+
+def _auto_enable_corruption(data: dict[str, Any], path: str, value: float) -> None:
+    """Arm the ``enabled`` flags above a swept corruption magnitude."""
+    parts = tuple(path.split("."))
+    for parent in _CORRUPTION_PARENTS:
+        if len(parts) > len(parent) and parts[: len(parent)] == parent:
+            if parts[len(parent)] == "enabled":
+                return  # the caller manages the switch explicitly
+            node: Any = data
+            for part in parent:
+                node = node.get(part) if isinstance(node, dict) else None
+            if isinstance(node, dict) and float(value) != 0.0:
+                node["enabled"] = True
+            return
+    if parts[:2] == ("sensors", "camera") and "latency" in parts and parts[-1] != "enabled":
+        latency = data.get("sensors", {}).get("camera", {}).get("latency")
+        camera = data.get("sensors", {}).get("camera")
+        if isinstance(latency, dict) and float(value) != 0.0:
+            latency["enabled"] = True
+            if isinstance(camera, dict):
+                camera["enabled"] = True
 
 
 def _assign_index(container: list[Any], leaf: str, value: float, path: str) -> None:

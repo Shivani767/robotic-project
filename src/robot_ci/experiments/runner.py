@@ -125,6 +125,35 @@ class EpisodeResult:
             "metrics": {m.name.value: m.value for m in self.metrics},
         }
 
+    @classmethod
+    def from_dict(cls, payload: dict[str, Any]) -> EpisodeResult:
+        """Rebuild from :meth:`to_dict` output (regression CLI, notebooks)."""
+        from robot_ci.metrics import MetricName, MetricValue
+
+        metrics = []
+        for name, value in dict(payload.get("metrics", {})).items():
+            try:
+                metric_name = MetricName(name)
+            except ValueError:
+                continue
+            metrics.append(MetricValue(name=metric_name, value=float(value)))
+        return cls(
+            run_id=str(payload.get("run_id", "")),
+            experiment_id=str(payload.get("experiment_id", "")),
+            scenario_id=str(payload.get("scenario_id", "")),
+            policy=str(payload.get("policy", "")),
+            seed=int(payload.get("seed", 0)),
+            config_hash=str(payload.get("config_hash", "")),
+            status=str(payload.get("status", "")),
+            success=bool(payload.get("success", False)),
+            steps=int(payload.get("steps", 0)),
+            metrics=metrics,
+            conditions=dict(payload.get("conditions", {})),
+            git_commit=str(payload.get("git_commit", "unknown")),
+            backend=str(payload.get("backend", "unknown")),
+            duration_wall_s=float(payload.get("duration_wall_s", 0.0)),
+        )
+
 
 def _git_commit() -> str:
     """Return the current git commit, or ``"unknown"`` outside a repository."""
@@ -191,6 +220,15 @@ def run_episode(
     try:
         for _ in range(scenario.task.max_steps):
             observation = backend.observe(handle)
+            if not scenario.sensors.is_nominal:
+                from robot_ci.sensors import apply_corruption
+
+                observation, _ = apply_corruption(
+                    observation,
+                    scenario.sensors,
+                    seed=seed,
+                    step=observation.step_index,
+                )
             if log is not None:
                 log.event(
                     "observe",

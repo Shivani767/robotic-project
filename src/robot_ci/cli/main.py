@@ -17,6 +17,7 @@ from rich.table import Table
 
 from robot_ci.cli.common import (
     EXIT_OK,
+    EXIT_REGRESSION,
     console,
     error_console,
     fail,
@@ -544,9 +545,64 @@ def experiment_compare_reserved() -> None:
 
 @app.command("regression")
 @handle_errors
-def regression_reserved() -> None:
-    """Detect behavioural regressions (Phase 6)."""
-    not_implemented("robot-ci regression detect", 6)
+def regression_detect(
+    results: Annotated[Path, typer.Argument(help="Experiment results dir or summary.json.")],
+    baseline: Annotated[str, typer.Option(help="Baseline policy name.")] = "",
+    candidate: Annotated[str, typer.Option(help="Candidate policy name.")] = "",
+    blocking: Annotated[float, typer.Option(help="Delta at or below which a cell is blocking.")] = -0.10,
+    warning: Annotated[float, typer.Option(help="Delta at or below which a cell is a warning.")] = -0.05,
+    min_samples: Annotated[int, typer.Option(help="Minimum paired samples per cell.")] = 3,
+) -> None:
+    """Detect conditional behavioural regressions from a finished experiment."""
+    import json
+
+    from robot_ci.experiments.runner import EpisodeResult
+    from robot_ci.regression import RegressionConfig, build_matrix, detect_regressions
+
+    source = Path(results)
+    summary_path = source / "summary.json" if source.is_dir() else source
+    payload = json.loads(summary_path.read_text(encoding="utf-8"))
+    episodes = [EpisodeResult.from_dict(r) for r in payload.get("results", [])]
+    base_name = baseline or str(payload.get("baseline", ""))
+    cand_name = candidate or str(payload.get("candidate", ""))
+    if not base_name or not cand_name:
+        fail("baseline/candidate names are required (missing from summary and options)")
+    config = RegressionConfig(blocking_delta=blocking, warning_delta=warning, min_samples=min_samples)
+    report = detect_regressions(episodes, baseline_name=base_name, candidate_name=cand_name, config=config)
+    matrix = build_matrix(report.cells)
+
+    console.print(
+        Panel(
+            f"baseline  : [cyan]{base_name}[/] {report.baseline_rate:.3f} (n={report.n_baseline})\n"
+            f"candidate : [cyan]{cand_name}[/] {report.candidate_rate:.3f} (n={report.n_candidate})\n"
+            f"global Δ  : {report.global_delta:+.3f}\n"
+            f"findings  : [bold]{len(report.findings)}[/] "
+            f"({sum(1 for f in report.findings if f.severity == 'blocking')} blocking)",
+            title="regression report",
+            border_style="cyan",
+        )
+    )
+    table = Table(title="conditional cells", title_style="bold")
+    table.add_column("condition")
+    table.add_column("baseline", justify="right")
+    table.add_column("candidate", justify="right")
+    table.add_column("delta", justify="right")
+    table.add_column("severity")
+    for row in matrix.rows:
+        table.add_row(
+            str(row["condition"]),
+            f"{float(row['baseline_success']):.3f}",
+            f"{float(row['candidate_success']):.3f}",
+            f"{float(row['delta']):+.3f}",
+            str(row["severity"]),
+        )
+    console.print(table)
+    if source.is_dir():
+        out = source / "regression.json"
+        out.write_text(json.dumps(report.to_dict(), indent=2), encoding="utf-8")
+        console.print(f"[green]wrote[/] {out}")
+    if any(f.severity == "blocking" for f in report.findings):
+        raise typer.Exit(EXIT_REGRESSION)
 
 
 @app.command("diagnosis")
