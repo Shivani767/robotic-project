@@ -254,3 +254,76 @@ will produce a grasp.
 - The production grasp orientation is still the infeasible x+90 constant. It was
   left in place so this record is not rewritten; the experiment measures it
   rather than silently replacing it.
+
+---
+
+# Follow-up Experiment: Derived Jaw Height
+
+**Date:** 2026-09-28 · same script, `--derived-jaw-height` behaviour now default
+
+The pad-targeted experiment above left one measured, quantified blocker: with a
+feasible (horizontal) jaw separation, the pads sink **0.16 mm** into the
+tabletop because the jaw is aimed at the object centre while the pads are
+9.18 mm tall. This follow-up tests the single correction that measurement
+implies, and nothing else.
+
+## Derivation (no tuned constant)
+
+Two measured bounds on the jaw-centre height `z`:
+
+```
+z >= table_top + pad_half_height     (the pad's lower edge must clear the table)
+z <= object_top                      (the pad must still overlap the object)
+```
+
+`pad_half_height` is measured from the compiled model **at the actual grasp
+configuration** (8.50 mm), because a box's vertical reach depends on its
+rotation. The target is the **midpoint** of that band — 12.24 mm — so the
+grasp sits as far as possible from both failure modes.
+
+Implemented as a two-pass solve: the first pass places the jaws on the object
+so the pad rotation is known; the window is derived from that measurement; the
+second pass targets the window midpoint, warm-started from the first.
+
+## Result: 10/10 two-sided pinch
+
+| Metric | Before | After |
+|---|---:|---:|
+| IK success rate | 1.000 | 1.000 |
+| pad-target success rate | 1.000 | 1.000 |
+| **finger-contact rate** | 0.400 | **1.000** |
+| **two-sided pinch rate** | — | **1.000** |
+| **stable grasp rate** | 0.400 | **1.000** |
+| low pad edge vs table | **−0.16 mm** | **+2.28 mm** |
+| pad separation when closed | 38.77 mm | **24.16 mm** |
+| object displacement (mean / max) | 0.48 / 1.10 mm | 0.48 / 1.10 mm |
+| jaw raise applied | — | **+4.27 mm** (derived) |
+
+Seed 1 contacts: **235 left / 232 right** — a genuine two-sided pinch, not one
+finger nudging the object. Closed jaw inner gap is 16.16 mm for a 16.00 mm
+object. Results are **byte-identical across repeated runs**.
+
+## Conclusion
+
+The measurements are consistent with the jaw height being the sole remaining
+cause. Raising the jaw into the derived window converts a 0.4 grasp rate into
+1.0 across 10 deterministic seeds, with the object no longer disturbed and the
+pads no longer touching the table.
+
+## What is still NOT done
+
+**Production code is unchanged. `robot-ci experiment run` still reports
+`success = 0.000` for pick-and-place**, verified this session. The experiment
+lives entirely in `scripts/pad_target_ik_experiment.py`; nothing in
+`src/robot_ci/tasks/` or `src/robot_ci/policies/` was modified. Porting it
+raises two design questions that are not mine to decide:
+
+1. **Where does grasp geometry belong?** The pad half-height is a *robot*
+   property, the jaw window also needs the *object* half-size, and the
+   task/policy layer is deliberately simulator- and robot-agnostic.
+2. **A pre-existing inconsistency was found:** `ObjectSpec.size_m` defaults to
+   0.04 m, but the MuJoCo scene renders the cube with an 8 mm half-extent
+   (16 mm object). The task's waypoints use `size_m`; the physics uses the
+   rendered extent. Correcting this changes the benchmark's object catalogue
+   and its success tolerances, so it should be an explicit decision rather than
+   a drive-by fix.

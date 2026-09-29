@@ -244,6 +244,56 @@ CANDIDATE_ORIENTATIONS: dict[str, Quaternion] = {
 }
 
 
+def pad_vertical_half_extent(model, data) -> float:
+    """Half-height of the larger pad along world z, in the current configuration.
+
+    The pads are boxes, so the vertical reach of a pad centred at height ``z``
+    is ``z +/- half_height``, where ``half_height`` depends on how the pad is
+    rotated. It is therefore measured here, at the actual grasp configuration,
+    rather than assumed from the nominal MJCF size.
+    """
+    heights = []
+    for gid in pad_geoms(model).values():
+        rot = data.geom_xmat[gid].reshape(3, 3)
+        size = np.asarray(model.geom_size[gid], dtype=float)
+        heights.append(float(np.sum(np.abs(rot[2, :]) * size)))
+    return max(heights)
+
+
+def jaw_height_window(model, data, table_top_z: float) -> dict:
+    """The band of jaw heights that both clears the table and overlaps the object.
+
+    Two measured constraints bound the jaw centre height ``z``:
+
+    * the pad's lower edge must not sink into the table, which needs
+      ``z >= table_top + pad_half_height``;
+    * the pad must still overlap the object's side faces, which needs
+      ``z <= object_top``.
+
+    The target is the **midpoint** of that band rather than either edge, so the
+    grasp sits as far as possible from both failure modes. The whole quantity is
+    derived from the compiled model and the object's own size; nothing here is
+    a tuned constant.
+    """
+    pad_half = pad_vertical_half_extent(model, data)
+    obj = np.array(
+        data.xpos[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "target_cube")], copy=True
+    )
+    half = object_half_extent(model)
+    lo = float(table_top_z) + pad_half
+    hi = float(obj[2] + half)
+    return {
+        "pad_half_height_m": pad_half,
+        "window_lo_m": lo,
+        "window_hi_m": hi,
+        "window_width_m": hi - lo,
+        "target_jaw_z_m": 0.5 * (lo + hi),
+        "object_top_z_m": hi,
+        "object_centre_z_m": float(obj[2]),
+    }
+
+
+
 def grasp_window(model, data, table_top_z: float) -> dict:
     """Derive the height window in which the pads clear the table and straddle the object.
 
@@ -370,7 +420,7 @@ def select_orientation(model, data, provider, joints, home, object_position, tab
 
 
 def _object_contacts(model, data) -> tuple[int, int, float]:
-    """Return ``(finger_contacts, support_contacts, deepest_penetration)``.
+    """Return ``(finger, support, deepest, left_contacts, right_contacts)``.
 
     The split matters. The object rests on the table from the first step of
     every episode, so counting *all* object contacts reports a contact rate of
@@ -385,7 +435,15 @@ def _object_contacts(model, data) -> tuple[int, int, float]:
         if (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[gid])) or "")
         in ("left_finger", "right_finger")
     }
+    left = {
+        gid
+        for gid in range(model.ngeom)
+        if (mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, int(model.geom_bodyid[gid])) or "")
+        == "left_finger"
+    }
     finger_contacts = 0
+    left_contacts = 0
+    right_contacts = 0
     support_contacts = 0
     deepest = 0.0
     for c in range(data.ncon):
@@ -395,10 +453,14 @@ def _object_contacts(model, data) -> tuple[int, int, float]:
         other = g2 if g1 == obj_gid else g1
         if other in fingers:
             finger_contacts += 1
+            if other in left:
+                left_contacts += 1
+            else:
+                right_contacts += 1
         else:
             support_contacts += 1
         deepest = max(deepest, -float(data.contact[c].dist))
-    return finger_contacts, support_contacts, deepest
+    return finger_contacts, support_contacts, deepest, left_contacts, right_contacts
 
 
 def run_one(seed: int, verbose: bool = False) -> dict:
@@ -492,6 +554,9 @@ def run_one(seed: int, verbose: bool = False) -> dict:
             out["pad_right_object_distance"] = float("inf")
             out["contact_count"] = 0
             out["support_contact_count"] = 0
+            out["left_contact_count"] = 0
+            out["right_contact_count"] = 0
+            out["two_sided_pinch"] = False
             out["contact_force_if_available"] = 0.0
             out["gripper_joint_positions"] = [0.0, 0.0]
             out["gripper_actuator_commands"] = [0.0, 0.0]
@@ -504,8 +569,32 @@ def run_one(seed: int, verbose: bool = False) -> dict:
             return out
 
         orientation = best["orientation"]
-        target_pos, d_hand, world_corr = build_target(model, data, obj0, orientation)
-        out["desired_pad_midpoint"] = obj0
+
+        # Two-pass jaw height. The first solve places the jaws on the object so
+        # the pad rotation -- and therefore the pad's vertical reach -- is known
+        # at the real grasp configuration. The window is then derived from that
+        # measurement, and the second solve puts the jaw at its midpoint.
+        provisional = solve_ik_refined(
+            provider,
+            Pose(position=Vec3.from_iterable(obj0), orientation=orientation),
+            home,
+            lower=joints["lower"],
+            upper=joints["upper"],
+            options=options,
+            restarts=3,
+        )
+        set_arm(model, data, provisional.joint_positions)
+        set_finger_positions(model, data, 0.04)
+        mujoco.mj_forward(model, data)
+        window = jaw_height_window(model, data, table_top)
+        out["jaw_window"] = window
+        out["jaw_raise_mm"] = (window["target_jaw_z_m"] - float(obj0[2])) * 1000.0
+
+        grasp_reference = np.array(
+            [obj0[0], obj0[1], window["target_jaw_z_m"]], dtype=np.float64
+        )
+        target_pos, d_hand, world_corr = build_target(model, data, grasp_reference, orientation)
+        out["desired_pad_midpoint"] = grasp_reference
         out["ik_target"] = target_pos
         out["pad_offset_hand_mm"] = d_hand * 1000.0
         out["world_correction_mm"] = float(np.linalg.norm(world_corr)) * 1000.0
@@ -514,7 +603,7 @@ def run_one(seed: int, verbose: bool = False) -> dict:
         result = solve_ik_refined(
             provider,
             Pose(position=Vec3.from_iterable(target_pos), orientation=orientation),
-            home,
+            provisional.joint_positions,
             lower=joints["lower"],
             upper=joints["upper"],
             options=options,
@@ -569,7 +658,7 @@ def run_one(seed: int, verbose: bool = False) -> dict:
         # -- STEP 5: approach + close only (no lift / transit / place) -------
         # The approach uses the same pad-derived target construction, so the
         # whole descent is consistent with the geometry being measured.
-        approach = obj0 + np.array([0.0, 0.0, 0.15])
+        approach = grasp_reference + np.array([0.0, 0.0, 0.15])
         approach_target = build_target(model, data, approach, orientation)[0]
         approach_q = solve_ik_refined(
             provider,
@@ -594,6 +683,8 @@ def run_one(seed: int, verbose: bool = False) -> dict:
         ]
         finger_contacts_total = 0
         support_contacts_total = 0
+        left_contacts_total = 0
+        right_contacts_total = 0
         deepest = 0.0
         for index, (q_cmd, grip, steps) in enumerate(sequence):
             for _ in range(steps):
@@ -601,9 +692,11 @@ def run_one(seed: int, verbose: bool = False) -> dict:
                     handle,
                     Action.arm_and_gripper(q_cmd.tolist(), grip, arm_joint_count=7),
                 )
-                nf, ns, pen = _object_contacts(model, data)
+                nf, ns, pen, nl, nr = _object_contacts(model, data)
                 finger_contacts_total += nf
                 support_contacts_total += ns
+                left_contacts_total += nl
+                right_contacts_total += nr
                 deepest = max(deepest, pen)
             if index == 2:  # at the grasp waypoint, fingers still open
                 gg = measure(model, data)
@@ -634,6 +727,9 @@ def run_one(seed: int, verbose: bool = False) -> dict:
         out["pad_right_object_distance"] = float(np.linalg.norm(geo_final["right_pad"] - obj_final))
         out["contact_count"] = int(finger_contacts_total)
         out["support_contact_count"] = int(support_contacts_total)
+        out["left_contact_count"] = int(left_contacts_total)
+        out["right_contact_count"] = int(right_contacts_total)
+        out["two_sided_pinch"] = bool(left_contacts_total > 0 and right_contacts_total > 0)
         out["pad_separation_closed"] = geo_final["pad_separation"]
         out["pad_low_edge_z"] = float(
             min(geo_final["left_pad"][2], geo_final["right_pad"][2])
@@ -657,8 +753,10 @@ def run_one(seed: int, verbose: bool = False) -> dict:
         out["object_between_pads"] = bool(abs(along) <= 0.5 * geo_final["pad_separation"] + 1e-9)
         out["pad_mid_within_object"] = bool(out["pad_object_distance_final"] <= half + 0.004)
         out["contact_made"] = bool(out["contact_count"] > 0)
+        # A grasp is a two-sided pinch. One finger touching the object is a
+        # nudge, not a grasp, and must not be counted as success.
         out["stable_grasp"] = bool(
-            out["contact_made"]
+            out["two_sided_pinch"]
             and out["object_displacement_m"] < 0.010
             and out["object_between_pads"]
         )
@@ -699,6 +797,15 @@ def _print_trial(out: dict, half: float) -> None:
             f"{row['object_along_axis_mm']:<13.1f} "
             f"{row['midpoint_to_object_mm']:<11.1f}"
         )
+    jw = out.get("jaw_window")
+    if jw:
+        print(
+            "    derived jaw height  "
+            f"pad_half_h={jw['pad_half_height_m'] * 1000:5.2f} mm  "
+            f"window=[{jw['window_lo_m'] * 1000:5.2f}, {jw['window_hi_m'] * 1000:5.2f}] mm  "
+            f"target={jw['target_jaw_z_m'] * 1000:5.2f} mm  "
+            f"raise={out['jaw_raise_mm']:+5.2f} mm"
+        )
     w = out.get("grasp_window")
     if w:
         print(
@@ -737,7 +844,8 @@ def _print_trial(out: dict, half: float) -> None:
     )
     print(
         f"    object displacement {_mm(out['object_displacement_m']):>8} mm   "
-        f"finger-contacts={out['contact_count']}  support={out['support_contact_count']}"
+        f"contacts L={out['left_contact_count']} R={out['right_contact_count']} "
+        f"(total {out['contact_count']}, support {out['support_contact_count']})"
     )
     print(
         f"    pad sep closed   {_mm(out['pad_separation_closed']):>8} mm   "
@@ -784,6 +892,7 @@ def main() -> int:
         ("IK success rate", f"{rate('ik_success'):.3f}"),
         ("pad-target success rate", f"{rate('pad_mid_within_object'):.3f}"),
         ("finger-contact rate", f"{rate('contact_made'):.3f}"),
+        ("two-sided pinch rate", f"{rate('two_sided_pinch'):.3f}"),
         ("object displacement (mean/max)", f"{mean_disp * 1000:.2f} / {max_disp * 1000:.2f} mm"),
         ("stable grasp rate", f"{rate('stable_grasp'):.3f}"),
         ("mean pad error", f"{mean_pad * 1000:.2f} mm"),
@@ -819,7 +928,7 @@ def main() -> int:
         ("Target<->FK error", _mm(one["target_to_fk_error_m"]), "mm"),
         ("Target<->pad midpoint error", _mm(one["target_to_pad_midpoint_error_m"]), "mm"),
         ("Joint-limit minimum margin", f"{one['joint_limit_margin']:.4f}", "rad"),
-        ("Contact count", str(one["contact_count"]), ""),
+        ("Contact count (L/R)", f"{one['left_contact_count']} / {one['right_contact_count']}", ""),
         ("Object displacement", _mm(one["object_displacement_m"]), "mm"),
         ("Grasp success", str(one["stable_grasp"]), ""),
     ]

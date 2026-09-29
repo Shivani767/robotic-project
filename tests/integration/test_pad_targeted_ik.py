@@ -442,3 +442,83 @@ def test_object_contacts_must_be_split_by_counterpart(compiled) -> None:
         f"{finger} finger contacts with the arm at home; the contact rate is "
         "not measuring the grasp"
     )
+
+
+def test_derived_jaw_height_clears_the_table_and_holds_the_object(compiled) -> None:
+    """The derived jaw height satisfies both constraints at once.
+
+    Two measured bounds apply to the jaw centre height ``z``:
+
+    * the pad's lower edge must clear the table, ``z >= table + pad_half_height``;
+    * the pad must overlap the object's side faces, ``z <= object_top``.
+
+    Aiming at the object centre satisfies the second and violates the first, so
+    the pads rest on the tabletop and the jaws jam open without touching the
+    object. Targeting the midpoint of the derived window satisfies both. This
+    test asserts the *property* -- the pad edge clears the table **and** the
+    pad still overlaps the object -- rather than a remembered number.
+    """
+    _backend, handle, model, data = compiled
+    scenario = ScenarioConfig(scenario_id="padtest", seed=5)
+    provider = create_backend("mujoco").jacobian_provider(handle)
+    table_top = float(scenario.environment.table_height_m)
+    obj = np.array(
+        data.xpos[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_BODY, "target_cube")], copy=True
+    )
+    home = np.array(scenario.robot.home_position)
+    options = IKOptions(
+        max_iterations=200, position_tolerance=5.0e-3, orientation_tolerance=0.30
+    )
+    top_down = Quaternion(w=0.0, x=1.0, y=0.0, z=0.0)
+
+    # Pass 1: place the jaws on the object so the pad rotation is known.
+    provisional = _solve_at(provider, model, obj, top_down, home, options, restarts=8)
+    _set_arm(model, data, provisional.joint_positions)
+    geo = _grasp_geometry(model, data, obj)
+
+    pads = _pad_geoms(model)
+    heights = []
+    for name in ("left_finger", "right_finger"):
+        gid = pads[name]
+        rot = data.geom_xmat[gid].reshape(3, 3)
+        heights.append(float(np.sum(np.abs(rot[2, :]) * np.asarray(model.geom_size[gid]))))
+    pad_half = max(heights)
+    half = float(model.geom_size[mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "target_cube")][0])
+
+    window_lo = table_top + pad_half
+    window_hi = float(obj[2] + half)
+    assert window_hi > window_lo, "no feasible jaw height exists for this object"
+
+    # The object-centre target, which the previous implementation used, must be
+    # shown to violate the clearance constraint.
+    pad_edge_at_object = float(obj[2]) - pad_half
+    assert pad_edge_at_object < table_top, (
+        f"expected the object-centre target to sink the pads to "
+        f"{pad_edge_at_object * 1000:.2f} mm, below the table"
+    )
+
+    # The derived target must satisfy both bounds with margin on each side.
+    target_z = 0.5 * (window_lo + window_hi)
+    assert target_z > window_lo
+    assert target_z < window_hi
+    assert target_z - pad_half > table_top, "derived target still sinks the pads into the table"
+    assert target_z < float(obj[2] + half), "derived target lifts the pads off the object"
+
+    # And the arm must actually be able to reach the derived target.
+    result = _solve_at(
+        provider,
+        model,
+        np.array([obj[0], obj[1], target_z]),
+        top_down,
+        provisional.joint_positions,
+        options,
+        restarts=4,
+    )
+    assert result.position_error < 6.0e-3, (
+        f"derived jaw height is not reachable: {result.position_error * 1000:.1f} mm"
+    )
+    _set_arm(model, data, result.joint_positions)
+    final = _grasp_geometry(model, data, obj)
+    assert final["low_pad_z_m"] - pad_half > table_top, "pads still touch the table at the grasp"
+    assert abs(final["object_along_axis_m"]) <= 0.5 * final["separation_m"]
+    assert geo["separation_m"] > 0.08
