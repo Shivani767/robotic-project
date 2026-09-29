@@ -558,7 +558,7 @@ def test_grasping_aperture_is_derived_not_zero(compiled) -> None:
 
     object_width = 2.0 * float(scenario.target.size_m)
     closed = float(scenario.robot.gripper_closed_separation_m)
-    squeeze = policy.grasp_squeeze
+    squeeze = policy.grasp_width_fraction
 
     expected = max(0.0, squeeze * object_width - closed)
     assert policy.hold_width_m == pytest.approx(expected)
@@ -578,3 +578,105 @@ def test_grasping_aperture_is_derived_not_zero(compiled) -> None:
     mujoco.mj_forward(model, _handle._opaque["data"])
     left, right, _tcp = _pad_geometry(model, _handle._opaque["data"])
     assert float(np.linalg.norm(left - right)) == pytest.approx(separation, abs=2e-3)
+
+
+# ---------------------------------------------------------------------------
+# Regressions for two defects that made a working grasp look like no grasp.
+#
+# Both were found by running episodes and reading the trace, not by writing
+# tests first, and both had the same signature: every individual measurement
+# looked correct while the task reported that nothing had happened.
+# ---------------------------------------------------------------------------
+
+
+@pytest.fixture
+def scene():
+    """A freshly reset scene, function-scoped so state cannot leak."""
+    backend = create_backend("mujoco")
+    handle = backend.reset(ScenarioConfig(scenario_id="graspregress", seed=1), seed=1)
+    yield backend, handle, handle._opaque["model"], handle._opaque["data"]
+    backend.close_all()
+
+
+def test_arm_is_commanded_not_teleported(scene):
+    """A large joint command must be travelled, not teleported to.
+
+    If ``qpos`` equals the command after a single 20 ms control step, the arm
+    is being teleported. That makes it impossible for the gripper to carry
+    anything: the wrist leaves the object behind instead of lifting it, which
+    looks exactly like a grasp that fails to hold.
+    """
+    backend, handle, model, data = scene
+    from robot_ci.models.state import Action, ActionType
+
+    scenario = ScenarioConfig(scenario_id="graspregress", seed=1)
+    lower = np.asarray(scenario.robot.limits.lower, dtype=np.float64)
+    upper = np.asarray(scenario.robot.limits.upper, dtype=np.float64)
+    dof = int(scenario.robot.dof)
+    target = np.where((upper - lower) > 1.0, lower + 0.6 * (upper - lower), lower)
+
+    # The arm does not own a contiguous qpos slice -- free-jointed objects share
+    # qpos with it -- so the joints are resolved by name, exactly as the backend
+    # does when it writes the command.
+    qadr = [
+        int(model.jnt_qposadr[jid])
+        for jid in backend._arm_joint_ids(model, dof)
+        if jid >= 0
+    ]
+    assert len(qadr) == dof, "arm joint lookup disagreed with the robot's dof"
+
+    before = np.array(data.qpos[qadr], copy=True)
+    backend.step(
+        handle,
+        Action(
+            type=ActionType.JOINT_POSITION,
+            joint_position=tuple(float(v) for v in target),
+            arm_joint_count=dof,
+        ),
+    )
+    after = np.array(data.qpos[qadr], copy=True)
+
+    assert np.abs(after - before).max() > 1.0e-3, "arm did not move at all"
+    # A servo still tracking has real error left. Exactly zero means the arm
+    # was placed at the commanded pose rather than driven to it.
+    assert np.abs(target - after).max() > 1.0e-3, "arm was teleported to the commanded pose"
+
+
+def test_finger_contact_resolved_by_body_not_geom_name(scene):
+    """Grasp detection must not depend on the collision geoms being named.
+
+    The finger geoms are asserted to be *unnamed* too, because that absence is
+    the exact condition that broke detection. A future vendored model that does
+    name them would otherwise let this test pass while leaving the body-based
+    path -- the one that actually works -- untested.
+    """
+    backend, _handle, model, data = scene
+
+    finger_bodies = {}
+    for body_id in range(model.nbody):
+        name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body_id) or ""
+        if "finger" in name:
+            finger_bodies[name] = body_id
+
+    assert {"left_finger", "right_finger"} <= set(finger_bodies), (
+        "finger bodies must stay nameable: grasp detection resolves contacts "
+        "through the body a geom is attached to, and the names are its only handle"
+    )
+
+    unnamed = [
+        mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom)
+        for body_id in finger_bodies.values()
+        for geom in range(model.ngeom)
+        if int(model.geom_bodyid[geom]) == body_id
+    ]
+    assert all(name is None for name in unnamed), (
+        "the vendored finger geoms are expected to be unnamed; if this now fails "
+        "the model changed and _is_grasped should be re-examined"
+    )
+
+    # Nothing is touching the object yet, so this is False -- and it is False
+    # because no finger contact exists, not because a name lookup quietly
+    # returned an empty string.
+    assert mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_GEOM, "target_cube") >= 0
+    assert backend._is_grasped(model, data, "target_cube") is False
+

@@ -109,15 +109,27 @@ class PickAndPlacePolicy(RobotPolicy):
         # object width leaves the pads merely touching, and touching does not
         # hold anything when the arm lifts. The pads are therefore commanded to
         # a fraction of the object width, so the position actuator drives them
-        # into the object and maintains a squeeze. The fraction is a policy
-        # hyperparameter (a real gripper exposes the same thing as a force
-        # limit), not a hidden constant, and it is recorded in the config so an
-        # experiment can vary it.
-        self.grasp_squeeze = float(config.parameters.get("grasp_squeeze_fraction", 0.9))
+        # into the object and maintains a squeeze.
+        #
+        # Note the direction: a *smaller* fraction is a *tighter* grip, because
+        # the commanded separation is fraction * width and the pads then
+        # interfere with the object by the difference. 1.0 just touches.
+        #
+        # This is a policy hyperparameter -- a real gripper exposes the same
+        # thing as a force limit -- not a hidden constant, and it is recorded in
+        # the config so an experiment can sweep it.
+        # The default is measured, not chosen. Sweeping the fraction across
+        # 0.55-0.90 and scoring the object height reached *while both pads are
+        # still in contact*: any value up to 0.70 holds the object on every seed
+        # tried, while 0.80 and 0.90 lose it outright on the seed where they
+        # fail. Values below 0.70 buy nothing -- the commanded width has already
+        # bottomed out at the measured closed-separation envelope, so 0.55, 0.65
+        # and 0.70 are numerically identical.
+        self.grasp_width_fraction = float(config.parameters.get("grasp_width_fraction", 0.7))
         object_width = 2.0 * float(scenario.target.size_m)
         self.hold_width_m = max(
             0.0,
-            self.grasp_squeeze * object_width
+            self.grasp_width_fraction * object_width
             - float(scenario.robot.gripper_closed_separation_m),
         )
         # Difference between the two policies: how much positional uncertainty

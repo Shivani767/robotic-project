@@ -416,3 +416,102 @@ whether the object is held at the top of the lift. That isolates the remaining
 variable without touching the verified geometry. Phase 3 should not start
 until a nonzero success rate exists, since a baseline/candidate comparison on
 a task that never succeeds measures nothing.
+
+---
+
+# Phase 2 — Correction: three defects found by running the episode
+
+**Date:** 2026-09-28 (supersedes the "Phase 2 — Final" section above)
+
+The section above reported `success = 0.000` and attributed it to holding force.
+That attribution was wrong, and so was my confidence that the model was the only
+thing verified. Running full episodes and reading traces rather than single
+steps found three defects. None of them was a grasp-force problem.
+
+## 1. The arm was teleported, not commanded
+
+`_write_arm` wrote **both** `ctrl` and `qpos` on every control step. The arm did
+not move to the IK solution, it *was placed* at it, in one 20 ms step. A
+gripper that teleports cannot carry anything: the wrist leaves the object
+behind the instant the arm moves. This looked precisely like a grasp that forms
+and then fails to hold.
+
+Fixed: `qpos` is written only at reset (`teleport=True`). The control signal is
+always written, and the arm travels under servo control.
+
+## 2. Grasp detection could never fire
+
+`_is_grasped` identified the pads by matching the **geom** name against
+`"finger"`. The vendored Panda's collision geoms are **unnamed** — every one
+returns `None` — so `other_name` was always `""` and the predicate was
+structurally unsatisfiable. The arm could carry the object to the bin and the
+task would still report the object was never touched.
+
+Fixed: contact ownership is resolved through the **body** a geom is attached
+to. The finger *bodies* are named (`left_finger`, `right_finger`); the geoms are
+not. Two distinct finger bodies are still required, so one pad leaning on the
+object does not count as a grasp.
+
+Effect: `grasp_success` went from `0.0` to `1.0` on every seed, with no change
+to the physics at all. `object_lift_m` on seed 1 went `0.008 → 0.038`.
+
+## 3. A negative gripper aperture was reported
+
+When commanded tight, contact resolution settles a hair past the finger joint
+stop and the reported aperture went **negative**, failing
+`GripperState` validation outright and crashing the episode. Clamped at zero; a
+negative aperture is not a physical state.
+
+## The squeeze sweep, and a metric that was wrong first
+
+The sweep scored the object's **maximum height over the episode**, which also
+counts an object that is flung clear of the fingers and keeps rising on its own
+momentum — so a grasp that slips immediately scored a 56 mm "lift". Rescoring by
+**height reached while both pads are still in contact**:
+
+| `grasp_width_fraction` | held (mm), seeds 1-5 | note |
+|---|---:|---|
+| 0.70 | 30.1, 56.7, 0.3, 33.2, 122.3 | **default now** |
+| 0.90 | -0.0, 56.9, 0.2, 33.2, 122.6 | previous default |
+
+0.90 loses the object outright on seed 1; 0.70 holds it. Below 0.70 nothing is
+gained — the commanded width has bottomed out at the measured closed-separation
+envelope, so 0.55/0.65/0.70 are numerically identical. Default moved 0.9 → 0.7
+on this evidence.
+
+## A pre-existing instability, not caused by the tighter grip
+
+Seed 5's object is launched **23.6 m** — and it does so at **both** 0.70 and
+0.90. The blow-up is parameter-independent and pre-existing; it is what produces
+the `placement_error_m = 536.43` seen in the runner. It is a contact-solver
+energy-injection problem, and it is *not* a consequence of squeezing harder.
+Flagged, not fixed.
+
+## Where this actually leaves the task
+
+```
+seed 1 | success False | grasp 1.0 | lift 38.1 mm | placement_error 0.380 m
+seed 2 | success False | grasp 1.0 | lift 64.7 mm | placement_error 0.218 m
+seed 3 | success False | grasp 1.0 | lift  9.4 mm | placement_error 536.43 m
+SUCCESS RATE 0/3
+```
+
+The grasp is now genuinely made and genuinely observed on every seed. The
+object still does not reach the bin: the lift needs ~120 mm and the grasp
+survives 9-65 mm. **Task completion is still unmet.**
+
+The remaining cause is now narrower than "holding force". It is the 5 mm of
+maximum achievable interference — the pads cannot separate by less than the
+measured 11 mm closed separation, so a 16 mm object can be squeezed by at most
+5 mm — against whatever friction the contact model provides. That is a
+contact-properties question, and the solver instability above is in the same
+area. Morphology is still unjustified: the Panda grasps correctly and is being
+beaten by pad geometry and contact tuning.
+
+## Recommended next step
+
+One experiment, contact-side: sweep pad-object friction and contact
+``solref``/``solimp`` and measure `max_grasped_height_m` over seeds 1-5. Seed 5
+already holds the full 122 mm, so the target is achievable; the question is
+what makes 4 of 5 seeds lose it, and whether that is friction or the
+energy-injection instability. Phase 3 should still not start on a 0/3 task.

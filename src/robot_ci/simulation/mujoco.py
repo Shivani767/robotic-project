@@ -316,7 +316,7 @@ class MuJoCoBackend(SimulatorBackend):
             mujoco.mj_step(model, data)
 
         home = scenario.robot.home_array()
-        self._write_arm(model, data, home)
+        self._write_arm(model, data, home, teleport=True)
         self._write_gripper(model, data, scenario.robot.max_gripper_width_m)
         self._settle_objects(model, data, scenario, episode_seed)
         mujoco.mj_forward(model, data)
@@ -379,11 +379,20 @@ class MuJoCoBackend(SimulatorBackend):
             ids.append(jid)
         return ids
 
-    def _write_arm(self, model: Any, data: Any, targets: np.ndarray) -> None:
-        """Command the arm to ``targets`` and teleport it there.
+    def _write_arm(self, model: Any, data: Any, targets: np.ndarray, *, teleport: bool = False) -> None:
+        """Command the arm to ``targets``, optionally teleporting it there.
 
-        Both the control signal and the joint state are written, so an episode
-        never begins or evaluates mid-transient.
+        The control signal is always written. The joint state is written **only
+        when ``teleport`` is set**, which is used at reset so an episode never
+        begins mid-transient.
+
+        Writing ``qpos`` on every control step is not a shortcut, it is a defect:
+        the arm jumps to the new configuration in a single 20 ms step instead of
+        moving there, so the gripper leaves any object it was holding behind. It
+        looks like a grasp that fails to hold, because the grasp genuinely is
+        made and the fingers genuinely touch the object -- and then the whole
+        wrist teleports out from under it. The arm has to travel for the arm to
+        be able to carry anything.
 
         Two indexing hazards are handled explicitly, both of which silently
         produce a frozen arm if ignored:
@@ -401,8 +410,9 @@ class MuJoCoBackend(SimulatorBackend):
             act_id = self._actuator_for_joint(model, jid)
             if act_id >= 0:
                 data.ctrl[act_id] = value
-            data.qpos[model.jnt_qposadr[jid]] = value
-            data.qvel[model.jnt_dofadr[jid]] = 0.0
+            if teleport:
+                data.qpos[model.jnt_qposadr[jid]] = value
+                data.qvel[model.jnt_dofadr[jid]] = 0.0
 
     def _write_gripper(self, model: Any, data: Any, width_m: float) -> None:
         """Command the gripper to an aperture of ``width_m``.
@@ -595,10 +605,15 @@ class MuJoCoBackend(SimulatorBackend):
 
         Both official ``finger_joint`` values run from 0 (closed) to 0.04 (open),
         so the aperture is their sum rather than their difference.
+
+        Clamped at zero: the finger joints are limited, but contact resolution
+        can settle a hair past the stop, and a negative aperture is not a
+        physical state. It became observable as soon as the gripper was
+        commanded tight, and it failed observation-model validation outright.
         """
         left = self._slide_position(model, data, "finger_joint1")
         right = self._slide_position(model, data, "finger_joint2")
-        return float(left + right)
+        return max(0.0, float(left + right))
 
     def _slide_position(self, model: Any, data: Any, joint_name: str) -> float:
         """Return the scalar position of a named slide joint."""
@@ -850,18 +865,39 @@ class MuJoCoBackend(SimulatorBackend):
         )
 
     def _is_grasped(self, model: Any, data: Any, object_id: str) -> bool:
-        """Whether both fingers are in contact with the named object."""
+        """Whether both fingers are in contact with the named object.
+
+        Contact ownership is resolved through the **body** a geom is attached
+        to, not through the geom's own name. The vendored hand's collision
+        geoms carry no names at all -- they are ``None`` -- so matching on geom
+        names silently never matches, and the grasp is reported as never made
+        no matter what the physics does. It is the classic failure of this
+        class: the arm carries the object all the way to the bin, the metric
+        says the object was never even touched, and every measurement upstream
+        looks correct.
+
+        Requiring two distinct finger *bodies* also keeps a single pad resting
+        against the object from counting as a grasp.
+        """
         mujoco = self._mujoco
-        touched: set[str] = set()
+
+        def body_of(geom_index: int) -> int:
+            return int(model.geom_bodyid[geom_index])
+
+        def body_name(body_index: int) -> str:
+            return mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_BODY, body_index) or ""
+
+        def geom_name(geom_index: int) -> str:
+            return mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom_index) or ""
+
+        touched: set[int] = set()
         for index in range(data.ncon):
             contact = data.contact[index]
-            for geom in (contact.geom1, contact.geom2):
-                name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, geom) or ""
-                if name == object_id:
-                    other = contact.geom2 if geom == contact.geom1 else contact.geom1
-                    other_name = mujoco.mj_id2name(model, mujoco.mjtObj.mjOBJ_GEOM, other) or ""
-                    if "finger" in other_name:
-                        touched.add(other_name)
+            first, second = int(contact.geom1), int(contact.geom2)
+            for geom, other in ((first, second), (second, first)):
+                on_object = geom_name(geom) == object_id or body_name(body_of(geom)) == object_id
+                if on_object and "finger" in body_name(body_of(other)):
+                    touched.add(body_of(other))
         return len(touched) >= 2
 
     # -- lifecycle ---------------------------------------------------------
