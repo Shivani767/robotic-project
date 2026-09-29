@@ -738,3 +738,216 @@ The existing production task result remains:
 ```text
 task_success = 0.000
 ```
+
+---
+
+# Phase 2 — Seed-Specific Arm-Transient Experiment
+
+**Date:** 2026-09-29
+
+## 1. Hypothesis
+
+The preceding contact experiment showed that two seeds behave in ways grip
+cannot explain: seed 3 produces a 13.895 N finger spike identical under every
+force bound tested, and seed 5 launches the object up to 35 m away at every
+force bound except the weakest. The hypothesis tested here is:
+
+> The seed-specific instability originates in reset/arm dynamics rather than
+> in gripper contact control, and bounding the commanded joint transit will
+> remove it while preserving legitimate physical contact.
+
+## 2. Existing behaviour before the change
+
+Reset was staged explicitly on a fresh model for seeds 1-5 and measured after
+each stage:
+
+| stage | meaning |
+|---|---|
+| S0 | raw model after `mj_resetData` |
+| S1 | after the 100-step pre-settle |
+| S2 | after arm-home teleport + gripper open |
+| S3 | after object jitter + 120-step re-settle (episode start) |
+
+Measurements:
+
+- S0 object position was `[0.00000, 0.00000, 0.00000]` on every seed.
+- S2 left the object with **only `world`/`table` contacts** (penetration
+  2.7e-05 m, exclude flag 0) on all five seeds. No arm, hand or finger body
+  touches the object during reset.
+- S3 changed the object by 3.6-4.3 mm — exactly the intended jitter.
+- A 240-step passive physics rollout from S3 produced **max displacement
+  0.00 mm, peak speed 0.000 m/s, no launch** on all five seeds.
+- The episode-start arm pose was identical across seeds 1-5: EE
+  `[-0.1474, 0.1117, 0.2576]`, and `max|q - home| = 0.004770` on every seed.
+  (That 0.004770 rad is post-settle drift, present with and without any bound.)
+
+So reset, object overlap, initial contact and initial velocity are all
+eliminated as causes. The instability begins when the arm first moves.
+
+## 3. Experimental design
+
+One mechanism only: a per-control-period cap on how far a single joint **command**
+may move, applied inside the backend's arm-write path so no policy can bypass
+it. Same seeds, same scenario, same policy, same physics, same collision
+contract, same friction, same geometry, same POSITION-mode gripper.
+
+Two configurations per seed:
+
+```text
+uncapped = exact current production behaviour (bound = 0, the default)
+capped   = same, every arm command clipped to 0.15 rad/step
+```
+
+Full episodes (90 control steps) on seeds 1-5 give 5 x 2 = 10 paired episodes,
+plus a NOOP-gripper diagnostic rig used to separate the approach transient from
+gripper contact.
+
+## 4. Implementation
+
+`RobotConfig.arm_max_joint_step_rad` (default `0.0`, i.e. disabled) and a
+`step_cap_rad` keyword on `MuJoCoBackend._write_arm`, applied on all four arm
+command paths (joint position, joint velocity, arm+gripper, Cartesian delta).
+
+The cap clips the **command**, never the joint: the servo still drives freely
+wherever the clipped target sits. It is deliberately not applied when
+`teleport=True`, because reset must still be able to place the arm anywhere.
+
+The default is `0.0` so that every recorded result is reproduced exactly.
+
+## 5. Seed selection
+
+The existing seeds `1, 2, 3, 4, 5` — the same set that reproduces negative lift,
+instability and launch. No new seeds were generated.
+
+## 6. Measurements
+
+Where available from MuJoCo: finger actuator force (`actuator_force`), contact
+count on the target geometry (`ncon` with counterpart resolution), joint and
+COM positions, commanded joint targets, solver iteration count.
+
+Where **not** available and reported as such: contact impulse (not instrumented
+here), and object speed from `qvel[6:9]`. That last one was audited and found
+invalid — it reads arm DOFs. At episode start it reported
+`[2e-06, 2e-05, -1.4e-05]` while the object free joint (dofadr 0) was exactly
+zero, so the earlier `vpeak` column is withdrawn. Corrected speed is a
+finite-difference of the COM, as used below.
+
+## 7. Comparison
+
+### Measured transit before any intervention
+
+| seed | peak requested joint step | peak EE jump per control period |
+|---:|---:|---:|
+| 1 | 2.170 rad | 108.0 mm |
+| 3 | 2.947 rad | 214.2 mm |
+| 5 | 1.895 rad | 65.1 mm |
+
+The first commanded step alone moves the end effector 214 mm in 50 ms on seed 3.
+
+### Full paired episodes (90 steps, POSITION gripper)
+
+| config | seed | Fpeak N | max disp mm | held mm | cube contacts | launch |
+|---|---:|---:|---:|---:|---:|:---:|
+| uncapped | 1 | 4.600 | 54.7 | 30.1 | 44 | No |
+| uncapped | 2 | 4.280 | 64.4 | 56.7 | 42 | No |
+| uncapped | 3 | **13.895** | 389.5 | 1.4 | 36 | No |
+| uncapped | 4 | 4.617 | 56.5 | 33.2 | 44 | No |
+| uncapped | 5 | 4.600 | **35394.2** | 122.3 | 44 | **Yes** |
+| capped | 1 | 28.471 | 76.2 | 75.6 | 44 | No |
+| capped | 2 | 4.282 | 75.7 | 69.0 | 42 | No |
+| capped | 3 | 10.759 | 0.0 | -8.0 | 4 | No |
+| capped | 4 | 4.609 | 56.1 | 25.1 | 44 | No |
+| capped | 5 | 4.055 | 483.2 | 115.4 | 34 | No |
+
+Early-phase finger force (peak over t = 0..29, i.e. approach and grasp, before
+the lift):
+
+```text
+uncapped  4.600  4.280  13.895  4.617  4.600
+capped    1.071  1.070   1.071  1.068  3.991
+```
+
+### Diagnostic rig (NOOP gripper), seeds 1, 3, 5
+
+```text
+uncapped  seed 1  Fpeak  1.941   seed 3  Fpeak 18.466   seed 5  Fpeak  1.904
+capped    seed 1  Fpeak  1.909   seed 3  Fpeak  1.905   seed 5  Fpeak  1.891
+```
+
+## 8. Interpretation
+
+The chain measured here is:
+
+```text
+IK solution reached by an unbounded joint step
+        -> 214 mm end-effector jump in one control period
+        -> transient force spike on contact
+        -> seed-dependent object motion, up to a 35 m launch
+```
+
+Specifically:
+
+- **Reset is cleared.** S2 has no arm contact, S3 is pure jitter, and a
+  passive rollout from episode start produces 0.00 mm of motion on all seeds.
+  The instability is not reset, not object overlap and not initial velocity.
+- **The launch is a transit effect.** Seed 5's 35.4 m displacement becomes
+  0.48 m when only the commanded joint step is bounded. The launch therefore
+  originates in the arm command, not in the gripper contact — which is why the
+  force-target sweep could not remove it.
+- **Early force is a transit effect too.** Peaks over t = 0..29 fall from
+  ~4.6 N to ~1.07 N on seeds 1-4. Seed 5 stays at 3.99 N, so its force spike
+  has a second source the bound does not touch.
+- **Seed 3 is an IK basin failure, not a dynamics failure.** The grasp target
+  at `(0.1091, 0.0533)` stalls at 3.2 mm (`converged=False`) from both the
+  current configuration and home, while a different basin reaches 1.5 mm
+  (`converged=True`). The arm is driven to a poor solution and lunges after
+  it. Bounding the swing stops the lunge (389.5 mm -> 0.0 mm displacement,
+  36 -> 4 contacts) but the arm then does not arrive within the 90-step
+  budget, so it never grasps at all.
+- **The bound does not uniformly help.** Seed 1 improves markedly (held 30.1 ->
+  75.6 mm), seed 2 improves (56.7 -> 69.0), seed 4 gets slightly worse
+  (33.2 -> 25.1), seed 5 keeps most of its lift while losing the launch
+  (122.3 -> 115.4), and seed 3 loses the attempt entirely. Seed 1's peak force
+  also *rises* to 28.471 N late in the episode, so the cap moves the spike
+  rather than deleting it.
+
+This is **Result C**: some seeds improve, one gets worse, and one is no longer
+attempted. It is not cherry-picked; all five seeds are reported.
+
+## 9. Limitations
+
+- Only one cap value (0.15 rad/step) was tested. It was chosen from the
+  measured healthy-seed pattern, not swept, so it is one point on a curve.
+- The cap trades reach for stability: at 0.15 rad seed 3 cannot arrive in 90
+  steps. A slower-but-arriving bound, or more steps, was not evaluated.
+- Seed 3's 3.2 mm IK stall is unexplained. Multi-start from several basins
+  was tried (current, home, zeros, 60% range); only the 60%-range basin solved.
+  The reason one target loses a basin is not diagnosed here.
+- Object speed is reported only as a finite-difference COM velocity. The
+  earlier `qvel[6:9]` column is withdrawn as invalid.
+- Contact impulse is not instrumented and is reported unavailable.
+- `task_success` is unchanged; nothing here makes the task pass.
+
+## 10. Conclusion
+
+The hypothesis is **partly supported and partly rejected**:
+
+> The seed-specific instability is not caused by reset — reset is clean and
+> identical across seeds — but it is caused by the **unbounded arm transit**
+> rather than by gripper contact control.
+
+Bounding the commanded joint step removes the 35 m launch, cuts the early
+force spike roughly four-fold, and improves two seeds. It does not repair
+seed 3's IK basin failure, slightly degrades seed 4, moves seed 1's peak force
+later in the episode, and leaves seed 5's early spike in place. The bound is
+therefore implemented as an **opt-in config field defaulting to off**.
+
+The gripper result from the previous experiment stands and is now
+complementary: contact penetration governs steady grip force (4.6 -> 1.2 N),
+and arm transit governs transients and launches. They are separate mechanisms.
+
+Existing production result preserved:
+
+```text
+task_success = 0.000
+```

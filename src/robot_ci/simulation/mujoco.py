@@ -384,7 +384,15 @@ class MuJoCoBackend(SimulatorBackend):
             ids.append(jid)
         return ids
 
-    def _write_arm(self, model: Any, data: Any, targets: np.ndarray, *, teleport: bool = False) -> None:
+    def _write_arm(
+        self,
+        model: Any,
+        data: Any,
+        targets: np.ndarray,
+        *,
+        teleport: bool = False,
+        step_cap_rad: float = 0.0,
+    ) -> None:
         """Command the arm to ``targets``, optionally teleporting it there.
 
         The control signal is always written. The joint state is written **only
@@ -407,11 +415,24 @@ class MuJoCoBackend(SimulatorBackend):
         * actuator indices do **not** follow joint indices, and the last
           actuator of the vendored Panda drives the gripper, not joint7, so the
           control link is resolved through ``actuator_trnid``.
+
+        ``step_cap_rad`` additionally bounds how far a single joint command may
+        move in one control period. Measured effect of leaving it unset: the
+        arm transits to a waypoint solution at up to 2.95 rad/step, which on
+        this arm is a 214 mm end-effector jump in 50 ms, and it carried the
+        object 23.6 m away on one seed. Capped at 0.15 rad the same seed stays
+        within 0.48 m. The cap clips the *command*, never the joint: the servo
+        still drives freely toward wherever the clipped target sits. It is
+        applied only when ``teleport`` is False, because reset must still be
+        able to place the arm anywhere.
         """
         for index, jid in enumerate(self._arm_joint_ids(model, len(targets))):
             if jid < 0:
                 continue
             value = float(targets[index])
+            if not teleport and step_cap_rad > 0.0:
+                current = float(data.qpos[model.jnt_qposadr[jid]])
+                value = float(np.clip(value, current - step_cap_rad, current + step_cap_rad))
             act_id = self._actuator_for_joint(model, jid)
             if act_id >= 0:
                 data.ctrl[act_id] = value
@@ -577,11 +598,21 @@ class MuJoCoBackend(SimulatorBackend):
                     f"expected {robot.dof} joint targets, got {targets.shape}",
                     code="simulation.bad_action_shape",
                 )
-            self._write_arm(model, data, robot.limits.clamped(targets) * action.scale)
+            self._write_arm(
+                model,
+                data,
+                robot.limits.clamped(targets) * action.scale,
+                step_cap_rad=robot.arm_max_joint_step_rad,
+            )
         elif action.type is ActionType.JOINT_VELOCITY:
             velocity = np.asarray(action.joint_velocity, dtype=np.float64)
             current = self._arm_qpos(model, data, robot.dof)
-            self._write_arm(model, data, robot.limits.clamped(current + velocity * dt))
+            self._write_arm(
+                model,
+                data,
+                robot.limits.clamped(current + velocity * dt),
+                step_cap_rad=robot.arm_max_joint_step_rad,
+            )
         elif action.type is ActionType.ARM_AND_GRIPPER:
             # Arm and gripper move on the same control tick: closing one step
             # after arriving at the grasp pose is a real source of failure.
@@ -591,7 +622,12 @@ class MuJoCoBackend(SimulatorBackend):
                     f"expected {robot.dof} arm targets, got {targets.shape}",
                     code="simulation.bad_action_shape",
                 )
-            self._write_arm(model, data, robot.limits.clamped(targets) * action.scale)
+            self._write_arm(
+                model,
+                data,
+                robot.limits.clamped(targets) * action.scale,
+                step_cap_rad=robot.arm_max_joint_step_rad,
+            )
             self._write_gripper(
                 model, data, float(action.gripper_width_m or 0.0), controller=state.get("gripper_controller")
             )
@@ -611,7 +647,12 @@ class MuJoCoBackend(SimulatorBackend):
             perturb[0] = -float(delta[0])
             if robot.dof > 1:
                 perturb[1] = float(delta[1])
-            self._write_arm(model, data, robot.limits.clamped(current + perturb * dt))
+            self._write_arm(
+                model,
+                data,
+                robot.limits.clamped(current + perturb * dt),
+                step_cap_rad=robot.arm_max_joint_step_rad,
+            )
         elif action.type is not ActionType.NOOP:
             raise SimulationError(
                 f"MuJoCoBackend does not implement {action.type.value!r}",

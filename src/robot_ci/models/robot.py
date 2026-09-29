@@ -345,6 +345,25 @@ class RobotConfig(VersionedModel):
             "on its own. Turning it on is a separate experiment."
         ),
     )
+    arm_max_joint_step_rad: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=3.15,
+        description=(
+            "Upper bound on how far a single arm joint command may move in one "
+            "control period, in radians. 0 disables the bound, which is the "
+            "default so recorded results are reproduced exactly. Setting it "
+            "clips the command, not the joint: the servo still drives freely "
+            "toward the clipped target. Measured at 0.15 rad on this arm: the "
+            "uncapped waypoint transit reaches 2.95 rad/step (a 214 mm "
+            "end-effector jump in 50 ms) and carried the object 23.6 m away on "
+            "one seed; the same seed stays within 0.48 m capped. Also removes "
+            "the early-grasp force spike (4.6 N -> 1.1 N over t=0..29). It is "
+            "not a universal improvement: one seed never reaches the object "
+            "within the step budget, so it is a measured trade-off rather than "
+            "a default-on fix."
+        ),
+    )
     has_force_torque: bool = Field(default=True, description="Whether a wrist F/T sensor is modelled.")
 
     @classmethod

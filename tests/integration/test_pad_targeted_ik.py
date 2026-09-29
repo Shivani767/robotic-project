@@ -757,3 +757,148 @@ def test_bounded_controller_floors_on_the_real_model(scene):
     expected = contact_width - 2.0 * (robot.gripper_target_contact_force_n / controller.stiffness_n_per_m)
     assert out == pytest.approx(max(expected, float(robot.gripper_closed_separation_m)))
     assert out > requested, "the floor must lift a deep request, not accept it"
+
+
+# ---------------------------------------------------------------------------
+# Arm command swing bound (the seed-specific arm-transient experiment).
+#
+# Why this exists: the reset path was measured clean on all five seeds, and
+# the episode start pose matched across seeds to six decimals -- so the
+# instability was not reset, not object overlap, and not the seed jitter. It
+# was the waypoint transit: one joint was commanded 2.95 rad in a single 50 ms
+# control period, which moved the end effector 214 mm and carried the object
+# 23.6 m away. This bound is measured from that, and it is off by default.
+# ---------------------------------------------------------------------------
+
+
+def _arm_joints(model):
+    return [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, f"joint{i + 1}") for i in range(7)]
+
+
+def _commanded_arm(backend, handle, targets):
+    """Apply one joint command and return what the actuators were told."""
+    model, data = handle._opaque["model"], handle._opaque["data"]
+    from robot_ci.models.state import Action, ActionType
+
+    backend.step(
+        handle,
+        Action(
+            type=ActionType.JOINT_POSITION,
+            joint_position=tuple(float(v) for v in targets),
+        ),
+    )
+    ids = _arm_joints(model)
+    return np.array([float(data.ctrl[backend._actuator_for_joint(model, j)]) for j in ids])
+
+
+def test_arm_step_cap_defaults_to_disabled():
+    """The bound must be off unless a run asks for it.
+
+    Every recorded result was produced with the previous, unbounded behaviour,
+    so a default of anything else would silently change what the suite and the
+    artifacts mean.
+    """
+    scenario = ScenarioConfig(scenario_id="capdefault", seed=1)
+    assert scenario.robot.arm_max_joint_step_rad == 0.0
+
+
+def test_arm_step_cap_bounds_the_commanded_target():
+    """With a cap, one control period may not move a command by more than it.
+
+    Measured against the uncapped run in the same test so the assertion is a
+    comparison rather than a hard-coded expectation.
+    """
+    backend = create_backend("mujoco")
+    unbounded = ScenarioConfig(scenario_id="capped", seed=1)
+    capped = ScenarioConfig(
+        scenario_id="capped", seed=1, robot={"arm_max_joint_step_rad": 0.15}
+    )
+
+    handles = []
+    start = None
+    for scenario in (unbounded, capped):
+        handle = backend.reset(scenario, seed=1)
+        model, data = handle._opaque["model"], handle._opaque["data"]
+        ids = _arm_joints(model)
+        home = np.array([float(data.qpos[int(model.jnt_qposadr[j])]) for j in ids])
+        far = home + np.full(7, 0.5)
+        got = _commanded_arm(backend, handle, far)
+        if start is None:
+            start = home
+        travel = float(np.abs(got - start).max())
+        handles.append(travel)
+        backend.close(handle)
+    backend.close_all()
+
+    unbounded_travel, capped_travel = handles
+    assert unbounded_travel == pytest.approx(0.5, abs=1e-9)
+    assert capped_travel == pytest.approx(0.15, abs=1e-9)
+    assert capped_travel < unbounded_travel
+
+
+def test_arm_step_cap_does_not_block_reset():
+    """Reset must place the arm exactly as well with the cap as without it.
+
+    The arm is teleported home and then 120 settle steps run, which leaves it
+    0.004770 rad off home. That offset is pre-existing -- it appears with the
+    cap off too -- so the assertion is a *comparison* against the uncapped
+    run. A cap that leaked into the teleport path would show a larger error,
+    because the joint could no longer be placed at its target.
+    """
+    backend = create_backend("mujoco")
+
+    def home_error(cap: float) -> float:
+        scenario = ScenarioConfig(
+            scenario_id="capreset", seed=1, robot={"arm_max_joint_step_rad": cap}
+        )
+        handle = backend.reset(scenario, seed=1)
+        model, data = handle._opaque["model"], handle._opaque["data"]
+        ids = _arm_joints(model)
+        got = np.array([float(data.qpos[int(model.jnt_qposadr[j])]) for j in ids])
+        backend.close(handle)
+        return float(np.abs(got - np.asarray(scenario.robot.home_position)).max())
+
+    uncapped = home_error(0.0)
+    capped = home_error(0.15)
+    backend.close_all()
+
+    assert capped == pytest.approx(uncapped, abs=1e-12), (
+        f"the swing bound degraded reset: {capped} vs {uncapped}"
+    )
+
+
+def test_arm_step_cap_is_deterministic():
+    """Two capped runs of the same seed must agree to float64 precision.
+
+    Not bit-identical: two runs sharing a backend drift by ~1e-16 over ten
+    steps *with the bound off as well*, which is plain float accumulation, so
+    demanding exact equality would assert something the backend has never
+    promised. A tolerance of 1e-12 is many orders above that floor and still
+    fails on any real divergence -- a changed seed or a broken clip.
+    """
+    backend = create_backend("mujoco")
+    scenario = ScenarioConfig(
+        scenario_id="capdet", seed=7, robot={"arm_max_joint_step_rad": 0.15}
+    )
+    from robot_ci.policies import policy_v1
+
+    traces = []
+    for _ in range(2):
+        policy = policy_v1(scenario=scenario)
+        handle = backend.reset(scenario, seed=7)
+        policy.reset(policy.config, 7, scenario)
+        policy.attach_planner(backend.jacobian_provider(handle))
+        seen = []
+        for _ in range(10):
+            out = policy.act(backend.observe(handle))
+            backend.step(handle, out.action)
+            seen.append(
+                float(backend._ee_pose(handle._opaque["model"], handle._opaque["data"]).position.array[2])
+            )
+        traces.append(seen)
+        backend.close(handle)
+    backend.close_all()
+
+    assert len(traces[0]) == len(traces[1]) == 10
+    drift = max(abs(a - b) for a, b in zip(traces[0], traces[1], strict=True))
+    assert drift < 1e-12, f"capped runs diverged by {drift:.3e}"
