@@ -160,24 +160,37 @@ def _frame_attr(
 
 # --- Collision classes -------------------------------------------------------
 #
-# MuJoCo collides two geoms when (contype_a & conaffinity_b) OR
-# (contype_b & conaffinity_a) is non-zero. Bit 0 is the class the vendored arm
-# already occupies, so every scene geom sets it to keep interacting with the
-# gripper: an object whose mask omitted bit 0 let the fingers close straight
-# through it with no contact at all.
+# MuJoCo generates a contact between geoms A and B iff
 #
-#   class      contype  conaffinity   collides with
-#   ---------  -------  -----------   -------------------------------------
-#   arm        0b0001   0b0001        (vendored default; fingers, links)
-#   world      0b0101   0b1001        table, obstacles, arm, objects
-#   object     0b0011   0b1101        table, obstacles, arm
+#     (contype_A & conaffinity_B) != 0  OR  (contype_B & conaffinity_A) != 0
 #
-# The arm's links are not excluded from the table here: the official collision
-# meshes are accurate enough that self-collision and table clearance are real
-# planner concerns, and the earlier exclusion was only justified by the
-# hand-written capsule approximation this project no longer uses.
-_CONTYPE: dict[str, int] = {"arm": 0b0001, "world": 0b0101, "object": 0b0011}
-_CONAFFINITY: dict[str, int] = {"arm": 0b0001, "world": 0b1001, "object": 0b1101}
+# Three disjoint bits let the arm avoid colliding with *itself* while still
+# colliding with the table and with objects:
+#
+#   class      contype  conaffinity   may collide with
+#   ---------  -------  -----------   -----------------------------------------
+#   arm        ARM      WORLD|OBJECT  world, object      (never another arm)
+#   object     OBJECT   WORLD|OBJ|ARM world, object, arm
+#   world      WORLD    WORLD|OBJ|ARM world, object, arm
+#
+# The arm's conaffinity deliberately omits its own bit, which is the *only*
+# thing that disables intra-arm contact; every other bit is preserved so the
+# gripper still meets the object and the arm still meets the table.
+#
+# An earlier version set the arm's conaffinity to 0, which silently disabled
+# *all* arm contact and let the fingers close through the object. The audit in
+# ``scripts/audit_collision.py`` exists to catch exactly that class of mistake.
+_CONTYPE: dict[str, int] = {"arm": 0b100, "object": 0b010, "world": 0b001}
+_CONAFFINITY: dict[str, int] = {
+    "arm": 0b001 | 0b010,
+    "object": 0b001 | 0b010 | 0b100,
+    "world": 0b001 | 0b010 | 0b100,
+}
+
+
+def _mask(name: str) -> str:
+    """Return the ``contype``/``conaffinity`` attribute pair for a class."""
+    return f'contype="{_CONTYPE[name]}" conaffinity="{_CONAFFINITY[name]}"'
 
 
 # --- Official arm model -----------------------------------------------------
@@ -307,52 +320,49 @@ def _inject_tcp_site(xml: str) -> str:
 
 
 def relax_arm_self_collision(model: Any) -> int:
-    """Stop the arm's own links from colliding with each other.
+    """Put the arm into the ``arm`` collision class so it stops hitting itself.
 
-    The vendored Panda's collision meshes are accurate, and the *same* arm
-    geometry self-collides at ordinary random configurations (link2 against
-    link5, link5 against the hand, and so on). A real deployment prevents this
-    in the motion planner -- MoveIt 2 rejects those configurations before the
-    controller ever sees them -- and this project does the same thing
-    geometrically: the planner's joint-limit clamping plus a seeded home pose
-    keep the arm in a valid region, so intra-arm contacts carry no information
-    and only corrupt the contact metrics.
+    The vendored Panda's collision meshes are accurate, and that accuracy means
+    the arm self-collides at ordinary configurations (link2 against link5, link5
+    against the hand, and so on). Preventing those is a *motion-planning*
+    concern in a real deployment; here the planner's joint-limit clamping and a
+    seeded home pose already keep the arm in a valid region, so intra-arm
+    contacts carry no information and would only corrupt the contact metrics.
 
-    Contacts that *do* carry information -- gripper to object, object to table --
-    are untouched.
+    Contacts that do carry information -- gripper to object, object to table,
+    arm to table -- are preserved by construction: the arm keeps its WORLD and
+    OBJECT bits and loses only its own.
 
     Returns:
-        The number of geoms whose mask was modified.
+        The number of geoms whose masks were rewritten.
     """
-    import mujoco
+    import mujoco  # noqa: PLC0415 - imported lazily; MuJoCo is optional
 
     mj: Any = mujoco  # the C extension exposes no usable type stubs
 
-    # A dedicated class for the arm: geoms keep the object's and the table's
-    # bits, and gain one that no other arm geom answers to.
-    arm_bit = 0b10000
+    arm_ct, arm_ca = _CONTYPE["arm"], _CONAFFINITY["arm"]
     changed = 0
     for index in range(model.ngeom):
         body_id = int(model.geom_bodyid[index])
-        if body_id == 0:
-            continue  # world geom (table / obstacles) keeps its own class
-        name = mj.mj_id2name(model, mj.mjtObj.mjOBJ_BODY, body_id) or ""
-        if not name:
+        body = mj.mj_id2name(model, mj.mjtObj.mjOBJ_BODY, body_id) or ""
+        if not _is_arm_body(body):
             continue
-        # Objects live in their own top-level bodies; only arm links are touched.
-        if not (name.startswith("link") or name in {"hand", "left_finger", "right_finger"}):
+        if int(model.geom_contype[index]) == arm_ct and int(model.geom_conaffinity[index]) == arm_ca:
             continue
-        model.geom_contype[index] = int(model.geom_contype[index]) | arm_bit
-        model.geom_conaffinity[index] = int(model.geom_conaffinity[index]) & ~arm_bit
+        model.geom_contype[index] = arm_ct
+        model.geom_conaffinity[index] = arm_ca
         changed += 1
 
     if changed:
-        # MuJoCo precomputes the broadphase collision pairs at compile time, so
-        # editing the masks afterwards is a no-op until the derived constants are
-        # rebuilt. ``mj_setConst`` needs a scratch data buffer of the same
-        # dimensionality as the model's own.
+        # MuJoCo precomputes broadphase pairs at compile time, so editing the
+        # masks afterwards is a no-op until the derived constants are rebuilt.
         mj.mj_setConst(model, mj.MjData(model))
     return changed
+
+
+def _is_arm_body(name: str) -> bool:
+    """Whether a body belongs to the robot arm rather than the scene."""
+    return name.startswith("link") or name in {"hand", "left_finger", "right_finger"}
 
 
 def patched_arm_path() -> Path:
@@ -437,8 +447,8 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
     # (contype_b & conaffinity_a) is non-zero. The official arm's own geoms
     # keep the menagerie defaults; the classes below are assigned only to the
     # scene geoms this module creates, so the arm is not modified.
-    world_mask = f'contype="{_CONTYPE["world"]}" conaffinity="{_CONAFFINITY["world"]}"'
-    object_mask = f'contype="{_CONTYPE["object"]}" conaffinity="{_CONAFFINITY["object"]}"'
+    world_mask = _mask("world")
+    object_mask = _mask("object")
 
     world: list[str] = [
         f'    <light name="key" pos="0.4 -0.4 1.4" dir="-0.3 0.3 -1" '
