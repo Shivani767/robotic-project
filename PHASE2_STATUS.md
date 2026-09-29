@@ -515,3 +515,57 @@ One experiment, contact-side: sweep pad-object friction and contact
 already holds the full 122 mm, so the target is achievable; the question is
 what makes 4 of 5 seeds lose it, and whether that is friction or the
 energy-injection instability. Phase 3 should still not start on a 0/3 task.
+
+---
+
+# Phase 2 — Friction eliminated as the cause of the failed hold
+
+**Date:** 2026-09-28
+
+The previous section recommended sweeping pad-object friction as the next
+experiment. That experiment has now been run. **It is a negative result: friction
+is not the limiting factor.**
+
+Object friction was swept over a 3.3x range against the same five seeds, scoring
+the object height reached while both pads are still in contact:
+
+| `object_friction` | held mm (seeds 1-5) | carried > 20 mm |
+|---|---|---:|
+| 0.6 (default) | 30.1 56.7 0.3 33.2 122.3 | 4/5 |
+| 1.0 | -0.1 55.9 0.4 33.0 122.5 | 3/5 |
+| 1.5 | 30.2 53.8 -7.7 32.4 90.7 | 4/5 |
+| 2.0 | 55.0 52.0 -7.4 31.7 87.1 | 4/5 |
+
+There is no trend. Raising friction does not improve the hold, and at 1.5 and 2.0
+it makes specific seeds *worse* — seed 3 goes negative (the pads press the object
+into the table) and seed 5 degrades from 122 mm to 87 mm. The spread between
+seeds is far larger than the spread between settings, so the dominant variable is
+the seed, not friction.
+
+One detail made this worth checking before drawing the conclusion: MuJoCo
+combines the friction of a contacting pair elementwise by *maximum*, so the
+object's own value only matters once it exceeds the pad's. The pad friction is
+measured at **1.0** in this model, which means the default `object_friction` of
+0.6 was already inert — the pad dominated. Values of 1.5 and 2.0 do change the
+effective friction, and still do not fix the hold. Friction is genuinely
+eliminated rather than merely untested.
+
+## What this leaves
+
+The pads interfere with the object by up to 5 mm (16 mm object against the
+measured 11 mm closed separation) because the commanded aperture bottoms out at
+full closure. Those 5 mm are commanded against a rigid body by a position
+actuator, and the object responds by either slipping or being launched — seed 5
+leaves at 23.6 m, at both 0.70 and 0.90 squeeze. Friction does not govern either
+outcome.
+
+The remaining cause is therefore **contact stiffness and the force the actuator
+commands through it**, not friction. A position actuator that commands 5 mm of
+interpenetration into a rigid object is asking the solver for an arbitrarily
+large normal force; the observed spread across seeds is consistent with that.
+
+The next experiment is a *force-limited* grip — cap the commanded interference
+(or soften the pad contact) rather than commanding past contact and letting the
+solver absorb it. Success remains **0** for now. This is recorded as a negative
+result because "more friction fixes grasping" is the intuitive move, and it does
+not work here.

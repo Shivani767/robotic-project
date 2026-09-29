@@ -132,12 +132,22 @@ def build_run_specs(config: ExperimentConfig) -> list[RunSpec]:
     policies: tuple[PolicyConfig, ...] = (config.baseline, config.candidate)
     specs: list[RunSpec] = []
     for cell in cells:
-        for policy in policies:
-            for replicate in range(config.repetitions):
-                # The seed is derived from the experiment seed, the scenario id
-                # and the replicate index, so it is stable across runs and
-                # identical for both policies at the same cell.
-                seed = derive_seed(config.seed, cell.scenario_id, policy.name, replicate)
+        for replicate in range(config.repetitions):
+            # The seed is derived from the experiment seed, the scenario id and
+            # the replicate index -- and deliberately *not* from the policy
+            # name. Including the policy name gives the baseline and the
+            # candidate different random draws at the same cell, which
+            # confounds the policy effect with the seed: a difference between
+            # the two arms can no longer be attributed to the policy, because
+            # the two arms were never run under the same conditions. It is the
+            # exact thing an A/B harness exists to prevent, and it is invisible
+            # in the output, since both arms still produce plausible numbers.
+            #
+            # Sharing the seed makes the comparison paired: at a given cell and
+            # replicate the two policies face an identical environment draw, so
+            # the paired difference is attributable to the policy.
+            seed = derive_seed(config.seed, cell.scenario_id, replicate)
+            for policy in policies:
                 specs.append(
                     RunSpec(
                         scenario=cell,

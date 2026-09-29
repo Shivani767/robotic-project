@@ -1,0 +1,28 @@
+experiment:
+  id: phase3_pairing
+  description: >
+    Baseline (policy_v1) vs candidate (policy_v2) under identical conditions.
+    Both arms share a seed and a resolved scenario at each cell, so a measured
+    difference is attributable to the policy rather than to the environment
+    draw. The grid is deliberately small: it is a harness check, not a
+    contribution claim.
+backend: mujoco
+baseline:
+  policy: policy_v1
+candidate:
+  policy: policy_v2
+scenario:
+  task:
+    name: pick_and_place
+    # Shortened from 300 so a pairing check is affordable. The policy finishes
+    # its waypoint sequence well inside this horizon, and the horizon is
+    # identical for both arms, so the comparison stays valid.
+    max_steps: 90
+variables:
+  depth_noise_mm:
+    values: [0, 5]
+repetitions: 2
+seed: 42
+notes: >
+  Phase 3 acceptance: policies run under identical conditions. This experiment
+  verifies the harness, not a hypothesis about which policy is better.

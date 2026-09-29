@@ -437,6 +437,10 @@ class MockPolicy(RobotPolicy):
 
 
 #: Default configurations for the two compared policies.
+#:
+#: Keyed by the name an experiment file refers to. A config that names a policy
+#: inherits that policy's defaults, which is what makes ``policy: policy_v2`` in
+#: a YAML file actually mean policy_v2 -- see :func:`resolve_policy_config`.
 _DEFAULT_V1 = PolicyConfig(
     name="policy_v1",
     version="1.0.0",
@@ -467,12 +471,56 @@ _REGISTRY: dict[str, Any] = {
     "mock": lambda config, scenario: MockPolicy(config, scenario),
 }
 
+#: Default configuration per *named* policy, so a config that only carries a
+#: name can be completed into the policy that name denotes.
+_NAMED_DEFAULTS: dict[str, PolicyConfig] = {
+    "policy_v1": _DEFAULT_V1,
+    "policy_v2": _DEFAULT_V2,
+}
+
+
+def resolve_policy_config(config: PolicyConfig) -> PolicyConfig:
+    """Fill in the defaults of the policy ``config`` names.
+
+    A policy config that arrives from an experiment file carries only a name --
+    ``candidate: {policy: policy_v2}``. The parameters that actually make
+    policy_v2 *behave* differently from policy_v1 (its confidence gate and the
+    associated clearance bias) live in that policy's default config, and the
+    factories only apply them when they are handed ``None``.
+
+    The result was that a config naming ``policy_v2`` instantiated a policy that
+    was behaviourally ``policy_v1`` under a ``policy_v2`` label. Both arms ran,
+    both produced plausible metrics, and the harness reported no difference
+    between two policies it had never actually distinguished. Nothing about the
+    output looked wrong.
+
+    So: the named policy's defaults are the base, and anything the caller set
+    explicitly wins. Naming a policy now means getting that policy.
+
+    Args:
+        config: A policy configuration, possibly carrying only a name.
+
+    Returns:
+        An equivalent config with the named policy's defaults merged in, or the
+        input unchanged when the name is not a known policy.
+    """
+    base = _NAMED_DEFAULTS.get(config.name) or _NAMED_DEFAULTS.get(config.implementation)
+    if base is None:
+        return config
+    return config.model_copy(
+        update={
+            "components": {**base.components, **config.components},
+            "parameters": {**base.parameters, **config.parameters},
+        }
+    )
+
 
 def create_policy(config: PolicyConfig, scenario: ScenarioConfig) -> RobotPolicy:
     """Instantiate the policy a configuration names.
 
     Args:
-        config: The policy configuration.
+        config: The policy configuration. Defaults belonging to the named
+            policy are merged in before construction.
         scenario: The condition the policy will be evaluated under.
 
     Returns:
@@ -489,4 +537,4 @@ def create_policy(config: PolicyConfig, scenario: ScenarioConfig) -> RobotPolicy
             requested=config.implementation,
             available=sorted(_REGISTRY),
         )
-    return factory(config, scenario)
+    return factory(resolve_policy_config(config), scenario)

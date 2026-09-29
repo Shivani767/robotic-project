@@ -11,6 +11,7 @@ from robot_ci.policies.rule_based import (
     create_policy,
     policy_v1,
     policy_v2,
+    resolve_policy_config,
 )
 
 __all__ = [
@@ -26,4 +27,5 @@ __all__ = [
     "create_policy",
     "policy_v1",
     "policy_v2",
+    "resolve_policy_config",
 ]
