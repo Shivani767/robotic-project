@@ -24,7 +24,7 @@ from typing import Any
 import numpy as np
 
 from robot_ci.core.errors import PolicyError
-from robot_ci.models.geometry import Pose, Quaternion, Vec3
+from robot_ci.models.geometry import Pose, Vec3
 from robot_ci.models.scenario import PolicyComponent, PolicyConfig, ScenarioConfig
 from robot_ci.models.state import Action, Observation
 from robot_ci.planning.kinematics import (
@@ -33,6 +33,7 @@ from robot_ci.planning.kinematics import (
     solve_ik_refined,
 )
 from robot_ci.policies.base import PolicyDiagnostics, PolicyOutput, RobotPolicy
+from robot_ci.tasks import manipulation
 from robot_ci.tasks.base import Task, create_task
 
 __all__ = [
@@ -50,6 +51,12 @@ __all__ = [
 #: commanding more simply saturates the actuator.
 OPEN_WIDTH_M = 0.04
 CLOSED_WIDTH_M = 0.0
+
+#: Largest aperture the commanded width maps to. ``_write_gripper`` converts a
+#: requested aperture to a per-finger actuator command, and the measured pad
+#: separation is ``requested + closed_separation``, so a width above this opens
+#: no further.
+MAX_WIDTH_M = 0.08
 
 #: How the gripper decides it is holding something. A fixed dwell is the
 #: simplest honest signal available without force sensing.
@@ -75,11 +82,43 @@ class PickAndPlacePolicy(RobotPolicy):
         super().__init__(config, scenario)
         self.task: Task = create_task(scenario)
         self.jacobian_provider: JacobianProvider | None = None
+        # 200 iterations, not 90: the grasp target sits ~12 mm above a table,
+        # and measured against this arm a 90-iteration budget stalls at 7.3 mm
+        # while 200 converges to 2.0 mm. The shortfall is not a tolerance the
+        # solver ignores -- the damped step simply has not converged yet.
         self.ik_options = IKOptions(
             damping=float(config.parameters.get("ik_damping", 0.05)),
-            max_iterations=int(config.parameters.get("ik_iterations", 90)),
-            position_tolerance=float(config.parameters.get("ik_pos_tol", 3.0e-3)),
+            max_iterations=int(config.parameters.get("ik_iterations", 200)),
+            position_tolerance=float(config.parameters.get("ik_pos_tol", 2.0e-3)),
             orientation_tolerance=float(config.parameters.get("ik_rot_tol", 0.08)),
+        )
+        self.home_seed = np.asarray(scenario.robot.home_position, dtype=np.float64)
+        # Multi-start count. Measured on this arm for the derived grasp target:
+        # the same target solves to 1.1-1.7 mm from a good seed, but home plus
+        # 3 deterministic restarts stalls at 5.9-7.6 mm and 4 restarts reach
+        # 2.0 mm. The grasp pose sits low and near the base, where several
+        # distinct basins exist, so the policy must sample enough of them.
+        self.ik_restarts = int(config.parameters.get("ik_restarts", 6))
+        # Grasp aperture that brings the pads onto the object without passing
+        # it. Derived from two measured quantities: the object's declared width
+        # and the gripper's closed-separation envelope. Commanding zero instead
+        # does not hold the object -- the position actuators keep driving and
+        # squeeze it out of the jaws, which is what the episode trace showed.
+        #
+        # A grasp needs *preload*: commanding a separation exactly equal to the
+        # object width leaves the pads merely touching, and touching does not
+        # hold anything when the arm lifts. The pads are therefore commanded to
+        # a fraction of the object width, so the position actuator drives them
+        # into the object and maintains a squeeze. The fraction is a policy
+        # hyperparameter (a real gripper exposes the same thing as a force
+        # limit), not a hidden constant, and it is recorded in the config so an
+        # experiment can vary it.
+        self.grasp_squeeze = float(config.parameters.get("grasp_squeeze_fraction", 0.9))
+        object_width = 2.0 * float(scenario.target.size_m)
+        self.hold_width_m = max(
+            0.0,
+            self.grasp_squeeze * object_width
+            - float(scenario.robot.gripper_closed_separation_m),
         )
         # Difference between the two policies: how much positional uncertainty
         # the policy tolerates before it stops trusting its object estimate and
@@ -246,8 +285,28 @@ class PickAndPlacePolicy(RobotPolicy):
             lower=self.joint_lower,
             upper=self.joint_upper,
             options=self.ik_options,
-            restarts=3,
+            restarts=self.ik_restarts,
         )
+        if not result.converged:
+            # Retry from the home configuration.
+            #
+            # A sequential waypoint policy warm-starts each solve from the arm's
+            # current configuration, which for the low grasp target lands in a
+            # basin the damped solver cannot leave: measured 13.7 mm from the
+            # pre-grasp pose versus 1.97 mm from home, for the same target. The
+            # deterministic restarts only perturb the failing seed, so they
+            # cannot escape it; offering home as a fresh basin can.
+            seeded = solve_ik_refined(
+                self.jacobian_provider,
+                command_pose,
+                self.home_seed,
+                lower=self.joint_lower,
+                upper=self.joint_upper,
+                options=self.ik_options,
+                restarts=self.ik_restarts,
+            )
+            if seeded.position_error < result.position_error:
+                result = seeded
         state["planned_joints"] = result.joint_positions
         state["ik_converged"] = result.converged
         state["last_ik_error_m"] = result.position_error
@@ -276,11 +335,11 @@ class PickAndPlacePolicy(RobotPolicy):
             if state["dwell"] < 3:
                 return OPEN_WIDTH_M
             state["close_dwell"] = close_dwell + 1
-            return CLOSED_WIDTH_M
+            return self.hold_width_m
         if index >= 4:
-            return OPEN_WIDTH_M if state["dwell"] >= 4 else CLOSED_WIDTH_M
-        # Lifting, in transit, or placing: hold closed.
-        return CLOSED_WIDTH_M
+            return OPEN_WIDTH_M if state["dwell"] >= 4 else self.hold_width_m
+        # Lifting, in transit, or placing: keep holding the grasp.
+        return self.hold_width_m
 
     def _compose(self, joints: np.ndarray, gripper_width_m: float) -> Action:
         """Combine the arm and gripper commands into one backend action.
@@ -309,32 +368,11 @@ class PickAndPlacePolicy(RobotPolicy):
         )
 
 
-#: Grasp orientation for the vendored Panda.
-#:
-#: This is a **side** grasp: the approach axis points horizontally and the
-#: fingers separate vertically. That is not a shortcut -- it is the only
-#: grasp this arm can do over an object at table height.
-#:
-#: A top-down grasp needs the hand's approach axis (+z) mapped to world -z,
-#: which is a half turn about x. That pose is kinematically **unreachable**
-#: here: joint4 is limited to [-3.072, -0.070], so the elbow can only bend one
-#: way and the wrist cannot flip over. Measured over 40 random seeds per
-#: orientation (scripts/probe_grasp_geometry.py, Phase 2 notes):
-#:
-#:   orientation    converged   best position error
-#:   -----------    ---------   -------------------
-#:   x +90            32/40          2.5 mm
-#:   x -90            21/40          2.6 mm
-#:   identity         10/40          2.8 mm
-#:   z 180             9/40          2.6 mm
-#:   x 180 (down)      0/40         31.5 mm   <- top-down: unreachable
-#:   y 180             0/40         42.3 mm
-#:
-#: Choosing the unreachable orientation produces a *silent* failure: the arm
-#: converges in position, the waypoints are hit on time, and the fingers close
-#: beside the object. The orientation is pinned by
-#: tests/integration/test_grasp_geometry.py.
-TOP_DOWN = Quaternion.from_axis_angle(Vec3.of(1.0, 0.0, 0.0), 1.5707963267948966)
+#: The policy uses the task's grasp orientation, so the frame a policy commands
+#: and the frame the task plans are guaranteed to be the same. They diverged
+#: once, when each defined its own constant, and the resulting silent failure
+#: cost an entire debugging cycle.
+TOP_DOWN = manipulation.TOP_DOWN
 
 def policy_v1(
     config: PolicyConfig | None = None, scenario: ScenarioConfig | None = None

@@ -11,32 +11,34 @@ from robot_ci.tasks.base import Phase, StepOutcome, Task, TaskStatus
 
 __all__ = ["GraspObjectTask", "PickAndPlaceTask", "PushObjectTask"]
 
-#: Grasp orientation for the vendored Panda.
+#: Grasp orientation for the vendored Panda: a **top-down** grasp.
 #:
-#: This is a **side** grasp: the approach axis points horizontally and the
-#: fingers separate vertically. That is not a shortcut -- it is the only
-#: grasp this arm can do over an object at table height.
+#: The hand's local +z is its approach axis and +y is the finger separation
+#: axis, so a top-down grasp needs +z -> world -z, which is a **half turn about
+#: x**. The quarter turn that is more natural to write is wrong: it points the
+#: approach axis along world +y, giving a *side* grasp whose jaws separate
+#: **vertically**.
 #:
-#: A top-down grasp needs the hand's approach axis (+z) mapped to world -z,
-#: which is a half turn about x. That pose is kinematically **unreachable**
-#: here: joint4 is limited to [-3.072, -0.070], so the elbow can only bend one
-#: way and the wrist cannot flip over. Measured over 40 random seeds per
-#: orientation (scripts/probe_grasp_geometry.py, Phase 2 notes):
+#: That failure is geometric, not a matter of IK accuracy. With a vertical
+#: separation axis the lower pad sits ``open_separation/2`` below the jaw
+#: centre; the measured open separation is 91 mm, so centring the jaws on an
+#: object resting on the table puts the lower pad **35-37 mm inside the
+#: tabletop**. Measured on the compiled model over the six cardinal
+#: orientations (scripts/pad_target_ik_experiment.py):
 #:
-#:   orientation    converged   best position error
-#:   -----------    ---------   -------------------
-#:   x +90            32/40          2.5 mm
-#:   x -90            21/40          2.6 mm
-#:   identity         10/40          2.8 mm
-#:   z 180             9/40          2.6 mm
-#:   x 180 (down)      0/40         31.5 mm   <- top-down: unreachable
-#:   y 180             0/40         42.3 mm
+#:   orientation   table clearance   feasible
+#:   -----------   ---------------   ---------
+#:   x+90 (side)      -35.5 mm        no
+#:   x-90 (side)      -37.1 mm        no
+#:   x180 (top-down)   +8.0 mm        yes
+#:   y180              +9.9 mm        yes
+#:   z180             +51.2 mm        no (IK residual 49 mm)
+#:   identity         +47.4 mm        no (IK residual 48 mm)
 #:
-#: Choosing the unreachable orientation produces a *silent* failure: the arm
-#: converges in position, the waypoints are hit on time, and the fingers close
-#: beside the object. The orientation is pinned by
-#: tests/integration/test_grasp_geometry.py.
-TOP_DOWN = Quaternion.from_axis_angle(Vec3.of(1.0, 0.0, 0.0), 1.5707963267948966)
+#: The chosen orientation reaches the grasp at 1.7 mm with the object 1.1 mm
+#: from the pad midpoint along the separation axis. Pinned by
+#: tests/integration/test_pad_targeted_ik.py.
+TOP_DOWN = Quaternion(w=0.0, x=1.0, y=0.0, z=0.0)
 
 class PickAndPlaceTask(Task):
     """Grasp the target object, carry it to the target zone, and release it.
@@ -73,20 +75,37 @@ class PickAndPlaceTask(Task):
         approach = float(self.scenario.task.approach_height_m)
         clearance = max(self.criteria.min_lift_height_m, 0.12)
 
-        # Grasp height above the table, calibrated against the measured gripper
-        # envelope by scripts/calibrate_grasp.py. Descending further than this
-        # drives the closed fingers into the object and knocks it away; stopping
-        # higher leaves it out of the jaws. Both failure modes were observed.
-        # The grasp waypoint is the TCP height, so it is measured from the
-        # object, not from the table: `grasp_height_m` is the calibrated
-        # clearance of the jaw above the object centre. Using the table height
-        # instead puts the TCP ~100 mm above the object and the fingers close
-        # in mid-air, which looks exactly like a grasp failure.
-        grasp_z = obj.z + self.scenario.task.grasp_height_m
+        # Grasp height, derived rather than calibrated.
+        #
+        # The jaw centre height `z` is bounded by two measured facts:
+        #
+        #   z >= table_top + pad_half_height   the pad's lower edge must clear
+        #                                        the support surface
+        #   z <= object_top                     the pad must still overlap the
+        #                                        object's side faces
+        #
+        # Aiming at the object centre satisfies the second and violates the
+        # first: with a 9.2 mm pad half-height and an object centre 8 mm above
+        # the table, the pad's lower edge lands 0.16 mm *below* the surface.
+        # The pads then rest on the tabletop, the jaws stall open, and the
+        # gripper never touches the object -- a silent failure in which every
+        # waypoint is still reached on time.
+        #
+        # The target is the midpoint of the feasible band, so the grasp sits as
+        # far as possible from both failure modes. Both bounds come from the
+        # scenario, so this stays simulator- and robot-agnostic: the pad height
+        # is an embodiment property on RobotConfig, the object size is declared
+        # on the scenario, and nothing here knows about MuJoCo.
+        pad_half = float(self.scenario.robot.pad_half_height_m)
+        object_half = float(self.scenario.target.size_m)
+        window_lo = table_z + pad_half
+        window_hi = obj.z + object_half
+        grasp_z = 0.5 * (window_lo + window_hi) if window_hi > window_lo else window_lo
+        self.last_grasp_window = (window_lo, window_hi, grasp_z)
         return [
             # 1. Above the object, gripper open.
             Vec3.of(obj.x, obj.y, grasp_z + approach),
-            # 2. At the calibrated grasp height over the object.
+            # 2. At the derived grasp height over the object.
             Vec3.of(obj.x, obj.y, grasp_z),
             # 3. Lifted clear of the support surface.
             Vec3.of(obj.x, obj.y, obj.z + clearance),

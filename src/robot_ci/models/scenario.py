@@ -106,7 +106,20 @@ class ObjectSpec(VersionedModel):
     category: ObjectCategory = Field(default=ObjectCategory.CUBE, description="Object shape class.")
     position: Vec3 | None = Field(default=None, description="Explicit position; None means sample from seed.")
     orientation: Quaternion = Field(default_factory=Quaternion.identity, description="Explicit orientation.")
-    size_m: float = Field(default=0.04, gt=0.0, le=1.0, description="Characteristic half-size in metres.")
+    size_m: float = Field(
+        default=0.008,
+        gt=0.0,
+        le=1.0,
+        description=(
+            "Characteristic half-size in metres. This is the single source of "
+            "truth: the simulator renders the object by scaling "
+            "environment.CATEGORY_PROFILES by this value, so a scenario cannot "
+            "declare a size the physics does not use.\n\n"
+            "The default is 8 mm (a 16 mm object), which is 17% of the Panda's "
+            "measured 91 mm jaw opening -- at the small end of the range that "
+            "gives a stable parallel-jaw grasp. See PHASE2_STATUS.md."
+        ),
+    )
     is_target: bool = Field(default=True, description="Whether this is the task target.")
     is_clutter: bool = Field(default=False, description="Whether this object is a distractor.")
     color_rgb: tuple[float, float, float] = Field(default=(0.85, 0.15, 0.15), description="Nominal RGB in [0,1].")

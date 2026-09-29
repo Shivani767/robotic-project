@@ -327,3 +327,92 @@ raises two design questions that are not mine to decide:
    rendered extent. Correcting this changes the benchmark's object catalogue
    and its success tolerances, so it should be an explicit decision rather than
    a drive-by fix.
+
+---
+
+# Phase 2 — Final: Porting the Verified Grasp to Production
+
+**Date:** 2026-09-28
+
+## What was ported
+
+The verified grasp geometry is now in production code, not just the experiment
+script.
+
+| Change | Basis |
+|---|---|
+| `ObjectSpec.size_m` is the single source of truth; the renderer scales `CATEGORY_PROFILES` by it | Fixes a pre-existing 0.04 m declared / 8 mm rendered mismatch |
+| `RobotConfig.pad_half_height_m` = 0.0085 | Measured pad half-height at the grasp configuration |
+| `RobotConfig.gripper_closed_separation_m` = 0.011 | Measured pad separation with the fingers closed |
+| Task derives the jaw height from `[table+pad_half, object_top]` | Measured: the object-centre target sinks the pads 0.16 mm into the table |
+| `TOP_DOWN` is a half turn about x (top-down) | Measured: the quarter turn puts the lower pad 35.5 mm inside the table |
+| Policy re-exports the task's orientation | The two constants had drifted apart |
+| Policy IK budget 90 → 200 iterations, restarts 3 → 6 | Measured: 90 iterations + 3 restarts stall at 7.6 mm; the same target solves to 1.1 mm with more multi-start |
+| Policy retries from home when the warm-started solve fails | Measured: 13.7 mm from the pre-grasp pose vs 2.0 mm from home |
+| Policy holds a derived grasp aperture instead of commanding zero | Measured: zero aperture squeezes the object out of the jaws |
+
+## Result: grasp contact achieved, lift still fails
+
+The production episode trace now shows the grasp being made:
+
+```
+wp=1  ik error 0.9 mm   ee z 0.013 (target 0.0122)   contacts L=20 R=20
+```
+
+That is the verified two-sided pinch, in production, on the real object.
+**It is still not a success: the object does not lift, and
+`success` remains `0.000`.** The traces show the grasp being lost as the arm
+moves to the lift waypoint.
+
+## Why the grasp does not hold
+
+Not yet isolated. The pads contact the object from both sides and the arm lifts
+to z = 0.127 m, but the object stays at z = 0.008 m. The candidate causes are
+distinguishable by measurement and none has been eliminated yet:
+
+* insufficient holding force (the squeeze factor has not been swept), or
+* friction and contact solver settings, or
+* the arm accelerating out of the grasp faster than the contact can hold.
+
+This is a **contact-force** question, not a geometry one. The geometry chain —
+target frame, joint mapping, pad placement, jaw height — is verified.
+
+## Camera resolution finding (unrelated, newly surfaced)
+
+With the object catalogue corrected, the 16 mm cube occupies **6 of 19 200
+pixels** in the default synthetic camera. A size sweep shows this is a *camera*
+limit, not an object-size limit:
+
+| object | segmented pixels | % of the 91 mm jaw opening |
+|---|---:|---:|
+| 16 mm | 6 | 17.6% |
+| 32 mm | 26 | 35.2% |
+| 50 mm | 64 | 54.9% |
+| 60 mm | 89 | 65.9% |
+
+Even a 60 mm object covers under 100 pixels, so enlarging objects would not
+make a perception-based policy viable. The default 160x120 camera at ~0.8 m is
+the binding constraint. This is a sensor-configuration item for the next phase,
+and is recorded rather than silently fixed.
+
+## Phase 2 acceptance
+
+| Criterion | State |
+|---|---|
+| Kinematic model verified | **met** — TCP ↔ pad midpoint 0.50 mm invariant; solver/model agree to 1e-6 |
+| Collision model verified | **met** — 0 arm-vs-arm contacts; gripper, table and object contacts preserved |
+| Actuator mapping verified | **met** — one finger joint per actuator, via `actuator_trnid` |
+| Contact model verified | **met** — finger-vs-support contacts separated and measured |
+| Reproducible execution path | **met** — 213 tests, ruff and mypy clean, `validate` exit 0 |
+| **Task completion** | **not met — `success = 0.000`** |
+
+Five of six hold. The sixth is recorded honestly and is a grasp-force problem,
+not a model problem.
+
+## Recommended next step
+
+One experiment: sweep `grasp_squeeze_fraction` and the lift speed, measuring
+whether the object is held at the top of the lift. That isolates the remaining
+variable without touching the verified geometry. Phase 3 should not start
+until a nonzero success rate exists, since a baseline/candidate comparison on
+a task that never succeeds measures nothing.

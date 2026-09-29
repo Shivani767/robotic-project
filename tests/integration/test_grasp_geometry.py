@@ -97,7 +97,7 @@ def test_objects_fit_inside_the_gripper_envelope() -> None:
     from robot_ci.models.environment import ObjectCategory
 
     for category in ObjectCategory:
-        extents, _geom = object_geoms(category)
+        extents, _geom = object_geoms(category, 0.008)
         width = 2.0 * extents[0]
         assert width <= MAX_PAD_SEPARATION_M, (
             f"{category.value} is {width * 1000:.0f} mm wide but the gripper "

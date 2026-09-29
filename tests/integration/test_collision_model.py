@@ -144,7 +144,7 @@ def test_object_rests_on_the_table(compiled) -> None:
     # expectation is derived rather than hard-coded.
     from robot_ci.simulation.mujoco_env import object_geoms
 
-    extents, _ = object_geoms(ObjectCategory.CUBE)
+    extents, _ = object_geoms(ObjectCategory.CUBE, ScenarioConfig().target.size_m)
     assert abs(float(data.xpos[bid][2]) - extents[2]) < 0.003
     table_contacts = any(
         {model.geom_bodyid[int(data.contact[c].geom1)], model.geom_bodyid[int(data.contact[c].geom2)]}

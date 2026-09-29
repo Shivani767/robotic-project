@@ -74,7 +74,7 @@ def test_object_rests_on_the_table(mj_backend: MuJoCoBackend) -> None:
     # the model rather than hard-coded.
     from robot_ci.simulation.mujoco_env import object_geoms
 
-    extents, _ = object_geoms(ObjectCategory.CUBE)
+    extents, _ = object_geoms(ObjectCategory.CUBE, ScenarioConfig().target.size_m)
     assert target.pose.position.z == pytest.approx(extents[2], abs=0.003)
 
 

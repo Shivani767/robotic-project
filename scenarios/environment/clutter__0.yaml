@@ -311,7 +311,7 @@ objects:
     x: 0.0
     y: 0.0
     z: 0.0
-  size_m: 0.04
+  size_m: 0.008
   is_target: true
   is_clutter: false
   color_rgb:

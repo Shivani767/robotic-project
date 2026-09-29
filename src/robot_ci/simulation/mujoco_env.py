@@ -27,7 +27,7 @@ import numpy as np
 
 from robot_ci.core.errors import SimulationError
 from robot_ci.core.hashing import hash_payload
-from robot_ci.models.environment import ObjectCategory
+from robot_ci.models.environment import ObjectCategory, object_geom_kind, object_half_extents
 from robot_ci.models.scenario import ScenarioConfig
 
 __all__ = [
@@ -36,39 +36,21 @@ __all__ = [
     "scene_cache_key",
 ]
 
-#: Half-extents (x, y, z) in metres per object category.
-#:
-#: The widths are set by the *measured* gripper envelope, not by convention. The
-#: vendored Panda's fingers travel 0.04 m each, which yields a maximum pad
-#: separation of **0.0262 m** (measured in ``scripts/probe_grasp_geometry.py``).
-#: A parallel gripper is stable when the object is 50-70% of its maximum
-#: opening, so a 16 mm cube (half-extent 8 mm, 61% of the envelope) is the
-#: default. A 50 mm cube -- the intuitive choice -- needs 50 mm of separation
-#: the Panda does not have, and is ungraspable for reasons that have nothing to
-#: do with the controller.
-_CATEGORY_HALF_EXTENTS: dict[ObjectCategory, tuple[float, float, float]] = {
-    ObjectCategory.CUBE: (0.008, 0.008, 0.008),
-    ObjectCategory.CYLINDER: (0.008, 0.008, 0.020),
-    ObjectCategory.SPHERE: (0.008, 0.008, 0.008),
-    ObjectCategory.CAN: (0.010, 0.010, 0.022),
-    ObjectCategory.LIFTER: (0.004, 0.020, 0.030),
-}
-
-
-def object_geoms(category: ObjectCategory) -> tuple[tuple[float, float, float], str]:
-    """Return ``(half_extents, mujoco_geom_type)`` for a category.
+#: Object geometry comes from the scenario, not from this module. The category
+#: supplies a dimensionless profile and ``ObjectSpec.size_m`` supplies the scale,
+#: so the declared size and the drawn size cannot drift apart. See
+#: ``environment.CATEGORY_PROFILES``.
+def object_geoms(category: ObjectCategory, size_m: float) -> tuple[tuple[float, float, float], str]:
+    """Return ``(half_extents, geom_type)`` for a category at a declared size.
 
     Args:
         category: The object class.
+        size_m: The declared characteristic half-size, in metres.
 
     Returns:
         Half-extents in metres and the MJCF geom type string.
     """
-    extents = _CATEGORY_HALF_EXTENTS[category]
-    geom_type = "cylinder" if category is ObjectCategory.CYLINDER else (
-        "sphere" if category is ObjectCategory.SPHERE else "box"
-    )
-    return extents, geom_type
+    return object_half_extents(category, size_m), object_geom_kind(category)
 
 
 def _f(value: float) -> str:
@@ -501,7 +483,7 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
     }
     occupied: list[np.ndarray] = []
     for index, spec in enumerate(scenario.objects):
-        extents, geom_type = object_geoms(spec.category)
+        extents, geom_type = object_geoms(spec.category, spec.size_m)
         xy: np.ndarray | None
         if spec.position is not None:
             xy = np.array([spec.position.array[0], spec.position.array[1]])

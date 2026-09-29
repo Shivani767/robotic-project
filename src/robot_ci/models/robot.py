@@ -144,6 +144,26 @@ _PANDA_LINKS = (
 #: the tabletop at reset generates constraint forces that launch the object.
 _PANDA_HOME = (0.9239, 0.3503, 1.3375, -2.1517, -0.8058, 1.4429, -0.8909)
 
+#: Half-height of the Panda's finger pad along the vertical, in metres.
+#:
+#: Measured from the compiled MJCF in the grasp configuration by
+#: ``scripts/pad_target_ik_experiment.py`` (8.50 mm). It is an *embodiment*
+#: property, not a tuning constant, and it bounds where the jaw can go: a pad
+#: centred at height z has its lower edge at ``z - pad_half_height_m``, so the
+#: jaw cannot descend below ``table_top + pad_half_height_m`` without the pad
+#: sinking into the support surface. The generic default is a conservative
+#: value for an unspecified gripper.
+_PANDA_PAD_HALF_HEIGHT_M = 0.0085
+
+#: Pad separation with both fingers fully closed, in metres.
+#:
+#: Measured from the compiled MJCF: the fingers travel 0 to 0.04 m and the pads
+#: are 11.0 mm apart at qpos 0, so the jaws cannot close past 11 mm. This
+#: matters when choosing a grasp force: commanding a zero aperture against an
+#: object does not "hold" it, it drives the position actuators to squeeze the
+#: object out of the jaws.
+_PANDA_CLOSED_SEPARATION_M = 0.011
+
 # --- UR5e (alternate embodiment) ------------------------------------------
 _UR5E_DOF = 6
 #: UR5e has 6 actuated joints, so the DH table needs dof+1 = 7 rows: one per
@@ -211,6 +231,30 @@ class RobotConfig(VersionedModel):
         default_factory=lambda: _build_links(_PANDA_LINKS), description="Capsule links for collision."
     )
     home_position: tuple[float, ...] = Field(default=_PANDA_HOME, description="Home configuration in radians.")
+    gripper_closed_separation_m: float = Field(
+        default=_PANDA_CLOSED_SEPARATION_M,
+        gt=0.0,
+        le=0.5,
+        description=(
+            "Pad separation with the fingers fully closed, in metres.\n\n"
+            "Bounds the narrowest graspable object and sets the correct holding "
+            "command: an aperture of `object_width - closed_separation` brings "
+            "the pads onto the object without driving them past it."
+        ),
+    )
+    pad_half_height_m: float = Field(
+        default=_PANDA_PAD_HALF_HEIGHT_M,
+        gt=0.0,
+        le=0.5,
+        description=(
+            "Half-height of the finger pad along the vertical, in metres.\n\n"
+            "Bounds the lowest usable jaw height: the pad's lower edge is at "
+            "`jaw_z - pad_half_height_m`, so the jaw must stay at or above "
+            "`table_top + pad_half_height_m` or the pad sinks into the support "
+            "surface and the jaws jam open without touching the object. "
+            "Measured from the compiled model, not assumed."
+        ),
+    )
     base_position: Vec3 = Field(
         default_factory=lambda: Vec3.of(0.0, -0.30, 0.0),
         description=(

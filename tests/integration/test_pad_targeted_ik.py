@@ -522,3 +522,59 @@ def test_derived_jaw_height_clears_the_table_and_holds_the_object(compiled) -> N
     assert final["low_pad_z_m"] - pad_half > table_top, "pads still touch the table at the grasp"
     assert abs(final["object_along_axis_m"]) <= 0.5 * final["separation_m"]
     assert geo["separation_m"] > 0.08
+
+
+def test_policy_and_task_agree_on_the_grasp_orientation() -> None:
+    """The policy and the task must command the same frame.
+
+    They each defined their own orientation constant once, drifted apart, and
+    the resulting grasp failed silently: the policy aimed the arm one way and
+    the task planned the waypoints for another. The policy now re-exports the
+    task's constant, and this test keeps them from diverging again.
+    """
+    from robot_ci.policies import TOP_DOWN as POLICY_ORIENTATION
+    from robot_ci.tasks.manipulation import TOP_DOWN as TASK_ORIENTATION
+
+    assert (POLICY_ORIENTATION.w, POLICY_ORIENTATION.x, POLICY_ORIENTATION.y,
+            POLICY_ORIENTATION.z) == (
+        TASK_ORIENTATION.w, TASK_ORIENTATION.x, TASK_ORIENTATION.y, TASK_ORIENTATION.z
+    )
+
+
+def test_grasping_aperture_is_derived_not_zero(compiled) -> None:
+    """The holding aperture is derived from the object and the gripper envelope.
+
+    Commanding a zero aperture does not hold an object: the position actuators
+    keep driving and squeeze it out of the jaws. The aperture that brings the
+    pads onto the object is ``squeeze * object_width - closed_separation``, from
+    the measured relationship ``pad_separation = commanded_width + closed``.
+    """
+    _backend, _handle, model, _data = compiled
+    scenario = ScenarioConfig(scenario_id="grasp", seed=5)
+    from robot_ci.policies import policy_v1
+
+    policy = policy_v1(scenario=scenario)
+    policy.reset(policy.config, 5, scenario)
+
+    object_width = 2.0 * float(scenario.target.size_m)
+    closed = float(scenario.robot.gripper_closed_separation_m)
+    squeeze = policy.grasp_squeeze
+
+    expected = max(0.0, squeeze * object_width - closed)
+    assert policy.hold_width_m == pytest.approx(expected)
+    # The pads must land on the object, not past it.
+    assert closed < policy.hold_width_m + closed <= object_width + 1e-9
+    assert policy.hold_width_m > 0.0, "a zero aperture ejects the object rather than holding it"
+    # And the resulting pad separation, from the measured envelope.
+    separation = policy.hold_width_m + closed
+    assert separation < object_width, "commanded separation would pass through the object"
+    # The derivation must round-trip against the real model.
+    fingers = _finger_joints(model)
+    for jid in fingers.values():
+        _data = _handle._opaque["data"]
+        _data.qpos[model.jnt_qposadr[jid]] = 0.5 * (separation - closed)
+        _data.qvel[model.jnt_dofadr[jid]] = 0.0
+    _set_arm(model, _handle._opaque["data"], np.array(scenario.robot.home_position))
+    mujoco.mj_forward(model, _handle._opaque["data"])
+    left, right, _tcp = _pad_geometry(model, _handle._opaque["data"])
+    assert float(np.linalg.norm(left - right)) == pytest.approx(separation, abs=2e-3)

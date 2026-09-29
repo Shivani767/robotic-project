@@ -72,6 +72,45 @@ class ObjectCategory(str, Enum):
     """Irregular thin object that is genuinely hard to grasp (Phase 4+)."""
 
 
+#: Dimensionless shape profile per object category, as multiples of
+#: :attr:`ObjectSpec.size_m`. The declared size and the rendered geometry are
+#: derived from this one table, so a scenario cannot claim a size the simulator
+#: does not draw.
+#:
+#: Keeping the profile dimensionless is what lets ``size_m`` be the single
+#: source of truth: changing a scenario's object size scales the rendered
+#: object instead of silently leaving it at a hard-coded size.
+CATEGORY_PROFILES: dict[ObjectCategory, tuple[float, float, float]] = {
+    ObjectCategory.CUBE: (1.0, 1.0, 1.0),
+    ObjectCategory.CYLINDER: (1.0, 1.0, 2.5),
+    ObjectCategory.SPHERE: (1.0, 1.0, 1.0),
+    ObjectCategory.CAN: (1.0, 1.0, 2.2),
+    ObjectCategory.LIFTER: (0.5, 2.5, 3.75),
+}
+
+
+def object_half_extents(category: ObjectCategory, size_m: float) -> tuple[float, float, float]:
+    """Return the rendered half-extents for a category at a declared size.
+
+    Args:
+        category: The object class.
+        size_m: The declared characteristic half-size, in metres.
+
+    Returns:
+        Half-extents in metres, as the simulator must draw them.
+    """
+    return tuple(float(size_m) * k for k in CATEGORY_PROFILES[category])  # type: ignore[return-value]
+
+
+def object_geom_kind(category: ObjectCategory) -> str:
+    """Return the primitive shape name for a category, independent of any engine."""
+    if category is ObjectCategory.CYLINDER:
+        return "cylinder"
+    if category is ObjectCategory.SPHERE:
+        return "sphere"
+    return "box"
+
+
 
 class EnvironmentConfig(VersionedModel):
     """Physical scene description.
