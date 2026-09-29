@@ -133,11 +133,13 @@ _PANDA_LINKS = (
     ("left_finger", 7, (0.0, 0.020, 0.045), 0.012, 0.030),
     ("right_finger", 7, (0.0, -0.020, 0.045), 0.012, 0.030),
 )
-#: Home configuration: gripper pointing down, 220 mm above the workspace
-#: centre, with the largest joint-limit margin found by a multi-start IK search
-#: over the reachable set. A home pose with margin is what lets a policy warm
-#: start from it and converge on the first waypoint every time.
-_PANDA_HOME = (-0.5515, -0.6806, -0.6242, -2.1594, 0.5958, 0.9607, 0.6299)
+#: Home configuration: gripper pointing down, 280 mm above the workspace
+#: centre, collision-free, with the largest joint-limit margin (0.67 rad) found
+#: by a multi-start IK search over the reachable set. A home pose with margin is
+#: what lets a policy warm-start from it and converge on the first waypoint every
+#: time, and one that is collision-free keeps the episode's contact count a
+#: measure of the policy's behaviour rather than of the arm's start pose.
+_PANDA_HOME = (-0.4219, -0.6750, -1.0757, -1.6835, 0.1854, 0.6533, 1.2767)
 
 # --- UR5e (alternate embodiment) ------------------------------------------
 _UR5E_DOF = 6
@@ -206,7 +208,18 @@ class RobotConfig(VersionedModel):
         default_factory=lambda: _build_links(_PANDA_LINKS), description="Capsule links for collision."
     )
     home_position: tuple[float, ...] = Field(default=_PANDA_HOME, description="Home configuration in radians.")
-    base_position: Vec3 = Field(default_factory=lambda: Vec3.of(0.0, 0.0, 0.0), description="Base position, world frame.")
+    base_position: Vec3 = Field(
+        default_factory=lambda: Vec3.of(0.0, -0.30, 0.0),
+        description=(
+            "Base position in the world frame. The arm is mounted on a pedestal "
+            "*beside* the table, as in a real cell. The value is set so the "
+            "workspace centre (0, 0.15) sits about 0.57 m in front of the base, "
+            "which is inside the measured top-down reach envelope of this arm "
+            "(comfortably out to ~0.5 m, unreachable beyond ~0.65 m). With the "
+            "base on the table the forearm would graze the surface and the "
+            "resulting contact forces would look like a control failure."
+        ),
+    )
     control_hz: float = Field(default=20.0, gt=0.0, le=1000.0, description="Control loop rate in Hz.")
     max_gripper_width_m: float = Field(default=0.08, gt=0.0, le=0.5, description="Fully open aperture in metres.")
     max_gripper_force_n: float = Field(default=20.0, gt=0.0, le=500.0, description="Peak closing force in N.")

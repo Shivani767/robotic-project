@@ -60,6 +60,14 @@ class ActionType(str, Enum):
     """End-effector pose delta in the base frame, shape ``(6,)``."""
     GRIPPER = "gripper"
     """Gripper command only: ``(1,)`` aperture target in metres."""
+    ARM_AND_GRIPPER = "arm_and_gripper"
+    """Arm joint targets plus a gripper aperture, in a single command.
+
+    Manipulation needs both channels to be commanded on the same control tick:
+    closing the gripper one step after reaching the grasp pose is a real,
+    measurable source of grasp failure. Packing them into one action keeps that
+    timing exact and keeps the action space unambiguous.
+    """
     NOOP = "noop"
     """Do nothing for one step."""
 
@@ -347,6 +355,9 @@ class Action(VersionedModel):
     cartesian_delta: tuple[float, ...] | None = Field(default=None, description="EE delta pose (x,y,z,rx,ry,rz) in the base frame.")
     gripper_width_m: float | None = Field(default=None, ge=0.0, le=1.0, description="Target aperture in metres.")
     scale: float = Field(default=1.0, gt=0.0, le=10.0, description="Gain applied to the command by the controller.")
+    arm_joint_count: int = Field(
+        default=0, ge=0, description="Number of leading joint targets that are arm joints; the rest are the gripper."
+    )
 
     @model_validator(mode="after")
     def _check_payload(self) -> Self:
@@ -355,6 +366,7 @@ class Action(VersionedModel):
             ActionType.JOINT_VELOCITY: self.joint_velocity,
             ActionType.CARTESIAN_DELTA: self.cartesian_delta,
             ActionType.GRIPPER: None if self.gripper_width_m is None else (self.gripper_width_m,),
+            ActionType.ARM_AND_GRIPPER: self.joint_position,
             ActionType.NOOP: (),
         }[self.type]
         if expected is None:
@@ -385,6 +397,41 @@ class Action(VersionedModel):
     def gripper(cls, width_m: float) -> Action:
         """Build a gripper action targeting an aperture in metres."""
         return cls(type=ActionType.GRIPPER, gripper_width_m=float(width_m))
+
+    @classmethod
+    def arm_and_gripper(
+        cls, joints: np.ndarray | tuple[float, ...], width_m: float, *, arm_joint_count: int
+    ) -> Action:
+        """Build a combined arm and gripper command.
+
+        Args:
+            joints: Arm joint targets.
+            width_m: Target gripper aperture in metres.
+            arm_joint_count: How many leading entries of ``joints`` are arm
+                joints. Stated explicitly rather than inferred, so a backend
+                never has to guess where the arm ends and the gripper begins.
+
+        Returns:
+            A validated combined action.
+        """
+        values = tuple(float(v) for v in joints)
+        if arm_joint_count <= 0 or arm_joint_count > len(values):
+            raise ValueError(
+                f"arm_joint_count={arm_joint_count} must be in (0, {len(values)}]"
+            )
+        return cls(
+            type=ActionType.ARM_AND_GRIPPER,
+            joint_position=values,
+            gripper_width_m=float(width_m),
+            arm_joint_count=arm_joint_count,
+        )
+
+    @property
+    def arm_targets(self) -> tuple[float, ...]:
+        """The arm joint targets, stripped of any gripper entry."""
+        if self.type is not ActionType.ARM_AND_GRIPPER:
+            return self.joint_position or ()
+        return (self.joint_position or ())[: self.arm_joint_count]
 
     @classmethod
     def noop(cls) -> Action:

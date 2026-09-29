@@ -132,6 +132,7 @@ class ScenarioConfig(VersionedModel):
     Attributes:
         scenario_id: Stable identifier, unique within an experiment.
         family: Benchmark family (nominal, depth, occlusion, latency, ...).
+        description: Human-readable description.
         environment: Scene, lighting, clutter, obstacles, friction.
         sensors: Sensor intrinsics and the full corruption configuration.
         robot: Embodiment and control mode.
@@ -149,8 +150,12 @@ class ScenarioConfig(VersionedModel):
     task: TaskConfig = Field(default_factory=TaskConfig, description="Task and success criteria.")
     objects: tuple[ObjectSpec, ...] = Field(default=(), description="Objects; empty means a single default target.")
     seed: int = Field(default=0, ge=0, description="Master seed for this scenario.")
-    camera_position: Vec3 = Field(default_factory=lambda: Vec3.of(0.62, -0.02, 0.52), description="Camera position in the world frame.")
-    camera_look_at: Vec3 = Field(default_factory=lambda: Vec3.of(0.0, 0.0, 0.04), description="Camera aim point; the workspace centre by default.")
+    camera_position: Vec3 = Field(
+        default_factory=lambda: Vec3.of(0.55, -0.15, 0.50), description="Camera position in the world frame."
+    )
+    camera_look_at: Vec3 = Field(
+        default_factory=lambda: Vec3.of(0.0, 0.05, 0.04), description="Camera aim point; the workspace centre."
+    )
     render_rgb: bool = Field(default=True, description="Render the colour image.")
     render_depth: bool = Field(default=True, description="Render the depth image.")
     render_segmentation: bool = Field(default=False, description="Render the segmentation image.")
@@ -222,6 +227,27 @@ class ScenarioConfig(VersionedModel):
         return self.environment.clutter_count + len(self.clutter)
 
 
+#: Maps the variable names used in the project specification's experiment files
+#: to the schema field they sweep. Keeping the mapping here means an experiment
+#: file stays short and readable while still addressing an exact field.
+_WELL_KNOWN_VARIABLE_PATHS: dict[str, str] = {
+    "depth_noise_mm": "sensors.depth.sigma_mm",
+    "depth_bias_mm": "sensors.depth.bias_mm",
+    "depth_dropout_percent": "sensors.depth.dropout_percent",
+    "occlusion_percent": "sensors.rgb.occlusion_percent",
+    "latency_ms": "sensors.camera.latency.delay_ms",
+    "joint_noise_rad": "sensors.robot_state.joint_noise_std_rad",
+    "joint_offset_rad": "sensors.robot_state.joint_offset_rad",
+    "lighting_lux": "environment.lighting_lux",
+    "lighting_percent": "environment.lighting_lux",
+    "clutter_count": "environment.clutter_count",
+    "obstacle_count": "environment.obstacle_count",
+    "object_friction": "environment.object_friction",
+    "object_x_cm": "objects.0.position.x",
+    "rgb_blur_px": "sensors.rgb.blur_kernel_px",
+}
+
+
 class VariableSpec(VersionedModel):
     """One swept variable in an experiment grid.
 
@@ -236,13 +262,38 @@ class VariableSpec(VersionedModel):
     """
 
     name: str = Field(min_length=1, description="Human-readable variable name.")
-    path: str = Field(min_length=1, description="Dotted field path within ScenarioConfig.")
+    path: str = Field(default="", description="Dotted field path within ScenarioConfig.")
     values: tuple[float, ...] = Field(min_length=1, description="Values to sweep.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _infer_path(cls, data: Any) -> Any:
+        """Infer ``path`` from a well-known variable name.
+
+        Experiment files in the project specification name swept variables
+        (``depth_noise_mm``) without repeating the schema path. Requiring both
+        would make every hand-written file verbose and error-prone, so the
+        standard names resolve automatically. A name outside the table must
+        supply ``path`` explicitly, and the error says so.
+        """
+        if not isinstance(data, dict):
+            return data
+        if data.get("path"):
+            return data
+        name = data.get("name")
+        inferred = _WELL_KNOWN_VARIABLE_PATHS.get(name) if isinstance(name, str) else None
+        return {**data, "path": inferred} if inferred else data
     unit: str = Field(default="", description="Unit label, e.g. 'mm'.")
     description: str = Field(default="", description="What this variable perturbs.")
 
     @model_validator(mode="after")
     def _check(self) -> Self:
+        if not self.path:
+            raise ValueError(
+                f"variable {self.name!r} has no path; either use one of "
+                f"{sorted(_WELL_KNOWN_VARIABLE_PATHS)} or add an explicit "
+                "'path' naming the field inside ScenarioConfig"
+            )
         if len(set(self.values)) != len(self.values):
             raise ValueError(f"variable {self.name!r} has duplicate values")
         if list(self.values) != sorted(self.values):
@@ -278,6 +329,69 @@ class ExperimentConfig(VersionedModel):
     backend: str = Field(default="mujoco", min_length=1, description="Default simulator backend name.")
     store_sensors: bool = Field(default=False, description="Persist raw sensor frames (large).")
     notes: str = Field(default="", description="Free-form notes recorded in artifacts.")
+
+    @model_validator(mode="before")
+    @classmethod
+    def _accept_spec_yaml(cls, data: Any) -> Any:
+        """Accept the compact YAML form used in experiment files.
+
+        The project specification writes experiments as::
+
+            experiment:
+              id: depth_regression_001
+            baseline:
+              policy: policy_v1
+            scenario:
+              task: pick_and_place
+            variables:
+              depth_noise_mm:
+                values: [0, 2, 5]
+
+        while the internal model is flatter. Accepting both here means an
+        experiment file matches the documented format exactly, and the
+        translation lives in one place instead of being repeated by every
+        caller.
+        """
+        if not isinstance(data, dict):
+            return data
+        payload = dict(data)
+
+        # ``experiment: {id: ...}`` -> ``experiment_id``
+        block = payload.pop("experiment", None)
+        if isinstance(block, dict) and "id" in block:
+            payload.setdefault("experiment_id", block["id"])
+        elif isinstance(block, str):
+            payload.setdefault("experiment_id", block)
+
+        # ``{policy: v1}`` -> ``{name: v1}``
+        for role in ("baseline", "candidate"):
+            entry = payload.get(role)
+            if isinstance(entry, dict) and "policy" in entry and "name" not in entry:
+                payload[role] = {"name": entry["policy"]}
+
+        # ``scenario: {task: pick_and_place}`` -> a TaskConfig mapping
+        scenario = payload.get("scenario")
+        if isinstance(scenario, dict) and isinstance(scenario.get("task"), str):
+            payload["scenario"] = {**scenario, "task": {"name": scenario["task"]}}
+
+        # ``scenario: {task: pick_and_place}`` -> a TaskConfig mapping
+        scenario = payload.get("scenario")
+        if isinstance(scenario, dict) and isinstance(scenario.get("task"), str):
+            payload["scenario"] = {**scenario, "task": {"name": scenario["task"]}}
+
+        # ``{name: {values: [...]}}`` -> tuple[VariableSpec, ...]
+        variables = payload.get("variables")
+        if isinstance(variables, dict):
+            specs: list[dict[str, Any]] = []
+            for name, spec in variables.items():
+                if isinstance(spec, dict):
+                    entry = {"name": name, **spec}
+                else:  # a bare list of values
+                    entry = {"name": name, "values": list(spec)}
+                specs.append(entry)
+            payload["variables"] = specs
+
+        return payload
 
     @model_validator(mode="after")
     def _check(self) -> Self:

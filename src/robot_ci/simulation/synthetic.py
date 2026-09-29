@@ -307,6 +307,19 @@ class SyntheticBackend(SimulatorBackend):
             velocity = np.asarray(action.joint_velocity, dtype=np.float64)
             state["joint_positions"] = robot.limits.clamped(state["joint_positions"] + velocity * dt)
             state["joint_velocities"] = velocity
+        elif action.type is ActionType.ARM_AND_GRIPPER:
+            target = np.asarray(action.arm_targets, dtype=np.float64)
+            if target.shape != (robot.dof,):
+                raise SimulationError(
+                    f"expected {robot.dof} arm targets, got {target.shape}",
+                    code="simulation.bad_action_shape",
+                )
+            alpha = min(1.0, 8.0 * dt)
+            previous = state["joint_positions"]
+            state["joint_positions"] = (1 - alpha) * previous + alpha * robot.limits.clamped(target)
+            state["joint_velocities"] = (state["joint_positions"] - previous) / max(dt, 1e-9)
+            width = float(action.gripper_width_m or 0.0)
+            state["gripper_width"] += (width - state["gripper_width"]) * min(1.0, 10.0 * dt)
         elif action.type is ActionType.GRIPPER:
             target_width = float(action.gripper_width_m or 0.0)
             state["gripper_width"] += (target_width - state["gripper_width"]) * min(1.0, 10.0 * dt)

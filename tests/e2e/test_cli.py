@@ -120,6 +120,28 @@ def test_scenario_validate_rejects_broken_file(tmp_path: Path) -> None:
     assert result.exit_code == EXIT_CONFIG_ERROR
 
 
+def test_experiment_run_is_implemented(tmp_path: Path) -> None:
+    """Phase 2 acceptance: `robot-ci experiment run` executes a real experiment."""
+    path = tmp_path / "exp.yaml"
+    path.write_text(
+        "experiment:\n  id: cli_smoke\n"
+        "baseline:\n  policy: policy_v1\n"
+        "candidate:\n  policy: policy_v2\n"
+        "scenario:\n  task: pick_and_place\n"
+        "variables:\n  depth_noise_mm:\n    values: [0, 2]\n"
+        "repetitions: 1\n"
+        "seed: 7\n",
+        encoding="utf-8",
+    )
+    out = tmp_path / "results"
+    result = invoke("experiment", "run", str(path), "--backend", "mock", "--output", str(out))
+    assert result.exit_code == EXIT_OK, result.output
+    assert (out / "summary.json").exists()
+    assert (out / "metrics.csv").exists()
+    assert (out / "report.html").exists()
+    assert (out / "events.jsonl").exists()
+
+
 def test_experiment_show_validates_a_config(tmp_path: Path) -> None:
     path = tmp_path / "exp.yaml"
     path.write_text(
@@ -160,7 +182,6 @@ def test_experiment_show_rejects_invalid_yaml(tmp_path: Path) -> None:
 @pytest.mark.parametrize(
     "command",
     [
-        ("experiment", "run"),
         ("experiment", "compare"),
         ("regression",),
         ("counterexample", "search"),

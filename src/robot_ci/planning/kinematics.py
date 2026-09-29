@@ -1,4 +1,4 @@
-"""Damped-least-squares inverse kinematics.
+r"""Damped-least-squares inverse kinematics.
 
 Why this exists
 ---------------
@@ -26,11 +26,11 @@ and run against either backend.
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
+from typing import Any
 
 import numpy as np
 
-from robot_ci.core.errors import SimulationError
 from robot_ci.models.geometry import Pose, Quaternion, Vec3
 
 __all__ = [
@@ -40,6 +40,7 @@ __all__ = [
     "damped_least_squares_step",
     "rotation_error",
     "solve_ik",
+    "solve_ik_refined",
 ]
 
 
@@ -66,6 +67,20 @@ class IKOptions:
     orientation_tolerance: float = 0.05
     step_clip: float = 0.25
     step_gain: float = 0.7
+    nullspace_gain: float = 0.06
+    """Weight of the null-space term that pulls the arm toward a mid-range posture.
+
+    A redundant 7-DOF arm has a 1-D null space even when solving a 6-DOF task.
+    Without a posture bias, damping and numerical noise let that free direction
+    drift into folded or near-singular configurations, from which the solver
+    cannot recover. Pulling gently toward the middle of the joint range keeps
+    the arm in a basin the next solve can improve on. This is a standard
+    redundancy-resolution term, not a hack, and it directly improves the
+    success rate of sequential waypoint tracking.
+    """
+    posture_bias: tuple[float, ...] | None = None
+    """Target posture for the null-space term. Defaults to the midpoint of the
+    supplied joint limits."""
 
 
 @dataclass
@@ -212,59 +227,51 @@ class MuJoCoJacobianProvider(JacobianProvider):
         forward_fn: Callable that advances kinematics for a candidate ``q``.
     """
 
-    mujoco: object
-    model: object
-    data: object
+    mujoco: Any
+    model: Any
+    data: Any
     site_name: str = "ee"
-    forward_fn: object = field(default=None, repr=False)
-    _saved_qpos: np.ndarray | None = field(default=None, init=False, repr=False)
-    _saved_qvel: np.ndarray | None = field(default=None, init=False, repr=False)
+    def _evaluate(self, q: np.ndarray, want_jacobian: bool) -> Any:
+        """Evaluate kinematics at ``q`` without disturbing the live simulation.
 
-    def forward(self, q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Return the end-effector position and rotation at ``q``.
-
-        The model state is saved and restored around the call so that evaluating
-        candidate configurations cannot corrupt the live simulation.
+        The state is saved and restored **on every call**. Caching the saved
+        state across calls would be a subtle and severe bug: the simulation
+        advances between policy steps, so restoring a snapshot taken at the
+        start of the episode would silently rewind the arm to its initial pose
+        every time the policy asks a question.
         """
         mujoco = self.mujoco
-        if self._saved_qpos is None:
-            self._saved_qpos = np.array(self.data.qpos, copy=True)
-            self._saved_qvel = np.array(self.data.qvel, copy=True)
-        for index, value in enumerate(q):
-            self.data.qpos[index] = float(value)
-        self.data.qvel[:] = 0.0
-        mujoco.mj_forward(self.model, self.data)
-        site_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, self.site_name)
-        position = np.array(self.data.site_xpos[site_id], copy=True)
-        rotation = np.array(self.data.site_xmat[site_id], copy=True).reshape(3, 3)
-        self.restore()
-        return position, rotation
+        saved_qpos = np.array(self.data.qpos, copy=True)
+        saved_qvel = np.array(self.data.qvel, copy=True)
+        try:
+            for index, value in enumerate(q):
+                self.data.qpos[index] = float(value)
+            self.data.qvel[:] = 0.0
+            mujoco.mj_forward(self.model, self.data)
+            site_id = mujoco.mj_name2id(
+                self.model, mujoco.mjtObj.mjOBJ_SITE, self.site_name
+            )
+            if not want_jacobian:
+                return (
+                    np.array(self.data.site_xpos[site_id], copy=True),
+                    np.array(self.data.site_xmat[site_id], copy=True).reshape(3, 3),
+                )
+            jacp = np.zeros((3, self.model.nv))
+            jacr = np.zeros((3, self.model.nv))
+            mujoco.mj_jacSite(self.model, self.data, jacp, jacr, site_id)
+            return np.vstack([jacp[:, : len(q)], jacr[:, : len(q)]])
+        finally:
+            self.data.qpos[:] = saved_qpos
+            self.data.qvel[:] = saved_qvel
+            mujoco.mj_forward(self.model, self.data)
 
-    def restore(self) -> None:
-        """Put the model state back where it was before the last :meth:`forward`."""
-        if self._saved_qpos is None:
-            return
-        mujoco = self.mujoco
-        self.data.qpos[:] = self._saved_qpos
-        self.data.qvel[:] = self._saved_qvel
-        mujoco.mj_forward(self.model, self.data)
+    def forward(self, q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Return the end-effector position and rotation at ``q``."""
+        return self._evaluate(q, want_jacobian=False)
 
     def jacobian(self, q: np.ndarray) -> np.ndarray:
-        """Return the 6x7 task-space Jacobian at ``q``."""
-        mujoco = self.mujoco
-        if self._saved_qpos is None:
-            self._saved_qpos = np.array(self.data.qpos, copy=True)
-            self._saved_qvel = np.array(self.data.qvel, copy=True)
-        for index, value in enumerate(q):
-            self.data.qpos[index] = float(value)
-        self.data.qvel[:] = 0.0
-        mujoco.mj_forward(self.model, self.data)
-        site_id = mujoco.mj_name2id(self.model, mujoco.mjtObj.mjOBJ_SITE, self.site_name)
-        jacp = np.zeros((3, self.model.nv))
-        jacr = np.zeros((3, self.model.nv))
-        mujoco.mj_jacSite(self.model, self.data, jacp, jacr, site_id)
-        self.restore()
-        return np.vstack([jacp[:, : len(q)], jacr[:, : len(q)]])
+        """Return the 6xN task-space Jacobian at ``q``."""
+        return self._evaluate(q, want_jacobian=True)
 
 
 def solve_ik(
@@ -301,7 +308,8 @@ def solve_ik(
     condition = math.inf
     iterations = 0
 
-    for iterations in range(1, opts.max_iterations + 1):
+    for step in range(1, opts.max_iterations + 1):
+        iterations = step
         position, rotation = provider.forward(q)
         linear = target_position - position
         angular = rotation_error(rotation, target_rotation)
@@ -314,6 +322,21 @@ def solve_ik(
         delta, condition = damped_least_squares_step(
             jacobian, task_error, opts.damping, opts.step_clip
         )
+        if opts.nullspace_gain > 0.0 and jacobian.shape[0] < jacobian.shape[1]:
+            # Project the posture bias into the null space of the task Jacobian
+            # so it cannot pull the end effector off target.
+            damping_matrix = np.eye(jacobian.shape[0]) * (opts.damping**2)
+            jjt_pinv = jacobian.T @ np.linalg.inv(jacobian @ jacobian.T + damping_matrix)
+            projector = np.eye(jacobian.shape[1]) - jjt_pinv @ jacobian
+            target_posture = (
+                np.asarray(opts.posture_bias, dtype=np.float64)
+                if opts.posture_bias is not None
+                else 0.5 * (
+                    (lower if lower is not None else q) + (upper if upper is not None else q)
+                )
+            )
+            posture_error = np.clip(target_posture - q, -0.5, 0.5)
+            delta = delta + projector @ (opts.nullspace_gain * posture_error)
         q = q + opts.step_gain * delta
         if lower is not None and upper is not None:
             q = np.clip(q, lower, upper)
@@ -327,6 +350,61 @@ def solve_ik(
         iterations=iterations,
         jacobian_condition=condition,
     )
+
+
+def solve_ik_refined(
+    provider: JacobianProvider,
+    target: Pose,
+    q_init: np.ndarray,
+    *,
+    lower: np.ndarray | None = None,
+    upper: np.ndarray | None = None,
+    options: IKOptions | None = None,
+    restarts: int = 3,
+) -> IKResult:
+    """Solve IK, retrying from perturbed seeds when the first attempt stalls.
+
+    Damped least squares converges quickly near a good seed and stagnates near
+    joint limits or kinematic singularities. A warm-started policy calls this
+    every control step, so a partial result that is a few millimetres out is
+    worse than useless: the gripper lands beside the object and the grasp
+    silently fails. Perturbing the seed and re-running escapes the stagnation
+    basin for a negligible cost compared with a wasted episode.
+
+    Args:
+        provider: Supplies forward kinematics and the Jacobian.
+        target: Desired end-effector pose.
+        q_init: Starting configuration.
+        lower: Optional lower joint limits.
+        upper: Optional upper joint limits.
+        options: Solver settings.
+        restarts: How many perturbed retries to attempt after the first solve.
+
+    Returns:
+        The best :class:`IKResult` found. ``converged`` reflects whether *any*
+        attempt met the tolerances.
+    """
+    best = solve_ik(provider, target, q_init, lower=lower, upper=upper, options=options)
+    if best.converged or restarts <= 0:
+        return best
+
+    span = 0.35
+    if lower is not None and upper is not None:
+        span = float(np.min(upper - lower)) * 0.12
+    for attempt in range(1, restarts + 1):
+        seed = np.array(q_init, dtype=np.float64)
+        # Deterministic perturbation: the same attempt index always produces the
+        # same seed, so a run is reproducible.
+        direction = np.arange(1, len(seed) + 1, dtype=np.float64) + attempt
+        seed = seed + span * np.sin(direction * (attempt + 1))
+        if lower is not None and upper is not None:
+            seed = np.clip(seed, lower, upper)
+        candidate = solve_ik(provider, target, seed, lower=lower, upper=upper, options=options)
+        if candidate.position_error < best.position_error:
+            best = candidate
+        if best.converged:
+            break
+    return best
 
 
 def _quaternion_to_matrix(quaternion: Quaternion) -> np.ndarray:

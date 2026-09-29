@@ -457,9 +457,82 @@ def experiment_show(
 # --------------------------------------------------- reserved (later phases)
 @experiment_app.command("run")
 @handle_errors
-def experiment_run_reserved() -> None:
-    """Run an experiment (Phase 2)."""
-    not_implemented("robot-ci experiment run", 2, "Use `robot-ci experiment show FILE` to validate a config today.")
+def experiment_run(
+    config_path: Annotated[Path, typer.Argument(help="Path to experiment.yaml.")],
+    backend: Annotated[str | None, typer.Option("--backend", help="Override the backend.")] = None,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Results directory.")] = None,
+    limit: Annotated[int | None, typer.Option("--limit", help="Cap the number of runs (smoke tests).")] = None,
+    quiet: Annotated[bool, typer.Option("--quiet", help="Suppress per-run output.")] = False,
+) -> None:
+    """Run an experiment and write its artifacts."""
+    from robot_ci.core.errors import ConfigurationError
+    from robot_ci.core.io import load_yaml
+    from robot_ci.core.logging import JsonlLogger
+    from robot_ci.core.workspace import Workspace
+    from robot_ci.experiments import ExperimentRunner
+    from robot_ci.models.scenario import ExperimentConfig
+
+    try:
+        config = ExperimentConfig.model_validate(load_yaml(config_path))
+    except Exception as exc:
+        fail(f"invalid experiment file {config_path}: {exc}", code=3)
+        return
+
+    workspace = Workspace.discover()
+    target = output or (workspace.results_dir / config.experiment_id)
+    target.mkdir(parents=True, exist_ok=True)
+    events = JsonlLogger(
+        (target / "events.jsonl").open("w", encoding="utf-8"),
+        own_stream=True,
+        context={"experiment_id": config.experiment_id, "git_commit": _git_head()},
+    )
+
+    selected = backend or config.backend
+    console.rule(f"[bold cyan]experiment {config.experiment_id}[/]  backend={selected}")
+    console.print(
+        f"baseline [b]{config.baseline.name}[/]  vs  candidate [b]{config.candidate.name}[/]\n"
+        f"grid {config.grid_size} cells x {config.repetitions} reps = "
+        f"{config.total_episodes_both_policies} episodes"
+    )
+
+    with ExperimentRunner(selected) as runner:
+        planned = len(list(runner.preview(config)))
+        if not quiet:
+            with console.status("running..."):
+                outcome = runner.run(config, output_dir=target, log=events, limit=limit)
+        else:
+            outcome = runner.run(config, output_dir=target, log=events, limit=limit)
+
+    table = Table(title="results", title_style="bold")
+    table.add_column("policy")
+    table.add_column("runs", justify="right")
+    table.add_column("success", justify="right")
+    table.add_column("mean steps", justify="right")
+    for name, summary in sorted(outcome.summaries.items()):
+        table.add_row(
+            name,
+            str(summary.n_runs),
+            f"{summary.success_rate:.3f}",
+            f"{summary.per_metric.get('steps', float('nan')):.1f}",
+        )
+    console.print(table)
+    if outcome.n_episodes < planned:
+        console.print(f"[yellow]truncated: ran {outcome.n_episodes} of {planned} planned[/]")
+    console.print(f"artifacts [green]{workspace.relative(target)}[/]")
+    del ConfigurationError
+
+
+def _git_head() -> str:
+    """Return the current commit, or ``unknown``."""
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True, timeout=5, check=False
+        )
+        return out.stdout.strip() or "unknown"
+    except (OSError, subprocess.SubprocessError):  # pragma: no cover
+        return "unknown"
 
 
 @experiment_app.command("compare")

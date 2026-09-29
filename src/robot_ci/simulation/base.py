@@ -325,6 +325,19 @@ class SimulatorBackend(ABC):
         """
 
     # -- optional capabilities --------------------------------------------
+    def jacobian_provider(self, handle: EpisodeHandle) -> Any:
+        """Return a Jacobian source for the end effector, or ``None``.
+
+        This is how a policy gets inverse kinematics without the framework
+        depending on any particular simulator: a backend that has analytic
+        kinematics returns a provider, and one that does not returns ``None`` so
+        the policy can degrade explicitly rather than crash.
+
+        Args:
+            handle: The active episode.
+        """
+        return None
+
     def save_episode_artifacts(self, handle: EpisodeHandle, directory: Any) -> list[str]:
         """Optionally write debug artifacts (frames, video) for one episode.
 

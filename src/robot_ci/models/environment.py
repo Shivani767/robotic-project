@@ -85,7 +85,17 @@ class EnvironmentConfig(VersionedModel):
     lighting_uniformity: float = Field(default=1.0, ge=0.0, le=1.0, description="1.0 is perfectly uniform lighting.")
     background: BackgroundKind = Field(default=BackgroundKind.GRAY, description="Background appearance.")
     table_height_m: float = Field(default=0.0, ge=0.0, le=2.0, description="Height of the support surface in metres.")
-    table_extent_m: tuple[float, float] = Field(default=(1.2, 1.2), description="Support surface (x, y) extent in metres.")
+    table_extent_m: tuple[float, float] = Field(default=(0.40, 0.25), description="Support surface half-extent in (x, y), metres.")
+    workspace_center: tuple[float, float] = Field(
+        default=(0.0, 0.05),
+        description=(
+            "Centre of the reachable workspace in (x, y). Objects, obstacles, the "
+            "camera aim and the target zone are all placed relative to this "
+            "point so the layout stays coherent when the table is resized. The "
+            "default sits 0.47 m in front of the robot base at y=-0.42, which is "
+            "inside the measured top-down reach envelope of this arm."
+        ),
+    )
     object_friction: float = Field(default=0.6, ge=0.0, le=2.0, description="Object/table friction coefficient.")
     clutter_count: int = Field(default=0, ge=0, le=64, description="Number of non-task distractor objects.")
     clutter_separation_m: float = Field(default=0.12, gt=0.0, le=2.0, description="Minimum separation between clutter objects.")

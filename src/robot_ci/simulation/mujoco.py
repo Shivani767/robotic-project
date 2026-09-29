@@ -177,6 +177,7 @@ class MuJoCoBackend(SimulatorBackend):
         self._cache_dir.mkdir(parents=True, exist_ok=True)
         self._models: dict[str, Any] = {}
         self._renderers: dict[tuple[int, int, int], Any] = {}
+        self._jacobian: Any = None
         self._active: dict[str, dict[str, Any]] = {}
 
     def capabilities(self) -> BackendCapabilities:
@@ -402,6 +403,18 @@ class MuJoCoBackend(SimulatorBackend):
             velocity = np.asarray(action.joint_velocity, dtype=np.float64)
             current = self._arm_qpos(model, data, robot.dof)
             self._write_arm(model, data, robot.limits.clamped(current + velocity * dt))
+        elif action.type is ActionType.ARM_AND_GRIPPER:
+            # Arm and gripper move on the same control tick: closing one step
+            # after arriving at the grasp pose is a real source of failure.
+            targets = np.asarray(action.arm_targets, dtype=np.float64)
+            if targets.shape != (robot.dof,):
+                raise SimulationError(
+                    f"expected {robot.dof} arm targets, got {targets.shape}",
+                    code="simulation.bad_action_shape",
+                )
+            self._write_arm(model, data, robot.limits.clamped(targets) * action.scale)
+            self._write_gripper(model, data, float(action.gripper_width_m or 0.0))
+            state["gripper_target"] = float(action.gripper_width_m or 0.0)
         elif action.type is ActionType.GRIPPER:
             self._write_gripper(model, data, float(action.gripper_width_m or 0.0))
             state["gripper_target"] = float(action.gripper_width_m or 0.0)
@@ -425,7 +438,14 @@ class MuJoCoBackend(SimulatorBackend):
         # Physics substeps at the MuJoCo timestep for stable contact.
         substeps = max(1, int(round(dt / float(model.opt.timestep))))
         for _ in range(substeps):
+            # Gravity compensation: cancel the bias force the arm needs just to
+            # hold itself up, so the position servo spends its effort on the
+            # task instead of on gravity. Without this the arm visibly sags
+            # toward every target and the waypoint dwell never triggers.
+            mujoco.mj_forward(model, data)
+            data.qfrc_applied[: model.nv] = data.qfrc_bias[: model.nv]
             mujoco.mj_step(model, data)
+        data.qfrc_applied[:] = 0.0
         mujoco.mj_forward(model, data)
 
         contact = self._classify_contact(model, data, scenario)
@@ -723,6 +743,22 @@ class MuJoCoBackend(SimulatorBackend):
         return len(touched) >= 2
 
     # -- lifecycle ---------------------------------------------------------
+    def jacobian_provider(self, handle: EpisodeHandle) -> Any:
+        """Return a cached analytic-Jacobian provider for this episode.
+
+        The provider saves and restores the model state around every read, so a
+        policy may evaluate candidate configurations without disturbing the
+        simulation it is controlling.
+        """
+        state = self._require(handle)
+        if self._jacobian is None:
+            from robot_ci.planning.kinematics import MuJoCoJacobianProvider
+
+            self._jacobian = MuJoCoJacobianProvider(
+                mujoco=self._mujoco, model=state["model"], data=state["data"], site_name="ee"
+            )
+        return self._jacobian
+
     def close(self, handle: EpisodeHandle) -> None:
         """Release one episode's MuJoCo data. Idempotent."""
         self._active.pop(handle.episode_id, None)
@@ -738,6 +774,7 @@ class MuJoCoBackend(SimulatorBackend):
         self._renderers.clear()
         self._models.clear()
         self._active.clear()
+        self._jacobian = None
 
     def save_episode_artifacts(self, handle: EpisodeHandle, directory: Any) -> list[str]:
         """Write the current frame as PNG and depth as NPY, for inspection.

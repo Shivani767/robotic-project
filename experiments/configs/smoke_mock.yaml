@@ -1,0 +1,13 @@
+experiment:
+  id: smoke_mock
+baseline:
+  policy: policy_v1
+candidate:
+  policy: policy_v2
+scenario:
+  task: pick_and_place
+variables:
+  depth_noise_mm:
+    values: [0, 5]
+repetitions: 2
+seed: 42

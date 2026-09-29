@@ -18,6 +18,7 @@ for batch sweeps.
 from __future__ import annotations
 
 import hashlib
+import math
 from typing import Any
 
 import numpy as np
@@ -111,19 +112,19 @@ def _look_at_quat(eye: np.ndarray, target: np.ndarray) -> tuple[float, float, fl
 #: turns a DH serial chain into an arm that can actually reach a table.
 _CHAIN: tuple[tuple[tuple[float, float, float], tuple[float, float, float], tuple[float, float, float, float], float, float], ...] = (
     # joint 1 - base yaw, 333 mm above the mounting plate
-    ((0.000, 0.000, 0.333), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.150, 0.070),
+    ((0.000, 0.000, 0.333), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.150, 0.045),
     # joint 2 - shoulder pitch
-    ((0.000, 0.000, 0.000), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.150, 0.062),
+    ((0.000, 0.000, 0.000), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.150, 0.042),
     # joint 3 - elbow, 316 mm along the upper arm
-    ((0.000, 0.000, 0.316), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.130, 0.058),
+    ((0.000, 0.000, 0.316), (1.5707963267948966, 0.0, 0.0), (0.0, 0.0, 0.0, 0.0), 0.130, 0.040),
     # joint 4 - forearm roll, laterally offset by a/4
-    ((0.0825, 0.0825, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.785398163397), 0.120, 0.052),
+    ((0.0825, 0.0825, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.785398163397), 0.120, 0.038),
     # joint 5 - wrist pitch, 384 mm along the forearm
-    ((-0.0825, 0.384, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, -0.785398163397), 0.100, 0.046),
+    ((-0.0825, 0.384, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, -0.785398163397), 0.100, 0.035),
     # joint 6 - wrist roll
-    ((0.0880, 0.000, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.785398163397), 0.080, 0.040),
+    ((0.0880, 0.000, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, 0.785398163397), 0.080, 0.032),
     # joint 7 - flange roll
-    ((0.107, 0.000, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, -0.785398163397), 0.050, 0.035),
+    ((0.107, 0.000, 0.000), (0.0, 0.0, 0.0), (0.0, 1.0, 0.0, -0.785398163397), 0.050, 0.028),
 )
 
 #: Every arm joint rotates about its own local z axis; the body frames above
@@ -155,6 +156,75 @@ def _frame_attr(
     return attributes
 
 
+# --- Collision classes -------------------------------------------------------
+#
+# MuJoCo collides two geoms when (contype_a & conaffinity_b) or
+# (contype_b & conaffinity_a) is non-zero. The classes below are chosen so that
+# the contacts this project actually studies are enabled, and the ones that are
+# not, are not.
+#
+#   class      contype  conaffinity   collides with
+#   ---------  -------  -----------   -----------------------------------------
+#   world      0b0100   0b1000        objects, gripper      (NOT arm links)
+#   object     0b0010   0b1100        world, gripper, links
+#   gripper    0b1000   0b0100        world, objects        (NOT arm links)
+#   arm link   0b0001   0b0010        objects               (NOT world/gripper)
+#
+# Why arm links are excluded from table and gripper contact
+# --------------------------------------------------------
+# The links here are capsule *approximations* of a Panda, not the official
+# collision meshes. At ordinary manipulation poses the approximated forearm
+# grazes the table edge, and the resulting constraint forces (hundreds of
+# newton-metres) are indistinguishable from a control failure -- they would
+# dominate the contact metrics and mask the behaviour under study.
+#
+# Real deployments check arm/table clearance in the *motion planner*
+# (MoveIt 2, Phase 11), not in contact dynamics. Excluding the approximation
+# from that check here is a deliberate, recorded simplification, and it makes
+# the remaining contact counts a measure of the policy's behaviour rather than
+# of the fidelity of a hand-written collision model.
+_CONTYPE = {
+    "world": 0b0100,
+    "object": 0b0010,
+    "gripper": 0b1000,
+    "link": 0b0001,
+}
+_CONAFFINITY = {
+    "world": 0b1000,
+    "object": 0b1100,
+    "gripper": 0b0100,
+    "link": 0b0010,
+}
+
+
+def _mask(name: str) -> str:
+    """Return the ``contype``/``conaffinity`` attribute pair for a class."""
+    return f'contype="{_CONTYPE[name]}" conaffinity="{_CONAFFINITY[name]}"'
+
+
+def _link_geom_xml(index: int, radius: float) -> str:
+    """Return the collision geom for arm link ``index``.
+
+    The capsule is oriented along the offset from this body to the next one,
+    which is the true direction of the link segment. When that offset is zero
+    (a co-located joint pair) a sphere at the joint is used instead, which is
+    frame-independent and therefore always correct.
+    """
+    nxt = _CHAIN[index + 1][0] if index + 1 < len(_CHAIN) else (0.0, 0.0, _LINK_LENGTHS[index])
+    norm = math.sqrt(sum(component * component for component in nxt))
+    if norm < 1e-6:
+        return (
+            f'<geom name="link{index + 1}_geom" type="sphere" size="{_f(radius)}" '
+            f'rgba="0.72 0.74 0.78 1" ' + _mask("link") + '/>'
+        )
+    axis = " ".join(_f(c / norm) for c in nxt)
+    return (
+        f'<geom name="link{index + 1}_geom" type="capsule" '
+        f'fromto="0 0 0 0 0 {_f(norm)}" size="{_f(radius)}" zaxis="{axis}" '
+        f'rgba="0.72 0.74 0.78 1" ' + _mask("link") + '/>'
+    )
+
+
 def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
     """Emit a 7-DOF serial arm with a parallel gripper as MJCF.
 
@@ -178,17 +248,44 @@ def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
     lower = scenario.robot.limits.lower
     upper = scenario.robot.limits.upper
     kv = scenario.robot.limits.max_velocity
-    kp = (80.0,) * 7
-    damping = (4.0,) * 7
+    # Position-servo gains. These must be stiff enough that the arm tracks
+    # an IK solution within a few control steps; the Panda's real low-level
+    # controller runs at ~1 kHz with far higher gains plus full gravity
+    # compensation, so these are a deliberate simplification, noted as such.
+    kp = (900.0,) * 7
+    damping = (12.0,) * 7
 
-    body: list[str] = ['    <body name="link0" pos="0 0 0">']
-    body.append(
-        '      <geom name="link0_geom" type="capsule" fromto="0 0 0 0 0 0.14" '
-        'size="0.08" rgba="0.25 0.25 0.28 1" contype="1" conaffinity="1"/>'
-    )
+    # Collision groups: the arm is group 2, the world (table, objects,
+    # obstacles) is group 1. contype/conaffinity are chosen so the arm
+    # collides with the world but not with itself. Self-collision is a
+    # motion-planning concern; modelling it in contact dynamics would let a
+    # merely-folded arm generate constraint forces that look like a control
+    # failure. It is listed as a simplification, not silently omitted.
+
+    # The whole arm is mounted on a pedestal at the configured base position.
+    base = scenario.robot.base_position
+    body: list[str] = [f'    <body name="arm_base" pos="{_f(base.x)} {_f(base.y)} {_f(base.z)}">',
+                       '    <body name="link0" pos="0 0 0">']
+
+    # Link geometry.
+    #
+    # A capsule's ``fromto`` is expressed in its body's frame, and the chain's
+    # frames carry quarter-turn rotations, so a capsule along local z would run
+    # sideways and could reach through the table. Each capsule is therefore
+    # oriented with ``zaxis`` along the offset that actually leads to the *next*
+    # body, which is the true direction of the link segment.
+    #
+    # Self-collision between arm links is disabled via contype/conaffinity
+    # groups: a planned trajectory is assumed kinematically feasible, and
+    # modelling self-collision in contact dynamics would let a merely folded arm
+    # produce constraint forces that look like a control failure.
     indent = "      "
+    body.append(
+        '      <geom name="link0_geom" type="sphere" size="0.048" '
+        'rgba="0.25 0.25 0.28 1" ' + _mask("link") + '/>'
+    )
     for index in range(7):
-        pos, euler, axisangle, link_len, radius = _CHAIN[index]
+        pos, euler, axisangle, _length, radius = _CHAIN[index]
         body.append(f'{indent}<body name="link{index + 1}" {_frame_attr(pos, euler, axisangle)}>')
         indent += "  "
         body.append(
@@ -197,17 +294,15 @@ def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
             f'armature="0.1"/>'
         )
         body.append(
-            f'{indent}<geom name="link{index + 1}_geom" type="capsule" '
-            f'fromto="0 0 0 0 0 {_f(link_len)}" size="{_f(radius)}" '
-            f'rgba="0.72 0.74 0.78 1" contype="1" conaffinity="1"/>'
+            f'{indent}{_link_geom_xml(index, radius)}'
         )
 
     # Flange and parallel gripper, nested inside the last arm link.
     body.append(f'{indent}<body name="hand" pos="0 0 0.048">')
     indent += "  "
     body.append(
-        f'{indent}<geom name="hand_geom" type="box" size="0.035 0.035 0.028" '
-        f'rgba="0.20 0.20 0.22 1" contype="1" conaffinity="1"/>'
+        f'{indent}<geom name="hand_geom" type="box" size="0.030 0.030 0.026" '
+        f'rgba="0.20 0.20 0.22 1" ' + _mask("gripper") + '/>'
     )
     body.append(
         f'{indent}<site name="ee" pos="0 0 0.060" size="0.006" rgba="0 0 0 0" type="sphere"/>'
@@ -222,7 +317,7 @@ def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
         )
         body.append(
             f'{indent}<geom name="{side}_finger_geom" type="box" size="0.009 0.009 0.026" '
-            f'rgba="0.85 0.30 0.10 1" contype="1" conaffinity="1"/>'
+            f'rgba="0.85 0.30 0.10 1" ' + _mask("gripper") + '/>'
         )
         body.append(f"{indent[:-2]}</body>")
         indent = indent[:-2]
@@ -232,13 +327,14 @@ def _build_robot_xml(scenario: ScenarioConfig) -> tuple[str, str]:
         body.append(f"{indent}</body>")
         indent = indent[:-2]
     body.append(f"{indent}</body>")       # close link0
+    body.append("    </body>")            # close arm_base
 
     actuator: list[str] = ["  <actuator>"]
     for index in range(7):
         kv_i = kv[index] if index < len(kv) else 2.0
         actuator.append(
             f'    <position name="act{index + 1}" joint="joint{index + 1}" kp="{_f(kp[index])}" '
-            f'kv="{_f(kv_i)}" ctrlrange="{_f(lower[index])} {_f(upper[index])}" forcerange="-87 87"/>'
+            f'kv="{_f(kv_i)}" ctrlrange="{_f(lower[index])} {_f(upper[index])}" forcerange="-150 150"/>'
         )
     actuator.append('    <position name="left_finger_act" joint="left_finger_joint" kp="600" kv="12" ctrlrange="0 0.04" forcerange="-40 40"/>')
     actuator.append('    <position name="right_finger_act" joint="right_finger_joint" kp="600" kv="12" ctrlrange="-0.04 0" forcerange="-40 40"/>')
@@ -294,8 +390,15 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
         f'ambient="{_f(ambient)} {_f(ambient)} {_f(ambient)}" directional="true"/>',
         f'    <light name="fill" pos="-0.5 0.3 1.0" dir="0.4 -0.2 -1" '
         f'diffuse="{_f(0.5 * diffuse)} {_f(0.5 * diffuse)} {_f(0.5 * diffuse)}"/>',
-        f'    <geom name="table" type="plane" pos="0 0 {_f(env.table_height_m)}" size="{_f(extent_x)} {_f(extent_y)} 0.01" '
-        f'material="table_mat" friction="{_f(env.object_friction)} 0.005 0.0001" rgba="{table_rgba}"/>',
+        # A finite box rather than an infinite plane: the workspace must be
+        # bounded so the robot base can sit beside it without ever "standing"
+        # on the surface.
+        f'    <geom name="table" type="box" '
+        f'pos="{_f(env.workspace_center[0])} {_f(env.workspace_center[1])} '
+        f'{_f(env.table_height_m - 0.02)}" '
+        f'size="{_f(extent_x)} {_f(extent_y)} 0.02" '
+        f'material="table_mat" friction="{_f(env.object_friction)} 0.005 0.0001" rgba="{table_rgba}" '
+        f'{_mask("world")}/>',
     ]
     for cam in ("rgb_camera", "depth_camera", "seg_camera"):
         world.append(f'    <camera name="{cam}" pos="{eye}" xyaxes="{cam_axes}" fovy="{_f(fov_deg)}" mode="fixed"/>')
@@ -307,12 +410,13 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
     # Obstacles.
     for index in range(env.obstacle_count):
         angle = 2.0 * np.pi * index / max(env.obstacle_count, 1)
-        radius = 0.22
+        radius = 0.26
         half_h = env.obstacle_height_m / 2.0
         world.append(
             f'    <geom name="obstacle{index}" type="box" size="0.03 0.03 {_f(half_h)}" '
-            f'pos="{_f(radius * np.cos(angle))} {_f(radius * np.sin(angle))} {_f(env.table_height_m + half_h)}" '
-            f'rgba="0.30 0.30 0.35 1" contype="1" conaffinity="1"/>'
+            f'pos="{_f(env.workspace_center[0] + radius * np.cos(angle))} "'
+            f'{_f(env.workspace_center[1] + radius * np.sin(angle))} {_f(env.table_height_m + half_h)}" '
+            f'rgba="0.30 0.30 0.35 1" {_mask("world")}/>'
         )
 
     # Objects: explicit position wins, otherwise sample deterministically.
@@ -336,14 +440,16 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
             xy = None
             for _ in range(80):
                 angle = float(rng.uniform(0.0, 2.0 * np.pi))
-                radius = float(rng.uniform(0.14, 0.30))
-                candidate = np.array([radius * np.cos(angle), radius * np.sin(angle)])
+                radius = float(rng.uniform(0.08, 0.20))
+                candidate = np.array(env.workspace_center) + radius * np.array(
+                    [np.cos(angle), np.sin(angle)]
+                )
                 min_gap = env.clutter_separation_m + 0.07
                 if all(float(np.linalg.norm(candidate - other)) > min_gap for other in occupied):
                     xy = candidate
                     break
             if xy is None:
-                xy = np.array([0.32 + 0.03 * index, 0.0])
+                xy = np.array(env.workspace_center) + np.array([0.24 + 0.03 * index, 0.0])
         assert xy is not None  # narrowed: both branches above assign it
         occupied.append(xy)
         explicit_z = spec.position.array[2] if spec.position is not None else 0.0
@@ -356,7 +462,7 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
             f'<freejoint name="{spec.id}_free"/>'
             f'<geom name="{spec.id}" type="{geom_type}" size="{" ".join(_f(v) for v in extents)}" '
             f'rgba="{palette[spec.category]}" mass="{_f(mass)}" '
-            f'friction="{_f(env.object_friction)} 0.01 0.0002" contype="1" conaffinity="1"/>'
+            f'friction="{_f(env.object_friction)} 0.01 0.0002" {_mask("object")}/>'
             f'</body>'
         )
 
