@@ -102,14 +102,40 @@ robot-ci backend list
 | 7 | Counterexamples | planned |
 | 8 | Boundary mapping | planned |
 | 9 | Diagnosis and ablation | planned |
-| 10-11 | ROS 2 / MoveIt 2 (remote only) | planned |
-| 12-14 | Dashboard, cloud, benchmarks, research report | planned |
+| 12-14 | Research report, benchmark suite, end-to-end demo | done |
+| 15 | Linux CI verification path | written, never run |
 
-**No experimental results are reported yet.** Commands for later phases exit with
-code 5 and say so; they never return fabricated numbers.
+## 5b. Reproducing this
+
+```bash
+bash scripts/verify.sh            # one definition of "verified", ~12 min
+bash scripts/verify.sh --quick    # skip the experiments, ~1 min
+echo $?                           # 0 only if every check exited 0
+```
+
+`scripts/verify.sh` is the single entry point, shared with CI. It checks **exit
+codes, not output text**, and writes a machine-readable record to
+`experiments/results/verification_baseline.json`.
+
+That rule was not a style preference. For several rounds this project reported
+"ruff clean" while a `B905` violation sat above the summary line, because the
+checks were piped through `tail -n 1`, which prints "All checks passed!" as the
+last line of a run that also printed a violation. Writing the script then found a
+**second** hole on its first run: `ruff format` had never been run at all, and
+reported 40 files. Two independent gaps in the checker, one invisible to the tool
+that had been run every time.
+
+This is the project's thesis turned on itself: a mechanism that looks correct and
+does less than it appears to is the failure mode this project exists to detect,
+and it was present in the verification process before it was present in the robot.
 
 ## 7. Documentation
 
+* [`research_report_generated.md`](research_report_generated.md) - the research
+  report, generated from the artifacts by
+  `experiments/make_research_report.py`. No number in it is transcribed.
+* [`docs/verification.md`](docs/verification.md) - what is verified locally and
+  what is not, including the two failures of the verification process itself
 * `ENVIRONMENT_REPORT.md` - measured machine capabilities and the MuJoCo finding
 * `IMPLEMENTATION_PLAN.md` - phase map, acceptance criteria, risk register
 * [`docs/`](docs/README.md) - architecture, backends, methodology and
@@ -125,6 +151,16 @@ code 5 and say so; they never return fabricated numbers.
 * The Mock and Synthetic backends do not model contact dynamics; manipulation
   claims must come from `--backend mujoco`.
 * ROS 2 / MoveIt 2 cannot be validated on macOS and are not yet built.
+  `ros2_ws/src/` holds three **empty directories** — 0 files. No scaffolding was
+  written to make the tree look more complete than it is.
+* The Isaac Sim adapter is **implemented but unverified**. It has never been
+  executed, because Isaac has no macOS build. Its contract is tested against
+  mocks; the live `IsaacSession` is **not implemented**.
+* `.github/workflows/verify.yml` has **never run**. It is the path toward Linux
+  verification, not a verification.
+* `ruff format` reports 40 files it would restyle. `ruff check` (the linter)
+  passes on all of them; `ruff format` is a different tool that had not been run
+  until `scripts/verify.sh` was written.
 
 ## 9. License
 

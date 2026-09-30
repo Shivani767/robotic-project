@@ -1,0 +1,10 @@
+{"commit": "f68ec14", "date": "2026-09-30T19:30:54Z", "overall": 0, "checks": [
+    {"name": "ruff (src, tests, experiments)", "exit": 0, "detail": "All checks passed! "},
+    {"name": "ruff format --check", "exit": 1, "detail": "advisory: 40 files would be reformatted, 37 files already formatted "},
+    {"name": "mypy (src/robot_ci)", "exit": 0, "detail": "pyproject.toml: note: unused section(s): module = ['isaacsim.*', 'moveit.*', 'omni.*', 'pxr.*', 'rclpy.*', 'torch.*'] Success: no issues found in 77 source file"},
+    {"name": "unit", "exit": 0, "detail": "...........................                                              [100%] 315 passed in 1.92s "},
+    {"name": "integration", "exit": 0, "detail": "..................................................                       [100%] 50 passed in 3.03s "},
+    {"name": "end to end", "exit": 0, "detail": ".................................                                        [100%] 33 passed in 1.53s "},
+    {"name": "robot-ci validate", "exit": 0, "detail": "──────────────────────────────────────────────────────────────────────────────── validate: PASSED "},
+    {"name": "package imports without mujoco", "exit": 0, "detail": "..............................                                           [100%] 30 passed in 0.04s "}
+  ]}

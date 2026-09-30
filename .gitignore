@@ -20,6 +20,23 @@ dashboard/node_modules/
 # Results and artifacts (regenerate with `robot-ci experiment run`)
 experiments/results/*
 !experiments/results/.gitkeep
+
+# ...with one deliberate exception: the evidence behind the frozen baseline.
+#
+# Results are ignorable only as long as something else can regenerate them. A
+# research baseline is a different thing -- it is a claim that a specific set of
+# measurements was made at a specific commit, and that claim is only checkable if
+# the measurements are in the tag. Committing the artifact is the same discipline
+# as committing the test count: a result nobody can inspect is not a result.
+#
+# The large per-episode directories (demo_v1_vs_v3/, phase3_pairing/) stay out on
+# size alone; their summaries and the verification record are kept.
+experiments/results/*
+!experiments/results/*.json
+!experiments/results/*.txt
+!experiments/results/*.md
+!experiments/results/*.png
+!experiments/results/.gitkeep
 # The measured-results record is source, not a generated artifact. It is the
 # only thing in this directory that is hand-written, and it is the file that
 # keeps a placeholder from being mistaken for a measurement later on.

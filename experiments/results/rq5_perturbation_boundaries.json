@@ -1,0 +1,265 @@
+{
+  "question": "RQ5: where are the behavioural boundaries, per perturbation?",
+  "status": "MEASURED",
+  "baseline": "policy_v3",
+  "candidate": "policy_v1",
+  "seeds": [
+    1,
+    3,
+    4,
+    6,
+    8,
+    9
+  ],
+  "method": "one axis at a time, others nominal; boundary is the smallest swept level where the baseline succeeds and the candidate does not",
+  "boundaries": {
+    "depth_noise_mm": 1.0
+  },
+  "axes_with_no_separation": [
+    "depth_bias_mm",
+    "occlusion_percent",
+    "joint_noise_rad",
+    "latency_ms",
+    "clutter_count",
+    "object_friction"
+  ],
+  "curves": {
+    "depth_noise_mm": {
+      "path": "sensors.depth.sigma_mm",
+      "unit": "mm",
+      "boundary_value": 1.0,
+      "no_separation": false,
+      "points": [
+        {
+          "value": 0.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 1.0,
+          "baseline": 0.8333333333333334,
+          "candidate": 0.3333333333333333,
+          "delta": -0.5
+        },
+        {
+          "value": 2.0,
+          "baseline": 0.8333333333333334,
+          "candidate": 0.5,
+          "delta": -0.3333
+        },
+        {
+          "value": 4.0,
+          "baseline": 0.5,
+          "candidate": 0.3333333333333333,
+          "delta": -0.1667
+        },
+        {
+          "value": 8.0,
+          "baseline": 0.16666666666666666,
+          "candidate": 0.16666666666666666,
+          "delta": 0.0
+        }
+      ]
+    },
+    "depth_bias_mm": {
+      "path": "sensors.depth.bias_mm",
+      "unit": "mm",
+      "boundary_value": null,
+      "no_separation": true,
+      "points": [
+        {
+          "value": 0.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 2.0,
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "delta": 0.0
+        },
+        {
+          "value": 5.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 10.0,
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "delta": 0.0
+        },
+        {
+          "value": 20.0,
+          "baseline": 0.0,
+          "candidate": 0.0,
+          "delta": 0.0
+        }
+      ]
+    },
+    "occlusion_percent": {
+      "path": "sensors.rgb.occlusion_percent",
+      "unit": "%",
+      "boundary_value": null,
+      "no_separation": true,
+      "points": [
+        {
+          "value": 0.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 10.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 30.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 60.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        }
+      ]
+    },
+    "joint_noise_rad": {
+      "path": "sensors.robot_state.joint_noise_std_rad",
+      "unit": "rad",
+      "boundary_value": null,
+      "no_separation": true,
+      "points": [
+        {
+          "value": 0.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 0.005,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 0.02,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 0.05,
+          "baseline": 0.6666666666666666,
+          "candidate": 0.6666666666666666,
+          "delta": 0.0
+        }
+      ]
+    },
+    "latency_ms": {
+      "path": "sensors.camera.latency.delay_ms",
+      "unit": "ms",
+      "boundary_value": null,
+      "no_separation": true,
+      "points": [
+        {
+          "value": 0.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 50.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 100.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 200.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        }
+      ]
+    },
+    "clutter_count": {
+      "path": "environment.clutter_count",
+      "unit": "objects",
+      "boundary_value": null,
+      "no_separation": true,
+      "points": [
+        {
+          "value": 0.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 2.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 5.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 9.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        }
+      ]
+    },
+    "object_friction": {
+      "path": "environment.object_friction",
+      "unit": "coefficient",
+      "boundary_value": null,
+      "no_separation": true,
+      "points": [
+        {
+          "value": 1.0,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 0.6,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 0.3,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        },
+        {
+          "value": 0.1,
+          "baseline": 1.0,
+          "candidate": 1.0,
+          "delta": 0.0
+        }
+      ]
+    }
+  },
+  "note": "an axis listed under axes_with_no_separation is a finding: it is not a behavioural factor for this task, and a sweep over it costs episodes to measure nothing"
+}

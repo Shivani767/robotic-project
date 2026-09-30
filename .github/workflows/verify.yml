@@ -1,0 +1,105 @@
+# Linux verification for Robot CI.
+#
+# **Status: written but never executed.** This workflow has not run; GitHub
+# Actions has not been used for this repository. It is "implemented but
+# unverified" in the same sense as the Isaac adapter, and it should be labelled
+# that way until it has produced a green run. See docs/verification.md.
+#
+# Why it exists, given that the project is developed on a Mac: the honest
+# limitation of the local setup is that a *Mac* cannot run ROS 2, MoveIt 2, Isaac
+# Sim, or a GPU workload. This workflow is the first step toward verifying on
+# Linux, where those become possible. It deliberately does not pretend to verify
+# them yet -- it verifies only what is genuinely portable, and says so.
+#
+# The verification logic is NOT duplicated here. It calls scripts/verify.sh, which
+# is the same script a developer runs locally, so there is exactly one
+# definition of "verified" and CI cannot drift away from it.
+
+name: verify
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # config hashes and reports record the commit
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      # MuJoCo is optional for the research engine. Without it the mock and
+      # synthetic backends still run the whole test suite, which is what keeps
+      # this job green on a machine that has no physics engine. The MuJoCo
+      # experiments run as a separate, explicitly non-blocking job so a missing
+      # optional dependency cannot be mistaken for a broken change.
+      - name: Verify (no MuJoCo required)
+        run: bash scripts/verify.sh --quick --json verification-linux.json
+
+      - name: Upload verification record
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: verification-record
+          path: verification-linux.json
+
+      - name: Check that the record was produced and is a pass
+        if: always()
+        run: |
+          # The job status already reflects verify.sh's exit code. This step
+          # exists to assert the *record* is present and internally consistent,
+          # because a green run that wrote no evidence is exactly the failure
+          # mode this project exists to catch.
+          test -f verification-linux.json
+          python - <<'PY'
+          import json, sys
+          record = json.load(open("verification-linux.json"))
+          if record["overall"] != 0:
+              sys.exit(f"record reports overall={record['overall']}")
+          failed = [c for c in record["checks"] if c["exit"] != 0]
+          if failed:
+              sys.exit(f"record reports failures: {[c['name'] for c in failed]}")
+          print(f"{len(record['checks'])} checks recorded, all exit 0")
+          PY
+
+  mujoco-experiments:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 60
+    continue-on-error: true  # see note above: a physics dependency is not a gate
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+      - run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install mujoco
+      - name: Full verification including the research experiments
+        run: bash scripts/verify.sh
+      - name: Upload experiment artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: experiment-results
+          path: experiments/results/

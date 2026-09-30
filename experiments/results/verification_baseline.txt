@@ -1,0 +1,23 @@
+ROBOT CI verification
+  interpreter : Python 3.12.14
+  commit      : f68ec14
+  date        : 2026-09-30T19:30:46Z
+
+static analysis
+  [32mPASS[0m  ruff (src, tests, experiments)     All checks passed! 
+  [33mWARN[0m  ruff format --check                (advisory, non-blocking) 40 files would be reformatted, 37 files already formatted 
+  [32mPASS[0m  mypy (src/robot_ci)                pyproject.toml: note: unused section(s): module = ['isaacsim.*', 'moveit.*', 'omni.*', 'pxr.*', 'rclpy.*', 'torch.*'] Success: no issues found in 77 source file
+
+tests
+  [32mPASS[0m  unit                               ...........................                                              [100%] 315 passed in 1.92s 
+  [32mPASS[0m  integration                        ..................................................                       [100%] 50 passed in 3.03s 
+  [32mPASS[0m  end to end                         .................................                                        [100%] 33 passed in 1.53s 
+
+environment
+  [32mPASS[0m  robot-ci validate                  ──────────────────────────────────────────────────────────────────────────────── validate: PASSED 
+  [32mPASS[0m  package imports without mujoco     ..............................                                           [100%] 30 passed in 0.04s 
+
+record written to experiments/results/verification_baseline.json
+
+[32mVERIFICATION PASSED[0m  every check exited 0
+EXIT=0

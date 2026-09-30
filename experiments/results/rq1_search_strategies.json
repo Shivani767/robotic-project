@@ -1,0 +1,64 @@
+{
+  "question": "RQ1: tests to failure, by search strategy",
+  "baseline": "policy_v3",
+  "candidate": "policy_v1",
+  "seed_rationale": "a per-seed separation exists on seed 3 and on 0 of the other 11 seeds scanned; a single-seed counterexample is a property of the seed as much as the condition",
+  "status": "MEASURED",
+  "axis": {
+    "name": "depth_noise_mm",
+    "low": 0.0,
+    "high": 12.0,
+    "unit": "mm"
+  },
+  "budget": 24,
+  "backend": "mujoco",
+  "seed": 3,
+  "oracle": "one paired episode per point; both arms share the seed",
+  "limitation": "the oracle evaluates a single seed per point, so a counterexample found here is a property of that seed as well as of the condition. Reproducibility across seeds is RQ4, not this result, and a single-seed finding must not be reported as a regression without its reproduction rate.",
+  "strategies": [
+    {
+      "strategy": "grid",
+      "found": true,
+      "oracle_evaluations": 2,
+      "wall_clock_s": 4.36,
+      "severity": 0.3333333333333333,
+      "boundary": null,
+      "boundary_axis": null,
+      "points_visited": 2,
+      "note": "first lattice hit"
+    },
+    {
+      "strategy": "random",
+      "found": true,
+      "oracle_evaluations": 1,
+      "wall_clock_s": 1.36,
+      "severity": 0.6369616873214543,
+      "boundary": null,
+      "boundary_axis": null,
+      "points_visited": 1,
+      "note": "uniform sample hit"
+    },
+    {
+      "strategy": "binary",
+      "found": true,
+      "oracle_evaluations": 8,
+      "wall_clock_s": 17.14,
+      "severity": 0.09765625,
+      "boundary": 1.1484375,
+      "boundary_axis": "depth_noise_mm",
+      "points_visited": 8,
+      "note": "bracketed by exponential probe then bisected"
+    },
+    {
+      "strategy": "adaptive",
+      "found": true,
+      "oracle_evaluations": 15,
+      "wall_clock_s": 25.99,
+      "severity": 0.09765625,
+      "boundary": 1.1484375,
+      "boundary_axis": "depth_noise_mm",
+      "points_visited": 15,
+      "note": "coarse scan, bisection, then coordinate shrink"
+    }
+  ]
+}

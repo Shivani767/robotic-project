@@ -1,0 +1,48 @@
+{
+  "cells": [
+    {
+      "depth_noise_mm": 0.0,
+      "baseline_success": 1.0,
+      "candidate_success": 1.0,
+      "delta": 0.0,
+      "samples": 6
+    },
+    {
+      "depth_noise_mm": 1.0,
+      "baseline_success": 0.8333333333333334,
+      "candidate_success": 0.3333333333333333,
+      "delta": -0.5,
+      "samples": 6
+    },
+    {
+      "depth_noise_mm": 2.0,
+      "baseline_success": 0.8333333333333334,
+      "candidate_success": 0.5,
+      "delta": -0.3333333333333333,
+      "samples": 6
+    },
+    {
+      "depth_noise_mm": 4.0,
+      "baseline_success": 0.5,
+      "candidate_success": 0.3333333333333333,
+      "delta": -0.16666666666666666,
+      "samples": 6
+    },
+    {
+      "depth_noise_mm": 8.0,
+      "baseline_success": 0.16666666666666666,
+      "candidate_success": 0.16666666666666666,
+      "delta": 0.0,
+      "samples": 6
+    }
+  ],
+  "episodes": 60,
+  "seeds": [
+    1,
+    3,
+    4,
+    6,
+    8,
+    9
+  ]
+}

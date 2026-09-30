@@ -1,0 +1,1678 @@
+{
+  "baseline_policy": "policy_v3",
+  "candidate_policy": "policy_v1",
+  "backend": "mujoco",
+  "ground_truth_subsystem": "perception",
+  "matrix": {
+    "cells": [
+      {
+        "depth_noise_mm": 0.0,
+        "baseline_success": 1.0,
+        "candidate_success": 1.0,
+        "delta": 0.0,
+        "samples": 6
+      },
+      {
+        "depth_noise_mm": 1.0,
+        "baseline_success": 0.8333333333333334,
+        "candidate_success": 0.3333333333333333,
+        "delta": -0.5,
+        "samples": 6
+      },
+      {
+        "depth_noise_mm": 2.0,
+        "baseline_success": 0.8333333333333334,
+        "candidate_success": 0.5,
+        "delta": -0.3333333333333333,
+        "samples": 6
+      },
+      {
+        "depth_noise_mm": 4.0,
+        "baseline_success": 0.5,
+        "candidate_success": 0.3333333333333333,
+        "delta": -0.16666666666666666,
+        "samples": 6
+      },
+      {
+        "depth_noise_mm": 8.0,
+        "baseline_success": 0.16666666666666666,
+        "candidate_success": 0.16666666666666666,
+        "delta": 0.0,
+        "samples": 6
+      }
+    ],
+    "episodes": 60,
+    "seeds": [
+      1,
+      3,
+      4,
+      6,
+      8,
+      9
+    ]
+  },
+  "regression": {
+    "global_delta": -0.19999999999999996,
+    "baseline_rate": 0.6666666666666666,
+    "candidate_rate": 0.4666666666666667,
+    "findings": [
+      {
+        "condition": "nominal [depth_noise_mm=1.0]",
+        "delta": -0.5,
+        "severity": "blocking",
+        "n": 6
+      },
+      {
+        "condition": "nominal [depth_noise_mm=2.0]",
+        "delta": -0.33333333333333337,
+        "severity": "blocking",
+        "n": 6
+      },
+      {
+        "condition": "nominal [depth_noise_mm=4.0]",
+        "delta": -0.16666666666666669,
+        "severity": "blocking",
+        "n": 6
+      }
+    ],
+    "cells": [
+      {
+        "condition": "nominal [depth_noise_mm=0.0]",
+        "baseline": 1.0,
+        "baseline_ci": [
+          0.6096657120978346,
+          1.0
+        ],
+        "candidate": 1.0,
+        "candidate_ci": [
+          0.6096657120978346,
+          1.0
+        ],
+        "delta": 0.0,
+        "effect_h": 0.0,
+        "n": 6
+      },
+      {
+        "condition": "nominal [depth_noise_mm=2.0]",
+        "baseline": 0.8333333333333334,
+        "baseline_ci": [
+          0.43649717781352987,
+          0.9699466302516935
+        ],
+        "candidate": 0.5,
+        "candidate_ci": [
+          0.1876163064826506,
+          0.8123836935173494
+        ],
+        "delta": -0.33333333333333337,
+        "effect_h": 0.7297276562269663,
+        "n": 6
+      },
+      {
+        "condition": "nominal [depth_noise_mm=1.0]",
+        "baseline": 0.8333333333333334,
+        "baseline_ci": [
+          0.43649717781352987,
+          0.9699466302516935
+        ],
+        "candidate": 0.3333333333333333,
+        "candidate_ci": [
+          0.09677141110578041,
+          0.700006684861608
+        ],
+        "delta": -0.5,
+        "effect_h": 1.0695645656810886,
+        "n": 6
+      },
+      {
+        "condition": "nominal [depth_noise_mm=4.0]",
+        "baseline": 0.5,
+        "baseline_ci": [
+          0.1876163064826506,
+          0.8123836935173494
+        ],
+        "candidate": 0.3333333333333333,
+        "candidate_ci": [
+          0.09677141110578041,
+          0.700006684861608
+        ],
+        "delta": -0.16666666666666669,
+        "effect_h": 0.33983690945412226,
+        "n": 6
+      },
+      {
+        "condition": "nominal [depth_noise_mm=8.0]",
+        "baseline": 0.16666666666666666,
+        "baseline_ci": [
+          0.030053369748306635,
+          0.5635028221864702
+        ],
+        "candidate": 0.16666666666666666,
+        "candidate_ci": [
+          0.030053369748306635,
+          0.5635028221864702
+        ],
+        "delta": 0.0,
+        "effect_h": 0.0,
+        "n": 6
+      }
+    ]
+  },
+  "counterexample": {
+    "question": "RQ1: tests to failure, by search strategy",
+    "baseline": "policy_v3",
+    "candidate": "policy_v1",
+    "seed_rationale": "a per-seed separation exists on seed 3 and on 0 of the other 11 seeds scanned; a single-seed counterexample is a property of the seed as much as the condition",
+    "status": "MEASURED",
+    "axis": {
+      "name": "depth_noise_mm",
+      "low": 0.0,
+      "high": 12.0,
+      "unit": "mm"
+    },
+    "budget": 24,
+    "backend": "mujoco",
+    "seed": 3,
+    "oracle": "one paired episode per point; both arms share the seed",
+    "limitation": "the oracle evaluates a single seed per point, so a counterexample found here is a property of that seed as well as of the condition. Reproducibility across seeds is RQ4, not this result, and a single-seed finding must not be reported as a regression without its reproduction rate.",
+    "strategies": [
+      {
+        "strategy": "grid",
+        "found": true,
+        "oracle_evaluations": 2,
+        "wall_clock_s": 4.36,
+        "severity": 0.3333333333333333,
+        "boundary": null,
+        "boundary_axis": null,
+        "points_visited": 2,
+        "note": "first lattice hit"
+      },
+      {
+        "strategy": "random",
+        "found": true,
+        "oracle_evaluations": 1,
+        "wall_clock_s": 1.36,
+        "severity": 0.6369616873214543,
+        "boundary": null,
+        "boundary_axis": null,
+        "points_visited": 1,
+        "note": "uniform sample hit"
+      },
+      {
+        "strategy": "binary",
+        "found": true,
+        "oracle_evaluations": 8,
+        "wall_clock_s": 17.14,
+        "severity": 0.09765625,
+        "boundary": 1.1484375,
+        "boundary_axis": "depth_noise_mm",
+        "points_visited": 8,
+        "note": "bracketed by exponential probe then bisected"
+      },
+      {
+        "strategy": "adaptive",
+        "found": true,
+        "oracle_evaluations": 15,
+        "wall_clock_s": 25.99,
+        "severity": 0.09765625,
+        "boundary": 1.1484375,
+        "boundary_axis": "depth_noise_mm",
+        "points_visited": 15,
+        "note": "coarse scan, bisection, then coordinate shrink"
+      }
+    ]
+  },
+  "search_comparison": {
+    "question": "RQ1: tests to failure, by search strategy",
+    "baseline": "policy_v3",
+    "candidate": "policy_v1",
+    "seed_rationale": "a per-seed separation exists on seed 3 and on 0 of the other 11 seeds scanned; a single-seed counterexample is a property of the seed as much as the condition",
+    "status": "MEASURED",
+    "axis": {
+      "name": "depth_noise_mm",
+      "low": 0.0,
+      "high": 12.0,
+      "unit": "mm"
+    },
+    "budget": 24,
+    "backend": "mujoco",
+    "seed": 3,
+    "oracle": "one paired episode per point; both arms share the seed",
+    "limitation": "the oracle evaluates a single seed per point, so a counterexample found here is a property of that seed as well as of the condition. Reproducibility across seeds is RQ4, not this result, and a single-seed finding must not be reported as a regression without its reproduction rate.",
+    "strategies": [
+      {
+        "strategy": "grid",
+        "found": true,
+        "oracle_evaluations": 2,
+        "wall_clock_s": 4.36,
+        "severity": 0.3333333333333333,
+        "boundary": null,
+        "boundary_axis": null,
+        "points_visited": 2,
+        "note": "first lattice hit"
+      },
+      {
+        "strategy": "random",
+        "found": true,
+        "oracle_evaluations": 1,
+        "wall_clock_s": 1.36,
+        "severity": 0.6369616873214543,
+        "boundary": null,
+        "boundary_axis": null,
+        "points_visited": 1,
+        "note": "uniform sample hit"
+      },
+      {
+        "strategy": "binary",
+        "found": true,
+        "oracle_evaluations": 8,
+        "wall_clock_s": 17.14,
+        "severity": 0.09765625,
+        "boundary": 1.1484375,
+        "boundary_axis": "depth_noise_mm",
+        "points_visited": 8,
+        "note": "bracketed by exponential probe then bisected"
+      },
+      {
+        "strategy": "adaptive",
+        "found": true,
+        "oracle_evaluations": 15,
+        "wall_clock_s": 25.99,
+        "severity": 0.09765625,
+        "boundary": 1.1484375,
+        "boundary_axis": "depth_noise_mm",
+        "points_visited": 15,
+        "note": "coarse scan, bisection, then coordinate shrink"
+      }
+    ]
+  },
+  "reproduction": {
+    "question": "RQ4: reproduction rate of a discovered counterexample",
+    "status": "MEASURED",
+    "condition": {
+      "depth_noise_mm": 2.0
+    },
+    "baseline": "policy_v3",
+    "candidate": "policy_v1",
+    "discovery_seed": 3,
+    "replay_seeds": [
+      1,
+      4,
+      6,
+      8,
+      9,
+      12,
+      13,
+      19,
+      20,
+      22,
+      24
+    ],
+    "reproduced": 3,
+    "replay_count": 11,
+    "reproduction_rate": 0.2727272727272727,
+    "trials": [
+      {
+        "seed": 1,
+        "baseline_success": false,
+        "candidate_success": true,
+        "reproduced": false
+      },
+      {
+        "seed": 4,
+        "baseline_success": true,
+        "candidate_success": false,
+        "reproduced": true
+      },
+      {
+        "seed": 6,
+        "baseline_success": true,
+        "candidate_success": true,
+        "reproduced": false
+      },
+      {
+        "seed": 8,
+        "baseline_success": true,
+        "candidate_success": true,
+        "reproduced": false
+      },
+      {
+        "seed": 9,
+        "baseline_success": true,
+        "candidate_success": true,
+        "reproduced": false
+      },
+      {
+        "seed": 12,
+        "baseline_success": true,
+        "candidate_success": false,
+        "reproduced": true
+      },
+      {
+        "seed": 13,
+        "baseline_success": false,
+        "candidate_success": false,
+        "reproduced": false
+      },
+      {
+        "seed": 19,
+        "baseline_success": true,
+        "candidate_success": true,
+        "reproduced": false
+      },
+      {
+        "seed": 20,
+        "baseline_success": false,
+        "candidate_success": false,
+        "reproduced": false
+      },
+      {
+        "seed": 22,
+        "baseline_success": true,
+        "candidate_success": false,
+        "reproduced": true
+      },
+      {
+        "seed": 24,
+        "baseline_success": true,
+        "candidate_success": true,
+        "reproduced": false
+      }
+    ],
+    "interpretation": "a rate well below 1.0 means the counterexample is a property of the discovery seed as much as of the condition. It must not be reported as a behavioural boundary without this number attached."
+  },
+  "boundaries": {
+    "question": "RQ5: where are the behavioural boundaries, per perturbation?",
+    "status": "MEASURED",
+    "baseline": "policy_v3",
+    "candidate": "policy_v1",
+    "seeds": [
+      1,
+      3,
+      4,
+      6,
+      8,
+      9
+    ],
+    "method": "one axis at a time, others nominal; boundary is the smallest swept level where the baseline succeeds and the candidate does not",
+    "boundaries": {
+      "depth_noise_mm": 1.0
+    },
+    "axes_with_no_separation": [
+      "depth_bias_mm",
+      "occlusion_percent",
+      "joint_noise_rad",
+      "latency_ms",
+      "clutter_count",
+      "object_friction"
+    ],
+    "curves": {
+      "depth_noise_mm": {
+        "path": "sensors.depth.sigma_mm",
+        "unit": "mm",
+        "boundary_value": 1.0,
+        "no_separation": false,
+        "points": [
+          {
+            "value": 0.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 1.0,
+            "baseline": 0.8333333333333334,
+            "candidate": 0.3333333333333333,
+            "delta": -0.5
+          },
+          {
+            "value": 2.0,
+            "baseline": 0.8333333333333334,
+            "candidate": 0.5,
+            "delta": -0.3333
+          },
+          {
+            "value": 4.0,
+            "baseline": 0.5,
+            "candidate": 0.3333333333333333,
+            "delta": -0.1667
+          },
+          {
+            "value": 8.0,
+            "baseline": 0.16666666666666666,
+            "candidate": 0.16666666666666666,
+            "delta": 0.0
+          }
+        ]
+      },
+      "depth_bias_mm": {
+        "path": "sensors.depth.bias_mm",
+        "unit": "mm",
+        "boundary_value": null,
+        "no_separation": true,
+        "points": [
+          {
+            "value": 0.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 2.0,
+            "baseline": 0.0,
+            "candidate": 0.0,
+            "delta": 0.0
+          },
+          {
+            "value": 5.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 10.0,
+            "baseline": 0.0,
+            "candidate": 0.0,
+            "delta": 0.0
+          },
+          {
+            "value": 20.0,
+            "baseline": 0.0,
+            "candidate": 0.0,
+            "delta": 0.0
+          }
+        ]
+      },
+      "occlusion_percent": {
+        "path": "sensors.rgb.occlusion_percent",
+        "unit": "%",
+        "boundary_value": null,
+        "no_separation": true,
+        "points": [
+          {
+            "value": 0.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 10.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 30.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 60.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          }
+        ]
+      },
+      "joint_noise_rad": {
+        "path": "sensors.robot_state.joint_noise_std_rad",
+        "unit": "rad",
+        "boundary_value": null,
+        "no_separation": true,
+        "points": [
+          {
+            "value": 0.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 0.005,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 0.02,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 0.05,
+            "baseline": 0.6666666666666666,
+            "candidate": 0.6666666666666666,
+            "delta": 0.0
+          }
+        ]
+      },
+      "latency_ms": {
+        "path": "sensors.camera.latency.delay_ms",
+        "unit": "ms",
+        "boundary_value": null,
+        "no_separation": true,
+        "points": [
+          {
+            "value": 0.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 50.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 100.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 200.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          }
+        ]
+      },
+      "clutter_count": {
+        "path": "environment.clutter_count",
+        "unit": "objects",
+        "boundary_value": null,
+        "no_separation": true,
+        "points": [
+          {
+            "value": 0.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 2.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 5.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 9.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          }
+        ]
+      },
+      "object_friction": {
+        "path": "environment.object_friction",
+        "unit": "coefficient",
+        "boundary_value": null,
+        "no_separation": true,
+        "points": [
+          {
+            "value": 1.0,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 0.6,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 0.3,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          },
+          {
+            "value": 0.1,
+            "baseline": 1.0,
+            "candidate": 1.0,
+            "delta": 0.0
+          }
+        ]
+      }
+    },
+    "note": "an axis listed under axes_with_no_separation is a finding: it is not a behavioural factor for this task, and a sweep over it costs episodes to measure nothing"
+  },
+  "taxonomy": {
+    "status": "MEASURED",
+    "policy": "policy_v1",
+    "backend": "mujoco",
+    "seeds": [
+      1,
+      3,
+      4,
+      6,
+      8,
+      9
+    ],
+    "benchmarks": 20,
+    "mismatches": 0,
+    "unimplemented_faults": [
+      {
+        "benchmark": "perception_wrong_label",
+        "reason": "No class-confusion model; object category is fixed by the scenario."
+      },
+      {
+        "benchmark": "planning_stale_world_model",
+        "reason": "The policy re-reads its own object belief each tick rather than a cached world model, so there is no staleness to inject."
+      },
+      {
+        "benchmark": "depth_quantization",
+        "reason": "Field exists in the sensor model but is not yet wired into the corruption application."
+      },
+      {
+        "benchmark": "robot_gripper_stuck",
+        "reason": "The field exists and the corruption arms correctly, but nothing applies it: measured at 1.0, zero of seven metrics move against nominal. The suite found this by falsifying the benchmark's own expectation, which is the clearest argument for a suite that checks its predictions."
+      }
+    ],
+    "results": [
+      {
+        "benchmark": "perception_blur",
+        "family": "perception",
+        "description": "Gaussian blur on the RGB stream, degrading edge-based detection.",
+        "field_path": "sensors.rgb.blur_kernel_px",
+        "value": 7.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 0.86,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 981.278561,
+          "pose_sigma_m": 0.0034,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.746269,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "perception_occlusion",
+        "family": "perception",
+        "description": "Synthetic occluder covering part of the RGB stream.",
+        "field_path": "sensors.rgb.occlusion_percent",
+        "value": 60.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 0.4,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 1014.133461,
+          "pose_sigma_m": 0.032,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.238095,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "perception_low_light",
+        "family": "perception",
+        "description": "Scene illuminance reduced until vision-based estimation degrades.",
+        "field_path": "environment.lighting_lux",
+        "value": 20.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 1027.250123,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "perception_colour_shift",
+        "family": "perception",
+        "description": "Systematic RGB channel shift, the classic colour-cast fault.",
+        "field_path": "sensors.rgb.color_shift_rgb",
+        "value": [
+          0.25,
+          -0.1,
+          0.05
+        ],
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 1027.616786,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "depth_noise",
+        "family": "depth",
+        "description": "Zero-mean Gaussian depth noise, the primary sensing fault.",
+        "field_path": "sensors.depth.sigma_mm",
+        "value": 20.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 0.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 6.058333,
+          "final_distance_m": 0.256838,
+          "grasp_error_m": 0.029765,
+          "grasp_success": 0.166667,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.007453,
+          "orientation_error_rad": 0.307652,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.256838,
+          "placement_success": 0.166667,
+          "planning_time_ms": 774.179382,
+          "pose_sigma_m": 0.0201,
+          "position_error_m": 0.256838,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.332229,
+          "steps": 121.166667,
+          "task_success": 0.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 2.239899,
+          "trajectory_length_m": 0.723619
+        },
+        "expectation_met": true,
+        "expectation_is_measured": true,
+        "notes": ""
+      },
+      {
+        "benchmark": "depth_bias",
+        "family": "depth",
+        "description": "Systematic depth offset: a calibration error the fuser cannot remove.",
+        "field_path": "sensors.depth.bias_mm",
+        "value": 10.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 0.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 6.433333,
+          "final_distance_m": 0.300658,
+          "grasp_error_m": 0.011369,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.028049,
+          "orientation_error_rad": 2.879852,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.300658,
+          "placement_success": 0.0,
+          "planning_time_ms": 925.339937,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.300658,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 128.666667,
+          "task_success": 0.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 2.476524,
+          "trajectory_length_m": 0.787059
+        },
+        "expectation_met": true,
+        "expectation_is_measured": true,
+        "notes": ""
+      },
+      {
+        "benchmark": "depth_dropout",
+        "family": "depth",
+        "description": "Fraction of depth pixels dropped to invalid.",
+        "field_path": "sensors.depth.dropout_percent",
+        "value": 40.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 991.334896,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "depth_latency",
+        "family": "depth",
+        "description": "Temporal lag on the depth stream.",
+        "field_path": "sensors.depth.temporal_lag_frames",
+        "value": 5.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 978.66005,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "camera_latency",
+        "family": "camera",
+        "description": "Camera frame delivery delayed, dropping frames in transit.",
+        "field_path": "sensors.camera.latency.delay_ms",
+        "value": 200.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 1064.455175,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": true,
+        "notes": ""
+      },
+      {
+        "benchmark": "camera_extrinsic_error",
+        "family": "camera",
+        "description": "Extrinsic rotation error, a mis-mounted camera.",
+        "field_path": "sensors.camera.extrinsic_rotation_deg",
+        "value": 5.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 1073.940888,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "camera_intrinsic_error",
+        "family": "camera",
+        "description": "Focal-length and principal-point error, a mis-calibrated camera.",
+        "field_path": "sensors.camera.focal_scale",
+        "value": 1.1,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 981.290599,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "robot_joint_offset",
+        "family": "robot",
+        "description": "Constant offset on the reported joint angles: a slipped encoder.",
+        "field_path": "sensors.robot_state.joint_offset_rad",
+        "value": 0.05,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 5.208333,
+          "final_distance_m": 0.011246,
+          "grasp_error_m": 0.001654,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051449,
+          "orientation_error_rad": 0.565221,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.011246,
+          "placement_success": 1.0,
+          "planning_time_ms": 970.540805,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.011246,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 104.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.778189,
+          "trajectory_length_m": 1.000655
+        },
+        "expectation_met": true,
+        "expectation_is_measured": true,
+        "notes": ""
+      },
+      {
+        "benchmark": "robot_joint_noise",
+        "family": "robot",
+        "description": "Gaussian noise on reported joint angles.",
+        "field_path": "sensors.robot_state.joint_noise_std_rad",
+        "value": 0.05,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 0.6666666666666666,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 4.891667,
+          "final_distance_m": 0.013908,
+          "grasp_error_m": 0.001994,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.0535,
+          "orientation_error_rad": 0.875895,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013908,
+          "placement_success": 1.0,
+          "planning_time_ms": 967.301389,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013908,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 97.833333,
+          "task_success": 0.666667,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.853737,
+          "trajectory_length_m": 0.916047
+        },
+        "expectation_met": true,
+        "expectation_is_measured": true,
+        "notes": ""
+      },
+      {
+        "benchmark": "robot_encoder_delay",
+        "family": "robot",
+        "description": "Delayed joint feedback, the controller acting on an old pose.",
+        "field_path": "sensors.robot_state.encoder_delay_frames",
+        "value": 5.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 974.693174,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "environment_object_displacement",
+        "family": "environment",
+        "description": "Object displaced from where the world model believes it is.",
+        "field_path": "environment.workspace_center",
+        "value": [
+          0.25,
+          0.1
+        ],
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 0.8333333333333334,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 4.625,
+          "final_distance_m": 0.005884,
+          "grasp_error_m": 0.002814,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051389,
+          "orientation_error_rad": 0.12721,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.005884,
+          "placement_success": 1.0,
+          "planning_time_ms": 1228.606355,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.005884,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 92.5,
+          "task_success": 0.833333,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.459716,
+          "trajectory_length_m": 0.82777
+        },
+        "expectation_met": true,
+        "expectation_is_measured": true,
+        "notes": ""
+      },
+      {
+        "benchmark": "environment_clutter",
+        "family": "environment",
+        "description": "Distractor objects added to the support surface.",
+        "field_path": "environment.clutter_count",
+        "value": 9.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 991.302133,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": true,
+        "notes": ""
+      },
+      {
+        "benchmark": "environment_obstacle",
+        "family": "environment",
+        "description": "Obstacles inserted between the robot and the object.",
+        "field_path": "environment.obstacle_count",
+        "value": 4.0,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 0.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 6.675,
+          "final_distance_m": 0.323862,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.103096,
+          "orientation_error_rad": 1.577295,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.323862,
+          "placement_success": 0.0,
+          "planning_time_ms": 1090.916228,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.323862,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 133.5,
+          "task_success": 0.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 2.651968,
+          "trajectory_length_m": 1.000709
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "environment_friction",
+        "family": "environment",
+        "description": "Object friction changed, altering whether a grasp holds.",
+        "field_path": "environment.object_friction",
+        "value": 0.1,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.758333,
+          "final_distance_m": 0.012092,
+          "grasp_error_m": 0.001598,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.052077,
+          "orientation_error_rad": 0.560473,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.012092,
+          "placement_success": 1.0,
+          "planning_time_ms": 955.31724,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.012092,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 75.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.406041,
+          "trajectory_length_m": 0.792235
+        },
+        "expectation_met": true,
+        "expectation_is_measured": true,
+        "notes": ""
+      },
+      {
+        "benchmark": "planning_wrong_target",
+        "family": "planning",
+        "description": "Placement goal moved away from the intended one.",
+        "field_path": "task.target_pose.position.x",
+        "value": 0.45,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 0.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 6.9,
+          "final_distance_m": 0.254835,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.059772,
+          "orientation_error_rad": 2.725105,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.254835,
+          "placement_success": 0.0,
+          "planning_time_ms": 910.898238,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.254835,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 138.0,
+          "task_success": 0.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 4.295146,
+          "trajectory_length_m": 1.042341
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      },
+      {
+        "benchmark": "planning_blocked_path",
+        "family": "planning",
+        "description": "Obstacle density raised to obstruct the approach corridor.",
+        "field_path": "environment.obstacle_height_m",
+        "value": 0.3,
+        "seeds": [
+          1,
+          3,
+          4,
+          6,
+          8,
+          9
+        ],
+        "success_rate": 1.0,
+        "metrics": {
+          "collision": 0.0,
+          "collision_count": 0.0,
+          "completion_time_s": 3.808333,
+          "final_distance_m": 0.013069,
+          "grasp_error_m": 0.0017,
+          "grasp_success": 1.0,
+          "ik_converged": 1.0,
+          "object_lift_m": 0.051753,
+          "orientation_error_rad": 0.529706,
+          "perception_confidence": 1.0,
+          "placement_error_m": 0.013069,
+          "placement_success": 1.0,
+          "planning_time_ms": 970.000154,
+          "pose_sigma_m": 0.002,
+          "position_error_m": 0.013069,
+          "recovery_count": 0.0,
+          "safety_violation": 0.0,
+          "sensor_consistency": 0.833333,
+          "steps": 76.166667,
+          "task_success": 1.0,
+          "timeout": 0.0,
+          "trajectory_deviation_m": 1.438565,
+          "trajectory_length_m": 0.792425
+        },
+        "expectation_met": true,
+        "expectation_is_measured": false,
+        "notes": "expectation is a hypothesis derived from a model of the fault, not an observed result"
+      }
+    ]
+  },
+  "attribution": {
+    "question": "RQ3: which method attributes the regression correctly?",
+    "status": "MEASURED",
+    "ground_truth": {
+      "subsystem": "perception",
+      "parameter": "settle_steps",
+      "reason": "policy_v1 and policy_v3 differ in exactly one subsystem: v3 averages pose samples before committing to a plan, which is a perception-stage change"
+    },
+    "baseline": "policy_v3",
+    "candidate": "policy_v1",
+    "grid": {
+      "levels_mm": [
+        2.0
+      ],
+      "seeds": [
+        1,
+        3,
+        4,
+        6,
+        8,
+        9
+      ]
+    },
+    "methods": {
+      "correlation_only": {
+        "implicated": "planner",
+        "cost_episodes": 12,
+        "correct": false
+      },
+      "ofat": {
+        "implicated": "perception",
+        "effect": 0.0833,
+        "cost_episodes": 216,
+        "correct": true
+      },
+      "interaction_aware": {
+        "implicated": "perception",
+        "effect": 0.0833,
+        "cost_episodes": 216,
+        "correct": true
+      }
+    },
+    "correlation_detail": {
+      "implicated": "planner",
+      "top_metric": "trajectory_deviation_m",
+      "ranking": [
+        {
+          "metric": "trajectory_deviation_m",
+          "correlation": -0.9929,
+          "subsystem": "planner"
+        },
+        {
+          "metric": "placement_error_m",
+          "correlation": -0.4227,
+          "subsystem": "planner"
+        },
+        {
+          "metric": "pose_sigma_m",
+          "correlation": 0.3651,
+          "subsystem": "perception"
+        },
+        {
+          "metric": "grasp_error_m",
+          "correlation": -0.1942,
+          "subsystem": "gripper"
+        }
+      ]
+    },
+    "attribution_ofat": [
+      {
+        "subsystem": "perception",
+        "effect": 0.0833
+      },
+      {
+        "subsystem": "gripper",
+        "effect": 0.0833
+      },
+      {
+        "subsystem": "planner",
+        "effect": 0.0
+      },
+      {
+        "subsystem": "controller",
+        "effect": 0.0
+      }
+    ],
+    "attribution_interaction_aware": [
+      {
+        "subsystem": "perception",
+        "effect": 0.0833
+      },
+      {
+        "subsystem": "gripper",
+        "effect": 0.0833
+      },
+      {
+        "subsystem": "planner",
+        "effect": 0.0
+      },
+      {
+        "subsystem": "controller",
+        "effect": 0.0
+      }
+    ],
+    "conclusion": "OFAT and interaction-aware analysis both recover the injected cause; correlation-only analysis does not"
+  },
+  "wall_clock_s": 62.3
+}

@@ -1,0 +1,95 @@
+{
+  "question": "RQ4: reproduction rate of a discovered counterexample",
+  "status": "MEASURED",
+  "condition": {
+    "depth_noise_mm": 2.0
+  },
+  "baseline": "policy_v3",
+  "candidate": "policy_v1",
+  "discovery_seed": 3,
+  "replay_seeds": [
+    1,
+    4,
+    6,
+    8,
+    9,
+    12,
+    13,
+    19,
+    20,
+    22,
+    24
+  ],
+  "reproduced": 3,
+  "replay_count": 11,
+  "reproduction_rate": 0.2727272727272727,
+  "trials": [
+    {
+      "seed": 1,
+      "baseline_success": false,
+      "candidate_success": true,
+      "reproduced": false
+    },
+    {
+      "seed": 4,
+      "baseline_success": true,
+      "candidate_success": false,
+      "reproduced": true
+    },
+    {
+      "seed": 6,
+      "baseline_success": true,
+      "candidate_success": true,
+      "reproduced": false
+    },
+    {
+      "seed": 8,
+      "baseline_success": true,
+      "candidate_success": true,
+      "reproduced": false
+    },
+    {
+      "seed": 9,
+      "baseline_success": true,
+      "candidate_success": true,
+      "reproduced": false
+    },
+    {
+      "seed": 12,
+      "baseline_success": true,
+      "candidate_success": false,
+      "reproduced": true
+    },
+    {
+      "seed": 13,
+      "baseline_success": false,
+      "candidate_success": false,
+      "reproduced": false
+    },
+    {
+      "seed": 19,
+      "baseline_success": true,
+      "candidate_success": true,
+      "reproduced": false
+    },
+    {
+      "seed": 20,
+      "baseline_success": false,
+      "candidate_success": false,
+      "reproduced": false
+    },
+    {
+      "seed": 22,
+      "baseline_success": true,
+      "candidate_success": false,
+      "reproduced": true
+    },
+    {
+      "seed": 24,
+      "baseline_success": true,
+      "candidate_success": true,
+      "reproduced": false
+    }
+  ],
+  "interpretation": "a rate well below 1.0 means the counterexample is a property of the discovery seed as much as of the condition. It must not be reported as a behavioural boundary without this number attached."
+}
