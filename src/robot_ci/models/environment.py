@@ -175,6 +175,27 @@ class PickAndPlaceParams(VersionedModel):
     require_release: bool = Field(default=True, description="Whether the gripper must open to succeed.")
 
 
+#: Default height a placed object's centre must reach, in metres.
+#:
+#: An 8 mm cube resting on a table of height 0 has its centre at 8 mm, so this
+#: is the object's half-size. It is a constant rather than a lookup because
+#: ``target_pose`` is a model default with no access to the object list; a
+#: scenario placing a different object should set ``target_pose`` itself.
+_DEFAULT_PLACE_Z = 0.008
+
+#: Default placement target, in metres.
+#:
+#: Chosen to be on the table and inside the arm's comfortable top-down
+#: workspace, not to be maximally far from the object. The previous default of
+#: (0.30, 0.30) sat *off* the 0.50 x 0.35 m table and 0.67 m from the base
+#: across a 57-degree azimuth change, which forced the wrist to swing ~7 rad of
+#: total joint travel to face the target top-down. The arm could only get there
+#: by rolling 43 degrees, and since the grasp is rigid the held cube rolled with
+#: it: every episode placed correctly within 13 mm and then failed on
+#: orientation. A real cell places the goal in the same sector as the pick.
+_DEFAULT_PLACE_XY = (0.20, 0.15)
+
+
 class TaskConfig(VersionedModel):
     """Which task to run, with what success criteria and budget.
 
@@ -186,7 +207,22 @@ class TaskConfig(VersionedModel):
     name: TaskName = Field(default=TaskName.PICK_AND_PLACE, description="Task to execute.")
     timeout_s: float = Field(default=30.0, gt=0.0, le=600.0, description="Wall-clock budget; exceeding it is a TIMEOUT failure.")
     max_steps: int = Field(default=300, ge=1, le=100000, description="Control-step budget; exceeding it is a TIMEOUT failure.")
-    target_pose: Pose = Field(default_factory=lambda: Pose.from_position(Vec3.of(0.30, 0.30, 0.10)), description="Goal pose for place/inspect/navigate tasks.")
+    target_pose: Pose = Field(
+        default_factory=lambda: Pose.from_position(
+            Vec3.of(_DEFAULT_PLACE_XY[0], _DEFAULT_PLACE_XY[1], _DEFAULT_PLACE_Z)
+        ),
+        description=(
+            "Goal pose for place/inspect/navigate tasks.\n\n"
+            "The z component is the height the *object* must end at, not the "
+            "height the gripper holds it at. The pick-and-place place waypoint "
+            "sets the object down on the support surface, so the default z is "
+            "the object's half-size rather than an arbitrary height: with a "
+            "mid-air default of 0.1 the criterion could never be satisfied by "
+            "a table placement, and every episode failed on position while "
+            "visibly placing the object correctly 7 mm from the target in x "
+            "and y."
+        ),
+    )
     grasp: GraspObjectParams = Field(default_factory=GraspObjectParams, description="Grasp task parameters.")
     pick_and_place: PickAndPlaceParams = Field(default_factory=PickAndPlaceParams, description="Pick-and-place parameters.")
     approach_height_m: float = Field(default=0.10, ge=0.0, le=1.0, description="Pre-grasp standoff height above the table.")

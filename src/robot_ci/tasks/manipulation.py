@@ -40,6 +40,19 @@ __all__ = ["GraspObjectTask", "PickAndPlaceTask", "PushObjectTask"]
 #: tests/integration/test_pad_targeted_ik.py.
 TOP_DOWN = Quaternion(w=0.0, x=1.0, y=0.0, z=0.0)
 
+#: How far the pad's lower edge may dip below the support surface before the
+#: grasp is called infeasible. Contact resolution tolerates a small overlap
+#: without the pads jamming, so this is a reporting threshold, not a hard stop.
+_GRASP_CLEARANCE_TOLERANCE_M = 0.001
+
+#: Lowest carry height used when the scenario declares no obstacles.
+#:
+#: Enough to clear the object itself and satisfy the task's lift requirement,
+#: and no more. A carry height is a clearance requirement, not a preference: the
+#: faster the object travels, the more likely the grasp is to shed it.
+_MIN_CARRY_CLEARANCE_M = 0.03
+
+
 class PickAndPlaceTask(Task):
     """Grasp the target object, carry it to the target zone, and release it.
 
@@ -73,35 +86,51 @@ class PickAndPlaceTask(Task):
         obj = object_pose.position
         target = self.target_position()
         approach = float(self.scenario.task.approach_height_m)
-        clearance = max(self.criteria.min_lift_height_m, 0.12)
+        clearance = self._carry_clearance()
 
         # Grasp height, derived rather than calibrated.
         #
-        # The jaw centre height `z` is bounded by two measured facts:
+        # The quantity the task actually commands is the *tool centre point*,
+        # and the pads grip around it. So the grasp is right when the pad
+        # straddles the object's centre, and the aim height follows from where
+        # the pads sit relative to that point.
         #
-        #   z >= table_top + pad_half_height   the pad's lower edge must clear
-        #                                        the support surface
-        #   z <= object_top                     the pad must still overlap the
-        #                                        object's side faces
+        # The previous derivation aimed the jaw at the midpoint of the band in
+        # which the pad's *lower edge* clears the table:
         #
-        # Aiming at the object centre satisfies the second and violates the
-        # first: with a 9.2 mm pad half-height and an object centre 8 mm above
-        # the table, the pad's lower edge lands 0.16 mm *below* the surface.
-        # The pads then rest on the tabletop, the jaws stall open, and the
-        # gripper never touches the object -- a silent failure in which every
-        # waypoint is still reached on time.
+        #   lo = table + pad_half,  hi = object_top,  aim = (lo + hi) / 2
         #
-        # The target is the midpoint of the feasible band, so the grasp sits as
-        # far as possible from both failure modes. Both bounds come from the
-        # scenario, so this stays simulator- and robot-agnostic: the pad height
-        # is an embodiment property on RobotConfig, the object size is declared
-        # on the scenario, and nothing here knows about MuJoCo.
+        # Both bounds are real, but the midpoint of that band is not the
+        # object's centre, and the two differ by several millimetres here.
+        # Measured on the Panda: the aim landed 3.8 mm above the object centre,
+        # so the pads closed on the upper 12 mm of a 16 mm face with their
+        # centre 4.3 mm above the object's. The grip held -- 1.7 N of contact,
+        # both pads engaged -- and was then levered open by the lift, because
+        # the object pivots on the pad edge rather than being carried by the
+        # pad face. Measured: contacts go from 1.7 N to exactly zero in one
+        # step, the fingers retreat to their 12.71 mm rest, and the object
+        # falls 100 mm to the table. Nothing else in the episode changes.
+        #
+        # The correct aim puts the *pad centre* on the object centre, offset by
+        # the distance from the tool centre point back to the pads:
+        #
+        #   aim = object_centre + pad_offset_from_tcp
+        #
+        # That offset is an embodiment property, measured from the compiled
+        # model, so it lives on RobotConfig beside the pad height rather than
+        # being written down here. The table clearance is then a *check*, not
+        # the aim: if the pads cannot straddle the object without the lower
+        # edge touching the support surface, the grasp is infeasible for this
+        # object and is reported as such instead of silently producing a grip
+        # that the lift will tear open.
         pad_half = float(self.scenario.robot.pad_half_height_m)
+        pad_offset = float(self.scenario.robot.pad_offset_from_tcp_m)
         object_half = float(self.scenario.target.size_m)
-        window_lo = table_z + pad_half
-        window_hi = obj.z + object_half
-        grasp_z = 0.5 * (window_lo + window_hi) if window_hi > window_lo else window_lo
-        self.last_grasp_window = (window_lo, window_hi, grasp_z)
+        grasp_z = obj.z + pad_offset
+        # The pad's lower edge at that aim, used only to report feasibility.
+        pad_bottom = grasp_z - pad_half
+        self.last_grasp_window = (table_z + pad_half, obj.z + object_half, grasp_z)
+        self.grasp_feasible = pad_bottom >= table_z - _GRASP_CLEARANCE_TOLERANCE_M
         return [
             # 1. Above the object, gripper open.
             Vec3.of(obj.x, obj.y, grasp_z + approach),
@@ -110,10 +139,37 @@ class PickAndPlaceTask(Task):
             # 3. Lifted clear of the support surface.
             Vec3.of(obj.x, obj.y, obj.z + clearance),
             # 4. Above the target zone, ready to lower.
-            Vec3.of(target.x, target.y, table_z + self.scenario.target.size_m + clearance),
+            Vec3.of(target.x, target.y, target.z + clearance),
             # 5. At the target zone.
-            Vec3.of(target.x, target.y, table_z + self.scenario.target.size_m),
+            Vec3.of(target.x, target.y, target.z),
         ]
+
+    def _carry_clearance(self) -> float:
+        """How high above the support surface the object must be carried.
+
+        The carry height is the tallest thing the gripper has to clear between
+        the pick and the place, not a constant. It is derived from the tallest
+        obstacle the scenario declares, with the task's own lift requirement as
+        a floor, because the object has to reach that height to count as lifted
+        at all.
+
+        This was a hard-coded 120 mm. That clears everything in the default
+        scene and is far higher than the 16 mm cube needs, and the cost was
+        measured: the transit ran at 0.24 m/s and the object was torn out of
+        the jaws around 60% of the way across. Carrying an object higher than
+        the obstacles require buys nothing and costs grip, because it is the
+        speed of the traverse that shakes the object loose.
+
+        Returns:
+            Clearance above the support surface, in metres.
+        """
+        environment = self.scenario.environment
+        table_z = float(environment.table_height_m)
+        floor = max(self.criteria.min_lift_height_m, _MIN_CARRY_CLEARANCE_M)
+        if environment.obstacle_count <= 0:
+            return floor
+        obstacle_top = table_z + float(environment.obstacle_height_m)
+        return max(floor, obstacle_top - table_z + float(self.scenario.target.size_m))
 
     def evaluate(
         self,

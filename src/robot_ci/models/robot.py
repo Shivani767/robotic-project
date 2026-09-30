@@ -180,6 +180,15 @@ _PANDA_HOME = (0.9239, 0.3503, 1.3375, -2.1517, -0.8058, 1.4429, -0.8909)
 #: sinking into the support surface. The generic default is a conservative
 #: value for an unspecified gripper.
 _PANDA_PAD_HALF_HEIGHT_M = 0.0085
+#: How far the pads sit *behind* the tool centre point, along the approach axis.
+#:
+#: Measured from the compiled model, not assumed: the injected ``tcp`` site is
+#: at z = 0.1034 in the hand frame and the pad's collision box centre is at
+#: 0.0584 + 0.0445 = 0.1029, so the pads grip 0.5 mm behind the point the
+#: planner commands. A grasp that ignores this closes the pads that far off the
+#: object centre, which on a 16 mm cube means gripping its upper 12 mm and
+#: levering it out of the jaws on the lift.
+_PANDA_PAD_OFFSET_FROM_TCP_M = 0.0005
 
 #: Pad separation with both fingers fully closed, in metres.
 #:
@@ -279,6 +288,22 @@ class RobotConfig(VersionedModel):
             "`table_top + pad_half_height_m` or the pad sinks into the support "
             "surface and the jaws jam open without touching the object. "
             "Measured from the compiled model, not assumed."
+        ),
+    )
+    pad_offset_from_tcp_m: float = Field(
+        default=_PANDA_PAD_OFFSET_FROM_TCP_M,
+        ge=-0.2,
+        le=0.2,
+        description=(
+            "Distance from the tool centre point back to the pad centre, along "
+            "the approach axis, in metres.\n\n"
+            "The planner commands the tool centre point but the pads are what "
+            "grip, so a grasp aimed at the object's centre closes the pads "
+            "this far off it. Measured from the compiled model: the injected "
+            "`tcp` site sits at z = 0.1034 in the hand frame while the pad "
+            "collision box is centred at 0.1029. On a 16 mm cube that error "
+            "puts the pads on the upper 12 mm of the face, and the lift then "
+            "levers the object out of the jaws rather than carrying it."
         ),
     )
     base_position: Vec3 = Field(
