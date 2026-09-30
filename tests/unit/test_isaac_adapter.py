@@ -405,7 +405,7 @@ def test_quaternion_ordering_survives_a_round_trip() -> None:
     wire = _pose_to_wire(original)
     assert set(wire["orientation_xyzw"]) == {"x", "y", "z", "w"}
     restored = _pose_from_wire(wire)
-    for a, b in zip(original.orientation.array, restored.orientation.array):
+    for a, b in zip(original.orientation.array, restored.orientation.array, strict=True):
         assert a == pytest.approx(b, abs=1e-9)
 
 
