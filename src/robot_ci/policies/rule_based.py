@@ -29,6 +29,7 @@ from robot_ci.models.scenario import PolicyComponent, PolicyConfig, ScenarioConf
 from robot_ci.models.state import Action, Observation
 from robot_ci.planning.kinematics import (
     IKOptions,
+    IKResult,
     JacobianProvider,
     solve_ik_refined,
 )
@@ -43,6 +44,39 @@ __all__ = [
     "policy_v1",
     "policy_v2",
 ]
+
+#: How many alternative IK seeds to try when a solve does not reach the pose.
+#:
+#: A workspace scan for the failing waypoint found a 0.68 mm / 0.005 rad
+#: solution within a few hundred random seeds, so the pose is comfortably
+#: reachable and only the seed was wrong. Twelve keeps the worst case bounded
+#: and costs nothing on the common path, since the fallback is only entered when
+#: the warm start actually failed.
+_IK_FALLBACK_SEED_COUNT = 12
+
+#: Step between successive fallback seeds, as a fraction of the joint range.
+#:
+#: Irrational so the walk does not resonate with the joint count and revisit the
+#: same configurations.
+_IK_SEED_STRIDE = 0.7548776662466927
+
+#: Largest total joint rotation a fallback plan may require of the arm, in radians.
+#:
+#: Not a velocity or acceleration limit -- the rate limiter already bounds how
+#: fast the arm moves. This is a bound on *where the plan ends up*: a solution
+#: in a distant basin may satisfy the pose exactly and still be wrong, because
+#: driving there takes the arm through the scene.
+#:
+#: Summed over the joints rather than taken as the largest single rotation,
+#: because the two cases are not separable per joint. The real transit of this
+#: scene needs about 2.8 rad on one joint, so a per-joint bound tight enough to
+#: reject a wild sweep also rejects the genuine move. Summing distinguishes
+#: them: a coordinated move spreads its travel, while a different basin
+#: reverses several joints at once, and it is the reversal that sweeps the
+#: scene. The Panda's joints span roughly 17 rad in total, so this admits a
+#: substantial repositioning while excluding the across-the-workspace plans
+#: that wreck the episode.
+_IK_MAX_PLANNED_TRAVEL_RAD = 6.0
 
 #: Gripper aperture command for "open" and "closed", in metres.
 #:
@@ -319,6 +353,9 @@ class PickAndPlacePolicy(RobotPolicy):
                 "gripper_open": gripper > 0.5 * OPEN_WIDTH_M,
                 "ik_converged": state["ik_converged"],
                 "ik_error_mm": round(state["last_ik_error_m"] * 1000.0, 2),
+                "ik_orientation_error_rad": round(
+                    float(state.get("last_ik_orientation_error_rad", 0.0)), 4
+                ),
                 "waypoint_target": [round(float(v), 4) for v in current_waypoint],
                 "step": step,
             }
@@ -439,30 +476,58 @@ class PickAndPlacePolicy(RobotPolicy):
             options=self.ik_options,
             restarts=self.ik_restarts,
         )
-        if not result.converged:
-            # Retry from the home configuration.
-            #
-            # A sequential waypoint policy warm-starts each solve from the arm's
-            # current configuration, which for the low grasp target lands in a
-            # basin the damped solver cannot leave: measured 13.7 mm from the
-            # pre-grasp pose versus 1.97 mm from home, for the same target. The
-            # deterministic restarts only perturb the failing seed, so they
-            # cannot escape it; offering home as a fresh basin can.
-            seeded = solve_ik_refined(
-                self.jacobian_provider,
-                command_pose,
-                self.home_seed,
-                lower=self.joint_lower,
-                upper=self.joint_upper,
-                options=self.ik_options,
-                restarts=self.ik_restarts,
-            )
-            if seeded.position_error < result.position_error:
-                result = seeded
+        # A solve is only usable if it actually achieved the commanded pose.
+        #
+        # `converged` is not that test. The damped solver reports convergence
+        # once it stops improving, which for a pose it cannot quite reach from
+        # the given seed means it returns the best configuration it found and
+        # calls it done. The far transit waypoint behaved exactly that way:
+        # 4.97 mm of position error, 0.85 rad of orientation error, the wrist
+        # driven onto the joint-7 stop, and `converged` set anyway.
+        #
+        # That matters far more than the 5 mm. With the orientation unreachable
+        # the arm keeps rotating towards it as it travels, measured at 43
+        # degrees over the transit, and because the grasp is rigid the held
+        # object rotates with it. The episode then failed on orientation having
+        # satisfied every other criterion -- a failed placement that looks like
+        # a control fault and is really a planning one.
+        #
+        # The pose is not the problem: scanning 200 seeds for that same
+        # waypoint finds 0.68 mm / 0.005 rad, so it is comfortably reachable and
+        # only the seed is wrong. Warm-starting from the arm therefore has to be
+        # backed by seeds that are not derived from it.
+        # Recorded before any candidate is ranked: `_pose_key` needs the arm's
+        # current configuration to break ties on travel distance.
+        state["current_joints"] = np.asarray(
+            observation.robot.positions_array, dtype=np.float64
+        ).copy()
+        if not self._pose_achieved(result):
+            best = result
+            for candidate in self._fallback_seeds(observation):
+                seeded = solve_ik_refined(
+                    self.jacobian_provider,
+                    command_pose,
+                    candidate,
+                    lower=self.joint_lower,
+                    upper=self.joint_upper,
+                    options=self.ik_options,
+                    restarts=self.ik_restarts,
+                )
+                if self._pose_key(seeded) < self._pose_key(best) and self._fallback_reachable(
+                    seeded.joint_positions, observation
+                ):
+                    best = seeded
+                if self._pose_achieved(best):
+                    break
+            result = best
         state["planned_joints"] = result.joint_positions
         state["planned_waypoint"] = index
         state["ik_converged"] = result.converged
         state["last_ik_error_m"] = result.position_error
+        # Reported alongside the position residual because a large orientation
+        # error is what makes a rigid grasp rotate the held object, and it is
+        # invisible in the position error alone.
+        state["last_ik_orientation_error_rad"] = result.orientation_error
         del target
         return self._rate_limit(observation, result.joint_positions)
 
@@ -491,6 +556,94 @@ class PickAndPlacePolicy(RobotPolicy):
         # only by slowing the slowest joint to the fastest one's rate.
         step = np.clip(delta, -self.max_joint_step, self.max_joint_step)
         return current + step
+
+    def _pose_achieved(self, result: IKResult) -> bool:
+        """Whether a solve actually reached the commanded pose.
+
+        Both residuals must be inside the solver's own tolerances. The
+        ``converged`` flag is deliberately not used on its own: it reports that
+        the iteration stopped improving, which for an unreachable pose means the
+        solver returns its best attempt and calls that success.
+        """
+        return (
+            result.converged
+            and result.position_error <= self.ik_options.position_tolerance
+            and result.orientation_error <= self.ik_options.orientation_tolerance
+        )
+
+    def _pose_key(self, result: IKResult) -> tuple[float, float]:
+        """Rank candidate solves by the pose they actually achieve.
+
+        Pose first and only: a candidate is compared on how well it reaches the
+        commanded pose, and the *reachability* of a candidate is enforced
+        separately by :meth:`_fallback_reachable`, which refuses configurations
+        the arm would have to sweep through the scene to get to. Ranking on
+        travel as a tie-break instead was tried and does not work, because a
+        genuinely better pose from across the room always wins the comparison
+        and the arm duly drives there.
+        """
+        return (
+            round(result.orientation_error, 9),
+            round(result.position_error, 9),
+        )
+
+    def _fallback_reachable(self, goal: np.ndarray, observation: Observation) -> bool:
+        """Whether the arm may plan to ``goal`` from where it currently is.
+
+        A seed drawn from across the workspace will return an excellent pose
+        from a completely different configuration, and the arm then drives
+        there through the scene. Measured: a 58 mm waypoint planned from a
+        far-away seed sent the gripper to 374 mm on the way and knocked the
+        object off the table. A correct plan is still the wrong plan if getting
+        there destroys the episode.
+
+        The test is the *total* joint travel, not the largest single joint. A
+        coordinated transit of this scene genuinely needs about 2.8 rad of
+        rotation on one joint, so any per-joint bound tight enough to exclude a
+        wild sweep also rejects the real move -- measured, that stalled the arm
+        at 50 mm and never carried the object at all. Summing instead measures
+        what the bound is actually for: a coordinated move distributes travel
+        across the arm, while a different basin requires several joints to
+        reverse together, and it is the reversal that sweeps the scene.
+        """
+        current = observation.robot.positions_array
+        travel = float(np.sum(np.abs(np.asarray(goal, dtype=np.float64) - current)))
+        return travel <= _IK_MAX_PLANNED_TRAVEL_RAD
+
+    def _fallback_seeds(self, observation: Observation) -> list[np.ndarray]:
+        """Return alternative IK seeds, ordered from most to least plausible.
+
+        Home comes first because a deployed arm rests there, and it is the
+        single best guess when the warm start has failed. The rest spread the arm
+        across its workspace on a fixed lattice so that repeated runs of the
+        same episode plan the same way; the seeds are deterministic rather than
+        random precisely so an experiment is reproducible.
+
+        Args:
+            observation: Supplies the arm's current configuration, so a seed
+                that would merely repeat the attempt already made is skipped.
+
+        Returns:
+            Candidate seeds.
+        """
+        seeds: list[np.ndarray] = [np.asarray(self.home_seed, dtype=np.float64)]
+        current = observation.robot.positions_array
+        size = int(self.joint_lower.size)
+        span = self.joint_upper - self.joint_lower
+        for index in range(_IK_FALLBACK_SEED_COUNT):
+            # A deterministic low-discrepancy walk. The golden-ratio stride
+            # keeps successive candidates far apart, which is what matters: the
+            # failure mode is a whole neighbourhood of the joint box being in
+            # the wrong basin, so nearby seeds would all fail together.
+            fraction = np.mod(
+                (index + 1) * _IK_SEED_STRIDE + np.arange(size) * 0.6180339887498949,
+                1.0,
+            )
+            candidate = self.joint_lower + fraction * span
+            if np.allclose(candidate, current, atol=1e-3):
+                continue
+            seeds.append(candidate)
+        return seeds
 
     def _gripper_command(
         self, observation: Observation, state: dict[str, Any], *, gated: bool = False
