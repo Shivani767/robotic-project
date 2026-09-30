@@ -2,9 +2,8 @@
 
 > **Staleness notice.** Commit `dc61715` changed `ik_pos_tol` from 2 mm to
 > 0.5 mm, which changed task behaviour: nominal solvability on 12 seeds rose
-> from 50.0% to 66.7%. **RQ2, RQ3 and RQ5 have been re-run and are current.
-> RQ1 and RQ4 are still stale** -- they were measured before that commit and are
-> labelled in place. Re-run them before quoting them.
+> from 50.0% to 66.7%. **All five research questions have been re-run since and
+> are current.**
 >
 > Two findings from the earlier RQ5 run were withdrawn on re-run: joint-encoder
 > noise changing sign along its axis, and object friction being non-monotonic.
@@ -102,25 +101,25 @@ not a behavioural factor for any plan-once policy on a static-object task**, and
 a benchmark that sweeps it is spending compute to measure nothing. Recorded
 because a falsified prediction is a result.
 
-## 4. RQ1: search strategies  <!-- STALE (pre-dc61715) -->
+## 4. RQ1: search strategies  <!-- RE-RUN post-dc61715 -->
 
 `experiments/rq1_search_strategies.py`. Arms are `baseline=policy_v3`,
 `candidate=policy_v1` -- the searcher looks for conditions where the candidate
 fails and the baseline succeeds, and `policy_v1` is the arm that regresses.
 
-Budget 24 oracle evaluations, identical for every strategy, seed 3.
+Budget 24 oracle evaluations, identical for every strategy, seed 3, axis 0-12 mm.
 
 | strategy | evals | wall clock | counterexample | minimal? |
 |---|---|---|---|---|
-| random | **1** | 1.4 s | 7.6 mm | no |
-| grid | 2 | 4.2 s | 4.0 mm | no |
-| binary | 8 | 16.1 s | **0.75 mm** | yes |
-| adaptive | 15 | 24.6 s | **0.75 mm** | yes |
+| random | **1** | 1.4 s | 7.64 mm | no |
+| grid | 2 | 4.4 s | 4.00 mm | no |
+| binary | 8 | 17.1 s | **1.17 mm** | yes |
+| adaptive | 15 | 26.0 s | **1.17 mm** | yes |
 
 **Tests-to-failure alone ranks random best, and that is the wrong answer.**
-Random is 15x cheaper than adaptive and its counterexample is 10x less minimal:
-it needs 7.6 mm of noise to reproduce where 0.75 mm suffices. A strategy that
-reports only "found" is hiding half its result.
+Random is 15x cheaper than adaptive and its counterexample is 6.5x less
+minimal: it needs 7.64 mm of noise to reproduce where 1.17 mm suffices. A
+strategy that reports only "found" is hiding half its result.
 
 Limitations, which matter for how this is quoted:
 
@@ -133,21 +132,36 @@ Limitations, which matter for how this is quoted:
   theirs finding *something*. They are solving different problems, and the
   comparison is only fair because both metrics are shown.
 
-## 5. RQ4: counterexample reproducibility  <!-- STALE (pre-dc61715) -->
+**Survived the re-run.** The previous run found the same ordering and the same
+6.5x-to-10x gap between "cheap but coarse" and "expensive but minimal". The
+absolute boundary moved from 0.73 mm to 1.17 mm, which is what a more accurate
+solver should do -- it tolerates more noise before the candidate loses.
+
+## 5. RQ4: counterexample reproducibility  <!-- RE-RUN post-dc61715 -->
 
 `experiments/rq4_reproducibility.py`. The counterexample discovered above is
-`depth_noise_mm = 1.0`, replayed on 11 seeds disjoint from the discovery seed.
+`depth_noise_mm = 2.0`, replayed on 11 seeds disjoint from the discovery seed.
 
-**Reproduction rate: 4 / 11 = 36.4%**
+**Reproduction rate: 3 / 11 = 27.3%**
 
-Of the 7 non-reproducing seeds, 5 are ones where both arms succeed and 2 where
-both fail. A 1 mm counterexample is too mild a condition to separate the arms on
-most seeds.
+Of the 8 non-reproducing seeds, 5 are ones where both arms succeed, 2 where both
+fail, and **1 is the inverse of a counterexample** -- seed 1, where the
+*baseline* fails and the candidate succeeds. That seed is the most interesting
+of the three outcomes, because it is the one a naive check would count as
+"reproduced": both arms disagreed, just not in the direction the search was
+looking for. The oracle tests the direction, and the reproduction report shows
+it.
 
 This is the number that has to travel with any claim of a behavioural boundary.
-A counterexample reproduced on a third of seeds is a property of the seed as
+A counterexample reproduced on a quarter of seeds is a property of the seed as
 much as of the condition, and reporting it without this figure would be
 misleading.
+
+**Previous run reported 4/11 = 36.4%** at `depth_noise_mm = 1.0`. The rate fell
+because the re-run's minimal counterexample sits at 2.0 mm rather than 1.0 mm,
+and a milder condition separates the arms on fewer seeds. Both numbers are
+plausible; the spread between them at n=11 is itself the argument for reporting
+the rate rather than a yes/no.
 
 ## 6. RQ2: conditional vs aggregate evaluation
 

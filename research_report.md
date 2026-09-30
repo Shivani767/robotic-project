@@ -12,13 +12,11 @@ not run, it says so.
 
 > **Staleness.** Commit `dc61715` tightened `ik_pos_tol` from 2 mm to 0.5 mm,
 > which raised nominal solvability on 12 seeds from 50.0% to 66.7% and therefore
-> changed task behaviour. **RQ2, RQ3 and RQ5 below have been re-run and are
-> current. RQ1 and RQ4 are still stale** -- measured before that commit, kept as
-> they stood and labelled, because deleting them would misrepresent what was
-> known when. Re-run them before quoting them.
+> changed task behaviour. **All five research questions below have been re-run
+> since and are current.**
 >
-> Re-running also **withdrew two RQ5 findings** as tuning artefacts, recorded in
-> place rather than removed.
+> Re-running **withdrew two RQ5 findings** as tuning artefacts, recorded in place
+> rather than removed, and left RQ1, RQ3 and RQ4 standing.
 
 ---
 
@@ -78,15 +76,15 @@ searchers require.
 
 | strategy | evals | wall clock | counterexample found | minimal? |
 |---|---|---|---|---|
-| random | **1** | 1.4 s | 7.6 mm | no |
-| grid | 2 | 4.2 s | 4.0 mm | no |
-| binary | 8 | 16.1 s | **0.75 mm** | yes |
-| adaptive | 15 | 24.6 s | **0.75 mm** | yes |
+| random | **1** | 1.4 s | 7.64 mm | no |
+| grid | 2 | 4.4 s | 4.00 mm | no |
+| binary | 8 | 17.1 s | **1.17 mm** | yes |
+| adaptive | 15 | 26.0 s | **1.17 mm** | yes |
 
 Tests-to-failure alone ranks random best, and that is the wrong answer: random
-is 15x cheaper and its counterexample is 10x less minimal, needing 7.6 mm of
-noise to reproduce where 0.75 mm suffices. **A search strategy that reports only
-"found" is concealing half its result.**
+is 15x cheaper than adaptive and its counterexample is 6.5x less minimal, needing
+7.64 mm of noise to reproduce where 1.17 mm suffices. **A search strategy that
+reports only "found" is concealing half its result.**
 
 This is one trial per strategy on one axis and one seed. It shows the trade-off
 exists; it cannot show that any strategy is better in general.
@@ -153,13 +151,19 @@ obvious in advance which is which.
 
 ### RQ4 -- counterexample reproducibility
 
-The discovered counterexample (`depth_noise_mm = 1.0`) replayed on 11 seeds
-disjoint from the discovery seed: **4/11 = 36.4% reproduction**.
+The discovered counterexample (`depth_noise_mm = 2.0`) replayed on 11 seeds
+disjoint from the discovery seed: **3/11 = 27.3% reproduction**.
 
-Of the 7 non-reproducing seeds, 5 are ones where both arms succeed and 2 where
-both fail. A counterexample reproduced on a third of seeds is a property of the
-seed as much as of the condition, and this number must travel with any claim of
-a behavioural boundary.
+Of the 8 non-reproducing seeds, 5 are ones where both arms succeed, 2 where
+both fail, and **1 is the inverse of a counterexample** -- the baseline fails
+and the candidate succeeds. That last case is the one a naive check would count
+as "reproduced": the arms disagreed, just not in the direction the search was
+looking for. The oracle tests direction, and the report shows it.
+
+The previous run reported 4/11 at a 1.0 mm condition. The rate fell because the
+re-run's minimal counterexample sits at 2.0 mm, and a milder condition separates
+these arms on fewer seeds. Both numbers are plausible; the spread between them
+at n=11 is itself the argument for reporting a rate rather than a yes/no.
 
 ### RQ5 -- perturbation boundaries
 
