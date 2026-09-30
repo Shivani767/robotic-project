@@ -12,6 +12,7 @@ that could later be mistaken for a measurement.
 .venv/bin/python experiments/rq1_search_strategies.py     # writes rq1_*.json
 .venv/bin/python experiments/rq4_reproducibility.py        # writes rq4_*.json
 .venv/bin/python experiments/rq2_conditional_vs_aggregate.py  # writes rq2_*.json
+.venv/bin/python experiments/rq3_ablation_attribution.py     # writes rq3_*.json
 .venv/bin/python -m robot_ci.cli.main diagnose --backend mujoco \
     --axis depth_noise_mm:0:8:mm --seeds 4
 ```
@@ -182,7 +183,69 @@ Fixed in `5f40a24`. Everything measured before that commit using the
 conditional path -- including the RQ1 strategy comparison, which drives the same
 searcher -- was produced by code that could not separate conditions.
 
-## 7. Diagnosis output
+## 7. RQ3: attributing a regression to a subsystem
+
+`experiments/rq3_ablation_attribution.py`. Arms `baseline=policy_v3`,
+`candidate=policy_v1`, 6 seeds at 2 mm depth noise.
+
+**Ground truth is known, not inferred.** The two arms differ in exactly one
+subsystem: `policy_v3` averages pose samples before committing to a plan, which
+is a perception-stage change. A method that names the controller or the gripper
+has identified the wrong thing. Without ground truth, "the ablation implicates
+perception" and "the ablation is broken" produce the same sentence.
+
+| method | implicated | episodes | correct? |
+|---|---|---|---|
+| correlation only | **planner** | 12 | **no** |
+| OFAT | **perception** | 216 | **yes** |
+| interaction-aware | **perception** | 216 | **yes** |
+
+**Correlation-only analysis gets it wrong, and confidently.** It ranks
+`trajectory_deviation_m` first (r = -0.991) and therefore blames the planner:
+
+| correlation | metric | subsystem |
+|---|---|---|
+| -0.991 | trajectory_deviation_m | planner |
+| +0.680 | pose_sigma_m | **perception** |
+| -0.597 | grasp_error_m | gripper |
+| -0.294 | placement_error_m | planner |
+
+The metric that correlates almost perfectly with the outcome is a *downstream
+consequence* of the regression, not its cause, and the perception metric that
+does encode the cause ranks second. Correlation finds what co-varies with
+failure; ablation finds what causes it, and those are different questions.
+
+OFAT recovers perception with an effect of +0.083 on a 0-6 success-rate scale,
+against -0.042 for both planner and controller and 0.0 for the gripper:
+
+| subsystem | effect |
+|---|---|
+| **perception** | **+0.083** |
+| planner | -0.042 |
+| controller | -0.042 |
+| gripper | 0.000 |
+
+The cost is 18x the episodes (216 against 12) for a correct answer instead of a
+plausible wrong one.
+
+### The interaction-aware design added nothing here
+
+OFAT and interaction-aware produce the same answer, because this regression has
+no interaction: one parameter, one subsystem, one effect. The 21 pairwise arms
+doubled the cost and changed nothing. That is reported rather than presented as
+a success, because a design that only pays off on regressions with genuine
+interactions should be justified by evidence of such a regression, and none has
+been constructed yet.
+
+### Cost of the small grid
+
+One noise level of six seeds, chosen because 36 ablation arms over a five-cell
+grid is ~1200 episodes for no extra signal. The price is noisy effects: at
+n=6 per arm a single episode moves a success rate by 0.167, which is why
+planner and controller are tied at -0.042. The perception effect is two
+episodes clear of them, which is enough to rank and not enough to call precise.
+
+## 8. Diagnosis output
 
 `robot-ci diagnose` was validated by running it, and its first output was wrong:
 it attributed a regression to the planner on a 64 ms difference in
@@ -201,8 +264,8 @@ No numbers exist for these and none are written anywhere in this repository.
 
 - The *strong* form of RQ2: a grid on which favourable and adverse cells cancel
   in the aggregate. See section 6.
-- RQ3 (ablation: correlation only vs OFAT vs interaction-aware). The ablation
-  engine is built, tested and exposed through `robot-ci diagnose`, but no
-  ablation has been run against a real regression on the simulator.
+- The *interaction* case for RQ3: no regression with a genuine two-factor
+  interaction has been constructed, so the pairwise design is untested on the
+  only situation it exists for. See section 7.
 - RQ5 (multi-axis perturbation boundary curves).
 - Dashboard, ROS 2 / MoveIt / Isaac backends, notebook backend.
