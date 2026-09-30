@@ -153,24 +153,35 @@ a behavioural boundary.
 
 ### RQ5 -- perturbation boundaries
 
-Two of seven axes have a boundary. Depth noise separates at 1 mm. Joint-encoder
-noise changes the *sign* of the effect along the axis: the candidate is better
-at 0.005 rad and worse at 0.02 and 0.05, so one aggregate number for that axis
-would average three different stories.
+Two of seven axes had a boundary before commit `dc61715`; **one has one now.**
 
-Five axes have no separation, and two are findings rather than
-disappointments:
+| depth noise | baseline | candidate | delta |
+|---|---|---|---|
+| 0 mm | 1.00 | 1.00 | +0.00 |
+| 1 mm | 0.83 | 0.33 | **-0.50** |
+| 2 mm | 0.83 | 0.50 | -0.33 |
+| 4 mm | 0.50 | 0.33 | -0.17 |
+| 8 mm | 0.17 | 0.17 | +0.00 |
 
-* **Latency and occlusion are structurally inert.** The policy latches its plan
-  on the first control tick and never consults RGB, so a delayed or occluded
-  frame is never acted on. They are not behavioural factors for this task, and
-  sweeping them spends episodes to measure nothing.
-* **Depth bias is far more destructive than depth noise.** A 2 mm systematic
-  offset takes both arms to 0.00, while 1 mm of Gaussian noise still leaves the
-  baseline at 0.67. Averaging removes noise; it cannot remove bias, because a
-  biased estimate is not a noisy one. A benchmark sweeping only Gaussian noise
-  would have concluded the perception subsystem is robust to depth error, which
-  is false.
+Depth noise is the system's one behavioural sensitivity. The other six axes --
+camera latency, RGB occlusion, clutter, object friction, joint-encoder noise and
+depth bias -- show no separation, and for latency and occlusion the reason is
+structural: the policy latches its plan on the first control tick and never
+consults RGB, so a delayed or occluded frame is never acted on.
+
+**Two earlier findings were artefacts and are withdrawn.** The previous run
+reported that joint noise changed the sign of the effect along its axis, and that
+friction was non-monotonic. Both disappear once the IK tolerance is tightened:
+joint noise is flat at 1.00 until 0.05 rad where *both* arms fall together, and
+friction is 1.00 at every level. A measurement that changes when an unrelated
+tuning constant changes was never a measurement of the policy. This is the
+clearest evidence in the project that re-running after a change is mandatory.
+
+One methodological caution. The depth-bias axis came out bimodal -- 0.00 at
+2 mm, 1.00 at 5 mm, 0.00 at 10 mm -- which is not a physical result. At n=6 a
+near-threshold condition gives coin-flip cells, so individual cells are 0.00 or
+1.00 with nothing between. Any axis near its threshold needs more repetitions
+before the shape of its curve means anything.
 
 ## 5. What the work actually establishes
 

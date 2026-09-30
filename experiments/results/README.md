@@ -253,70 +253,78 @@ n=6 per arm a single episode moves a success rate by 0.167, which is why
 planner and controller are tied at -0.042. The perception effect is two
 episodes clear of them, which is enough to rank and not enough to call precise.
 
-## 8. RQ5: perturbation boundary curves  <!-- STALE (pre-dc61715) -->
+## 8. RQ5: perturbation boundary curves  <!-- RE-RUN post-dc61715 -->
 
 `experiments/rq5_perturbation_boundaries.py`. Each axis swept alone with the
 others nominal, 6 seeds, arms `baseline=policy_v3, candidate=policy_v1`.
 
-### Two axes have a boundary
+### Exactly one axis has a boundary
 
-**Depth noise** -- the clean case:
+**Depth noise:**
 
 | depth noise | baseline | candidate | delta |
 |---|---|---|---|
 | 0 mm | 1.00 | 1.00 | +0.00 |
-| 1 mm | 0.67 | 0.33 | **-0.33** |
-| 2 mm | 0.50 | 0.17 | -0.33 |
-| 4 mm | 0.17 | 0.00 | -0.17 |
-| 8 mm | 0.17 | 0.00 | -0.17 |
+| 1 mm | 0.83 | 0.33 | **-0.50** |
+| 2 mm | 0.83 | 0.50 | -0.33 |
+| 4 mm | 0.50 | 0.33 | -0.17 |
+| 8 mm | 0.17 | 0.17 | +0.00 |
 
-Identical at nominal, separated by the first swept level, and both arms
-degrading monotonically afterwards. This is the curve shape the framework is
-looking for.
+Identical at nominal, a 0.50 gap at the first swept level, converging as the
+condition gets bad enough for both arms to fail. This is the curve shape the
+framework is looking for.
 
-**Joint-encoder noise:**
-
-| joint noise | baseline | candidate | delta |
-|---|---|---|---|
-| 0 rad | 1.00 | 1.00 | +0.00 |
-| 0.005 rad | 0.83 | 1.00 | **+0.17** |
-| 0.02 rad | 0.83 | 0.67 | -0.17 |
-| 0.05 rad | 0.67 | 0.50 | -0.17 |
-
-The candidate is *better* at the first noise level and worse at the next two, so
-the sign of the effect changes along this axis. A single aggregate number for
-this axis would average three different stories into one.
-
-### Five axes have no separation, and two of those are real findings
+### Six axes have no separation, and that is now a cleaner result
 
 | axis | range swept | outcome |
 |---|---|---|
 | latency_ms | 0-200 | 1.00 throughout |
 | occlusion_percent | 0-60 | 1.00 throughout |
 | clutter_count | 0-9 | 1.00 throughout |
-| object_friction | 1.0-0.1 | 0.50 at 1.0, 1.00 below |
-| depth_bias_mm | 0-20 | 0.00 from 2 mm |
+| object_friction | 1.0-0.1 | 1.00 throughout |
+| joint_noise_rad | 0-0.05 | 1.00 until 0.05, where both fall to 0.67 |
+| depth_bias_mm | 0-20 | bimodal, see below |
 
-**Latency and occlusion are flat for a structural reason, not by accident.** The
-policy latches its plan on the first control tick and never consults RGB, so a
-delayed or occluded frame is never acted on. These are not behavioural factors
-for this task, and a benchmark sweeping them spends episodes to measure nothing.
-That is a finding about the *task and policy pair*, not about the axes, and it
-would transfer to any plan-once policy on a static object.
+**Latency and occlusion are structurally inert**: the policy latches its plan on
+the first control tick and never consults RGB, so a delayed or occluded frame is
+never acted on. They are not behavioural factors for this task, and sweeping them
+spends episodes to measure nothing.
 
-**Depth bias is far more destructive than depth noise, and that asymmetry is
-worth recording.** A 2 mm systematic offset takes both arms to 0.00, while 1 mm
-of Gaussian noise still leaves the baseline at 0.67. Noise is what the
-averaging in `policy_v3` is designed to remove; bias is not noise, so averaging
-cannot remove it, and the arm aims at a position that is simply wrong. A
-benchmark that swept only Gaussian noise would have ranked the perception
-subsystem as robust to depth error, which is false.
+### What changed from the pre-`dc61715` run, and why it matters
 
-**Object friction is non-monotonic**: 1.0 is *worse* for both arms (0.50) than
-0.6 or 0.3 (1.00). The gripper's closing command was tuned against the default
-friction, so at the high end the grasp pushes the object rather than gripping
-it. The two arms are identical, so this is a property of the embodiment and the
-tuning, not a regression.
+The earlier run found **two** boundaries and reported that joint-encoder noise
+changed the *sign* of the effect along its axis, and that friction was
+non-monotonic (0.50 at friction 1.0 against 1.00 below). **Both of those
+findings were artefacts of the loose 2 mm IK tolerance.** With the solver
+tightened to 0.5 mm:
+
+* joint noise is now flat at 1.00 until 0.05 rad, where *both* arms fall
+  together -- no sign change, no boundary
+* friction is 1.00 at every level, so the apparent anomaly at friction 1.0 is
+  gone
+
+A measurement that changes when an unrelated tuning constant changes was never a
+measurement of the policy. This is the clearest evidence in the project that
+re-running after a change is not optional, and it is why the other stale
+sections are labelled rather than quietly kept.
+
+### A methodological caution from the depth-bias axis
+
+| depth bias | baseline | candidate |
+|---|---|---|
+| 0 mm | 1.00 | 1.00 |
+| 2 mm | 0.00 | 0.00 |
+| 5 mm | **1.00** | **1.00** |
+| 10 mm | 0.00 | 0.00 |
+| 20 mm | 0.00 | 0.00 |
+
+A 5 mm *systematic* offset succeeding where a 2 mm one fails is not a physical
+result. At n=6 a near-threshold condition produces coin-flip cells, and a curve
+through them is an artefact of which seeds happened to be drawn. Reported
+because it is the clearest demonstration in the project that **n=6 cannot
+support a curve**: individual cells here are 0.00 or 1.00 with nothing between.
+Any axis near its threshold needs more repetitions before its shape means
+anything.
 
 ## 9. Diagnosis output
 
