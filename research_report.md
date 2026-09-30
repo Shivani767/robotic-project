@@ -1,0 +1,211 @@
+# Robot CI: research report
+
+A robotics continuous-integration framework: given two versions of a robot
+policy, determine automatically whether the new one behaves worse, under which
+conditions, and because of which subsystem.
+
+Everything numeric below was produced on a MacBook CPU backend with MuJoCo, and
+every figure is reproducible with the commands in
+`experiments/results/README.md`. **No result in this report is projected,
+simulated on paper, or copied from a previous session.** Where an experiment was
+not run, it says so.
+
+---
+
+## 1. Research question
+
+> Given two versions of a robotic system, can we automatically discover the
+> environmental, sensor, embodiment or task conditions under which the new
+> version behaves worse than the old one, minimise those conditions into
+> reproducible counterexamples, and diagnose the likely source of the regression
+> with evidence rather than assertion?
+
+The framing matters. "Is the new version better?" is a question about a single
+number, and a single number cannot answer it: two policies can trade a large
+improvement in one condition for an equal regression in another and report a
+delta of zero. The work here is about the conditions, not the average.
+
+## 2. Method
+
+* **Simulator.** MuJoCo, 7-DOF Panda with a parallel gripper, pick-and-place.
+  CPU-only, on the development machine. `MockSimulator` and `SyntheticSimulator`
+  exist for unit tests; neither is used for any number in this report.
+* **Arms.** Two of the three policies are `policy_v1` and `policy_v2`, which
+  differ by exactly one parameter. The comparisons that needed a known
+  regression use `policy_v3` against `policy_v1`; see section 3.
+* **Baselines.** Where a method is compared, both sides share the scenario
+  budget, the seeds, the simulator, the policies and the metric code. Only the
+  method differs.
+* **Statistics.** Wilson intervals for rates, Cohen's h for effect size, and
+  paired per-`(condition, seed)` comparison. Configurable thresholds
+  (blocking at -0.10, warning at -0.05) with a minimum-sample gate.
+
+## 3. Establishing that the apparatus can detect a regression
+
+The first thing that had to be settled was whether the two "obvious" policies
+differ at all. They do not, and finding that out was itself a result.
+
+`policy_v2` differs from `policy_v1` by a confidence gate on the fused object
+pose: while the pose is uncertain, it holds the approach and re-observes.
+Measured over a depth-noise grid, the two arms were **identical at every level**.
+The gate could not engage, because its threshold was set at 50 mm of depth noise
+while the arm stopped placing the object at 10 mm for an unrelated reason. The
+gate was inert, the two arms were the same policy under different labels, and
+the "no regression found" result was an artefact of a dead parameter rather than
+a fact about the robots.
+
+That matters for everything else: without a positive control, "no regression
+found" and "the detector is blind" are indistinguishable. `policy_v3` was
+therefore built as one -- a policy that averages pose samples before committing
+to a plan, a real technique with a real cost (it spends control ticks holding
+position and plans from a stale estimate). It was then used as the baseline
+against which `policy_v1` is the regressing arm, which is the separation the
+searchers require.
+
+## 4. Results
+
+### RQ1 -- search strategies
+
+| strategy | evals | wall clock | counterexample found | minimal? |
+|---|---|---|---|---|
+| random | **1** | 1.4 s | 7.6 mm | no |
+| grid | 2 | 4.2 s | 4.0 mm | no |
+| binary | 8 | 16.1 s | **0.75 mm** | yes |
+| adaptive | 15 | 24.6 s | **0.75 mm** | yes |
+
+Tests-to-failure alone ranks random best, and that is the wrong answer: random
+is 15x cheaper and its counterexample is 10x less minimal, needing 7.6 mm of
+noise to reproduce where 0.75 mm suffices. **A search strategy that reports only
+"found" is concealing half its result.**
+
+This is one trial per strategy on one axis and one seed. It shows the trade-off
+exists; it cannot show that any strategy is better in general.
+
+### RQ2 -- conditional vs aggregate
+
+| depth noise | baseline | candidate | delta |
+|---|---|---|---|
+| 0 mm | 8/8 | 8/8 | +0.00 |
+| 1 mm | 4/8 | 3/8 | -0.12 |
+| 2 mm | 4/8 | 2/8 | **-0.25** |
+| 4 mm | 1/8 | 0/8 | -0.12 |
+| 8 mm | 1/8 | 0/8 | -0.12 |
+
+Aggregate over 40 runs: **-0.125**. Worst conditional cell: **-0.25**.
+
+**The aggregate is exactly half the severity of the worst condition it averages
+over.** Conditional evaluation reports a regression twice as severe as the
+aggregate implies, and identifies which condition produces it.
+
+The stronger form of the claim -- that aggregate metrics *hide* a regression
+entirely -- is **not demonstrated**. That requires favourable and adverse cells
+to cancel, and on this grid the candidate is adverse everywhere it differs, so
+nothing cancels.
+
+Running this experiment exposed the most serious defect found in the project.
+The detector grouped conditional cells by `scenario_id`, which is correct only
+for grids expanded into separate scenario files. Every *in-place* sweep -- the
+counterexample search, `robot-ci diagnose`, this experiment -- perturbs a
+scenario without renaming it, so all cells collapsed into one: a single cell of
+40 episodes, one "regression" of -0.125 reported at *nominal*, and no mention of
+the -0.25 cell. **A conditional analysis that conditions on nothing returns an
+aggregate result under a name promising otherwise, and the output looks exactly
+like a correct one.**
+
+### RQ3 -- attributing a regression to a subsystem
+
+Ground truth is injected and known: the two arms differ in exactly one
+subsystem, perception.
+
+| method | implicated | episodes | correct? |
+|---|---|---|---|
+| correlation only | **planner** | 12 | **no** |
+| OFAT | **perception** | 216 | **yes** |
+| interaction-aware | **perception** | 216 | **yes** |
+
+Correlation-only analysis is wrong *and confident*: it ranks
+`trajectory_deviation_m` first (r = -0.991), a downstream consequence rather than
+a cause, while the perception metric that does encode the cause ranks second.
+Correlation finds what co-varies with failure; ablation finds what causes it.
+
+The interaction-aware design returned the same answer as OFAT and changed
+nothing, because this regression has no interaction. Its 21 pairwise arms
+doubled the cost for no gain. Reported rather than presented as a success.
+
+### RQ4 -- counterexample reproducibility
+
+The discovered counterexample (`depth_noise_mm = 1.0`) replayed on 11 seeds
+disjoint from the discovery seed: **4/11 = 36.4% reproduction**.
+
+Of the 7 non-reproducing seeds, 5 are ones where both arms succeed and 2 where
+both fail. A counterexample reproduced on a third of seeds is a property of the
+seed as much as of the condition, and this number must travel with any claim of
+a behavioural boundary.
+
+### RQ5 -- perturbation boundaries
+
+Two of seven axes have a boundary. Depth noise separates at 1 mm. Joint-encoder
+noise changes the *sign* of the effect along the axis: the candidate is better
+at 0.005 rad and worse at 0.02 and 0.05, so one aggregate number for that axis
+would average three different stories.
+
+Five axes have no separation, and two are findings rather than
+disappointments:
+
+* **Latency and occlusion are structurally inert.** The policy latches its plan
+  on the first control tick and never consults RGB, so a delayed or occluded
+  frame is never acted on. They are not behavioural factors for this task, and
+  sweeping them spends episodes to measure nothing.
+* **Depth bias is far more destructive than depth noise.** A 2 mm systematic
+  offset takes both arms to 0.00, while 1 mm of Gaussian noise still leaves the
+  baseline at 0.67. Averaging removes noise; it cannot remove bias, because a
+  biased estimate is not a noisy one. A benchmark sweeping only Gaussian noise
+  would have concluded the perception subsystem is robust to depth error, which
+  is false.
+
+## 5. What the work actually establishes
+
+1. **Conditional evaluation is worth its cost.** It reported a regression twice
+   as severe as the aggregate, at a named condition.
+2. **Ablation beats correlation for attribution**, at 18x the episode cost, and
+   the cheap method fails in a confident and plausible way rather than an
+   obvious one.
+3. **Counterexample search must report minimality, not just discovery.**
+   Tests-to-failure alone would have ranked a 10x-worse counterexample as best.
+4. **A reproduction rate is not optional.** 36.4% is the difference between a
+   behavioural boundary and a lucky episode.
+
+## 6. Limitations
+
+* **One axis pair, one task, one seed for the headline RQ1 result.** The
+  separating seed is 1 of 12 scanned. RQ1 needs repeated trials across seeds and
+  axes before any strategy can be called better.
+* **The strong form of RQ2 is untested.** No policy pair whose trade-off runs in
+  opposite directions on two axes has been constructed, so the cancellation case
+  the framework is partly built for has not been observed.
+* **The pairwise design is untested on the only case it exists for.** No
+  regression with a genuine two-factor interaction has been built.
+* **Boundaries are swept one axis at a time.** Multi-axis surfaces, and
+  therefore axis interactions, are not measured.
+* **n is small.** Most cells use 6-8 seeds. At n=6 one episode moves a success
+  rate by 0.167, which is enough to rank and not enough to call precise.
+* **The detector, ablation and search have been validated on a positive control
+  whose cause this project injected.** That validates the machinery against a
+  known answer. It does not establish that the machinery works on a real
+  regression, because no real regression has been observed on this task.
+* **Task success is 50% (12/24 seeds).** Half the failures remain undiagnosed in
+  detail; stall detection now labels them, but the causes have not been
+  attributed one by one.
+
+## 7. Future work
+
+* Build a policy pair with a genuine two-factor interaction, to test the pairwise
+  ablation design and the RQ2 cancellation case.
+* Repeat RQ1 across seeds and axes so strategy comparison has a distribution
+  rather than a single trial.
+* Attribute the remaining 50% of task failures individually, which needs the
+  stall-detected episodes classified by cause.
+* Multi-axis boundary surfaces.
+* The unbuilt phases: ROS 2 / MoveIt 2 / ros2_control backends, the Isaac Sim
+  adapter, the notebook backend, and the dashboard. The architecture keeps core
+  logic simulator-independent, but none of those paths has been exercised.
