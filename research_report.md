@@ -11,12 +11,14 @@ simulated on paper, or copied from a previous session.** Where an experiment was
 not run, it says so.
 
 > **Staleness.** Commit `dc61715` tightened `ik_pos_tol` from 2 mm to 0.5 mm,
-> which raised nominal solvability on 12 seeds from 50.0% to 66.7% and
-> therefore changed task behaviour. RQ2 below has been re-run and is current.
-> **RQ1, RQ3, RQ4 and RQ5 were measured before that commit and are stale**; they
-> are kept in this report as they stood, labelled, rather than deleted, because
-> removing them would misrepresent what was known when. Re-run them before
-> quoting them.
+> which raised nominal solvability on 12 seeds from 50.0% to 66.7% and therefore
+> changed task behaviour. **RQ2, RQ3 and RQ5 below have been re-run and are
+> current. RQ1 and RQ4 are still stale** -- measured before that commit, kept as
+> they stood and labelled, because deleting them would misrepresent what was
+> known when. Re-run them before quoting them.
+>
+> Re-running also **withdrew two RQ5 findings** as tuning artefacts, recorded in
+> place rather than removed.
 
 ---
 

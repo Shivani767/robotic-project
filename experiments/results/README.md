@@ -2,9 +2,13 @@
 
 > **Staleness notice.** Commit `dc61715` changed `ik_pos_tol` from 2 mm to
 > 0.5 mm, which changed task behaviour: nominal solvability on 12 seeds rose
-> from 50.0% to 66.7%. **RQ1, RQ3, RQ4 and RQ5 below were measured before that
-> commit and are stale.** RQ2 has been re-run and its numbers are current. The
-> stale sections are labelled individually. Re-run them before quoting them.
+> from 50.0% to 66.7%. **RQ2, RQ3 and RQ5 have been re-run and are current.
+> RQ1 and RQ4 are still stale** -- they were measured before that commit and are
+> labelled in place. Re-run them before quoting them.
+>
+> Two findings from the earlier RQ5 run were withdrawn on re-run: joint-encoder
+> noise changing sign along its axis, and object friction being non-monotonic.
+> Both were artefacts of the loose IK tolerance. See section 8.
 
 Every number below came from a command in this repository. Nothing is projected,
 interpolated, or illustrative. Negative results are recorded as findings, and
