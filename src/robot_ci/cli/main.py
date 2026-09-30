@@ -627,9 +627,54 @@ def boundary_reserved() -> None:
 
 @app.command("report")
 @handle_errors
-def report_reserved() -> None:
-    """Generate a report (Phase 11)."""
-    not_implemented("robot-ci report generate", 11)
+def report_command(
+    results: Annotated[
+        Path | None, typer.Argument(help="Experiment results directory, e.g. experiments/results/demo.")
+    ] = None,
+    output: Annotated[
+        Path | None, typer.Option("--output", "-o", help="HTML path. Defaults to <results>/report.html.")
+    ] = None,
+) -> None:
+    """Render a self-contained HTML report from an experiment's artifacts.
+
+    Reads whatever the run produced and states plainly what it could not be
+    built from, so a partial run still produces something readable rather than
+    failing. The report leads with the per-condition matrix rather than the
+    aggregate, because the aggregate is what a conditional difference is easy to
+    miss inside.
+
+    Every rate is shown with its interval and sample count, and a metric that was
+    never measured reads ``n/a`` rather than 0 -- an unmeasured collision count
+    and a measured zero are different facts.
+    """
+    from robot_ci.reporting import write_report
+
+    target_dir = results or _latest_results_dir()
+    if target_dir is None or not target_dir.is_dir():
+        fail(
+            "no experiment results directory given and none found under "
+            "experiments/results; pass one explicitly"
+        )
+    written = write_report(target_dir, output)
+    console.print(
+        f"report written: {written} ({written.stat().st_size} bytes, self-contained)"
+    )
+
+
+def _latest_results_dir() -> Path | None:
+    """Most recently modified experiment results directory, if any.
+
+    A convenience for the single-experiment case. Ties are broken by name so
+    repeated runs of the same experiment report the same directory rather than
+    whichever the filesystem listed first.
+    """
+    root = Path("experiments/results")
+    if not root.is_dir():
+        return None
+    candidates = [d for d in root.iterdir() if d.is_dir() and (d / "summary.json").exists()]
+    if not candidates:
+        return None
+    return max(candidates, key=lambda d: (d.stat().st_mtime, d.name))
 
 
 @app.command("dashboard")

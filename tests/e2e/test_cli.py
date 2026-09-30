@@ -6,6 +6,7 @@ which is exactly what a CI pipeline observes.
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pytest
@@ -204,12 +205,65 @@ def test_diagnose_rejects_a_malformed_axis() -> None:
     assert "NAME:LOWER:UPPER" in result.output
 
 
+def test_report_renders_a_real_experiment(tmp_path: Path) -> None:
+    """`report` must produce an artifact, not announce that it is unimplemented.
+
+    Checks the file exists and carries the experiment's own numbers, so a
+    regression that renders an empty or placeholder page fails here rather than
+    passing a command that merely exits 0.
+    """
+    results = tmp_path / "exp"
+    results.mkdir()
+    (results / "summary.json").write_text(
+        json.dumps(
+            {
+                "experiment_id": "report_fixture",
+                "baseline": "policy_v1",
+                "candidate": "policy_v2",
+                "backend": "mujoco",
+            }
+        )
+    )
+    (results / "regression.json").write_text(
+        json.dumps(
+            {
+                "baseline_rate": 0.75,
+                "candidate_rate": 0.5,
+                "global_delta": -0.25,
+                "n_baseline": 8,
+                "n_candidate": 8,
+                "cells": [
+                    {
+                        "condition": "noise=2",
+                        "baseline_success": 0.75,
+                        "candidate_success": 0.5,
+                        "delta": -0.25,
+                        "n_baseline": 8,
+                        "n_candidate": 8,
+                        "baseline_ci": [0.4, 0.9],
+                        "candidate_ci": [0.2, 0.7],
+                        "effect_h": -0.4,
+                    }
+                ],
+                "findings": [{"condition": "noise=2", "severity": "blocking"}],
+            }
+        )
+    )
+    out = tmp_path / "r.html"
+    result = invoke("report", str(results), "-o", str(out))
+    assert result.exit_code == EXIT_OK, result.output
+    assert out.exists()
+    body = out.read_text()
+    assert "noise=2" in body, "the conditional cell must be in the report"
+    assert "blocking" in body
+    assert "https://" not in body, "the report must be self-contained"
+
+
 @pytest.mark.parametrize(
     "command",
     [
         ("experiment", "compare"),
         ("boundary",),
-        ("report",),
         ("dashboard",),
         ("export",),
     ],
