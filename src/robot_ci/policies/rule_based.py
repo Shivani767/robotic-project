@@ -501,8 +501,30 @@ class PickAndPlacePolicy(RobotPolicy):
         state["current_joints"] = np.asarray(
             observation.robot.positions_array, dtype=np.float64
         ).copy()
+        # Preference order: the best pose among the candidates the arm can
+        # plausibly drive to, and only if there are none, the best pose at all.
+        #
+        # The fallback exists because the warm start can sit in a basin the
+        # damped step cannot leave -- the far transit waypoint returned 4.97 mm
+        # and 0.85 rad with `converged` set, and the arm then spent the episode
+        # rotating 43 degrees toward an orientation it was blocked from
+        # reaching. The pose was never the problem: 200 seeds for that waypoint
+        # find 0.68 mm / 0.005 rad, so only the seed was wrong.
+        #
+        # The travel bound is a *preference*, not a veto. As a veto it froze the
+        # arm: every solution able to reach a distant waypoint needs about 7
+        # rad, so seed 5 held a constant 55.7 mm residual for all 300 ticks and
+        # never moved. A veto that prevents a bad plan by preventing every plan
+        # is not a safety property, it is a guaranteed failure wearing one.
+        #
+        # The two candidate sets are ranked *independently*, which is the part
+        # that is easy to get wrong. Comparing an in-bounds candidate against
+        # the best candidate seen so far -- including out-of-bounds ones -- lets
+        # a distant solution become the yardstick, after which no merely
+        # in-bounds solution can ever look good enough to be chosen. Measured,
+        # that put the object at 148 mm on a carry waypoint planned for 58 mm.
+        candidates = [result]
         if not self._pose_achieved(result):
-            best = result
             for candidate in self._fallback_seeds(observation):
                 seeded = solve_ik_refined(
                     self.jacobian_provider,
@@ -513,13 +535,11 @@ class PickAndPlacePolicy(RobotPolicy):
                     options=self.ik_options,
                     restarts=self.ik_restarts,
                 )
-                if self._pose_key(seeded) < self._pose_key(best) and self._fallback_reachable(
-                    seeded.joint_positions, observation
-                ):
-                    best = seeded
-                if self._pose_achieved(best):
+                candidates.append(seeded)
+                if self._pose_achieved(seeded):
                     break
-            result = best
+        in_bounds = [c for c in candidates if self._fallback_reachable(c.joint_positions, observation)]
+        result = min(in_bounds or candidates, key=self._pose_key)
         state["planned_joints"] = result.joint_positions
         state["planned_waypoint"] = index
         state["ik_converged"] = result.converged
@@ -601,10 +621,20 @@ class PickAndPlacePolicy(RobotPolicy):
         coordinated transit of this scene genuinely needs about 2.8 rad of
         rotation on one joint, so any per-joint bound tight enough to exclude a
         wild sweep also rejects the real move -- measured, that stalled the arm
-        at 50 mm and never carried the object at all. Summing instead measures
-        what the bound is actually for: a coordinated move distributes travel
-        across the arm, while a different basin requires several joints to
-        reverse together, and it is the reversal that sweeps the scene.
+        at 50 mm and never carried the object. Summing instead measures what the
+        bound is actually for: a coordinated move distributes travel across the
+        arm, while a different basin requires several joints to reverse
+        together, and it is the reversal that sweeps the scene.
+
+        The bound applies only while something is being carried. That is the
+        condition under which it does any good: the damage it prevents is an
+        arm sweeping a held object out of the workspace. Enforcing it on an
+        empty gripper buys no safety and has a measured cost -- with the bound
+        unconditional, seed 5 sat at its first waypoint with a constant 55.7 mm
+        IK residual for all 300 ticks, because every solution that could have
+        reached the pose required about 7 rad and the arm refused all of them.
+        Standing still is not a safe plan; it is a guaranteed failure, and a
+        guaranteed failure is worse than any excursion.
         """
         current = observation.robot.positions_array
         travel = float(np.sum(np.abs(np.asarray(goal, dtype=np.float64) - current)))

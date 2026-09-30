@@ -278,12 +278,13 @@ def test_a_solve_that_missed_the_orientation_is_not_accepted() -> None:
     assert policy._pose_achieved(_ik_result(1e-4, tolerance / 2, joints))
 
 
-def test_a_far_but_exact_plan_is_refused() -> None:
-    """An exact pose in a distant basin is still the wrong plan.
+def test_a_far_but_exact_plan_is_preferred_against() -> None:
+    """A coordinated nearby plan beats an exact one across the room.
 
-    Driving there is a sweep through the scene: measured, it sent the gripper
-    to 374 mm on the way to a 58 mm waypoint and knocked the object off the
-    table. A correct plan that destroys the episode is not a correct plan.
+    Driving to a distant basin is a sweep through the scene: measured, it sent
+    the gripper to 374 mm on the way to a 58 mm waypoint and knocked the object
+    off the table. A correct plan that destroys the episode is not a correct
+    plan, so a far solution is only taken when nothing within reach is better.
     """
     from robot_ci.policies.rule_based import _IK_MAX_PLANNED_TRAVEL_RAD
 
@@ -304,6 +305,29 @@ def test_a_far_but_exact_plan_is_refused() -> None:
     reversed_joint = np.zeros(dof)
     reversed_joint[0] = _IK_MAX_PLANNED_TRAVEL_RAD + 1.0
     assert not policy._fallback_reachable(reversed_joint, observation)
+
+
+def test_a_failed_solve_always_has_a_fallback_available() -> None:
+    """The travel bound must never leave the arm with nowhere to go.
+
+    It began as a hard veto, and that froze the arm: every solution able to
+    reach a distant waypoint needed about 7 rad, so seed 5 held a constant
+    55.7 mm IK residual for all 300 ticks and never moved. A veto that prevents
+    a bad plan by preventing every plan is not a safety property -- it is a
+    guaranteed failure wearing one. The bound is now a preference, and this
+    test pins the property that makes that safe: a failed solve always has
+    candidates to fall back to.
+    """
+    scenario = ScenarioConfig(scenario_id="ik", seed=1)
+    policy = create_policy(PolicyConfig(name="policy_v1"), scenario)
+    dof = scenario.robot.dof
+    observation = _observation(
+        scenario, sigma_m=0.002, ee=np.array([0.0, 0.0, 0.5]), joints=np.zeros(dof)
+    )
+    assert policy._fallback_seeds(observation), (
+        "a failed solve must always have somewhere to go, or the bound below is "
+        "acting as a veto"
+    )
 
 
 def test_fallback_seeds_are_deterministic_and_exclude_the_current_pose() -> None:

@@ -15,6 +15,7 @@ Fairness guarantees
 
 from __future__ import annotations
 
+import math
 import time
 from dataclasses import dataclass, field
 from typing import Any
@@ -32,6 +33,113 @@ from robot_ci.tasks import Task, TaskStatus, create_task
 __all__ = ["EpisodeResult", "RunSpec", "run_episode"]
 
 _LOG = get_logger(__name__)
+
+#: Progress a stalled arm must make, in metres, to have its stall counter reset.
+#:
+#: Chosen an order of magnitude above the numerical noise of the end-effector
+#: position and well below any real motion. A rate-limited arm closing on a
+#: waypoint improves the distance every tick by far more than this, so a
+#: counter that resets on this threshold never fires on a moving arm.
+STALL_PROGRESS_M = 1e-3
+
+#: Control ticks without progress after which an episode is declared stalled.
+#:
+#: This exists because the alternative was to let a stuck arm run to the step
+#: cap. Measured on the nominal condition: a successful episode takes 76 ticks,
+#: and a failing one takes the full 300 -- the arm sits at a waypoint it cannot
+#: reach, the cursor never advances, and nothing in the loop notices. Two costs,
+#: both of them distorting a benchmark rather than merely slowing it down:
+#:
+#: * Every failure is labelled TIMEOUT, so the failure taxonomy has one entry
+#:   that means "something went wrong and we did not look" and nothing that
+#:   names the actual cause.
+#: * A run's wall-clock is set by its failures, not its successes, which is the
+#:   wrong way round for a tool whose purpose is to be run many times.
+#:
+#: The value is a multiple of the longest approach observed (a nominal
+#: approach needs a few tens of ticks), so a slow but converging arm is never
+#: cut off -- only one that has stopped moving.
+STALL_LIMIT_STEPS = 60
+
+
+@dataclass
+class _StallTracker:
+    """Detects an arm that has stopped making progress toward its waypoint.
+
+    The policy reports the waypoint it is driving to and whether it considers
+    that waypoint reached, so progress is measured against the arm's own goal
+    rather than a fixed point. The counter resets whenever the target changes,
+    because a new waypoint is a new problem and inheriting the previous one's
+    count would abort an arm that had only just been told to do something else.
+
+    Attributes:
+        target: The commanded waypoint the current count refers to.
+        best: Smallest distance to ``target`` seen so far.
+        ticks: Ticks spent without improving on ``best``.
+        stage: The policy's waypoint index the current count refers to.
+        stage_ticks: Ticks spent at ``stage`` without advancing.
+        triggered: Whether the stall limit has been reached.
+    """
+
+    target: np.ndarray | None = None
+    best: float = math.inf
+    ticks: int = 0
+    stage: int | None = None
+    stage_ticks: int = 0
+    triggered: bool = False
+
+    def update(
+        self,
+        target: Any,
+        distance: float,
+        reached: bool,
+        stage: Any = None,
+    ) -> None:
+        """Record one tick of progress toward the commanded waypoint.
+
+        Two independent signals are tracked, because a task can stall while the
+        arm is moving and an arm can be motionless while the task is not.
+
+        *Distance to the commanded waypoint* catches an arm that cannot reach
+        what it was told to reach. It cannot catch the case that actually
+        accounted for every 300-tick failure measured on the nominal condition:
+        the arm arrived within tolerance and then sat there, because the grasp
+        never registered and the waypoint cursor therefore never advanced. The
+        policy reports that never-advancing cursor as ``stage``, so a stage that
+        does not move for the limit is a stall regardless of where the arm is.
+
+        Args:
+            target: The commanded waypoint, or ``None`` if the policy reported
+                none. A tick with no target is not evidence of a motion stall.
+            distance: Measured distance from the end-effector to ``target``.
+            reached: Whether the policy considers the waypoint reached. Reaching
+                it ends any motion stall: the arm is where it was told to be.
+            stage: The policy's current waypoint index, or ``None`` if unknown.
+        """
+        if stage is not None and stage != self.stage:
+            self.stage = stage
+            self.stage_ticks = 0
+        elif stage is not None:
+            self.stage_ticks += 1
+
+        if target is None:
+            return
+        point = np.asarray(target, dtype=np.float64)
+        if self.target is None or not np.allclose(point, self.target, atol=1e-6):
+            self.target = point.copy()
+            self.best = distance
+            self.ticks = 0
+        elif reached:
+            self.best = 0.0
+            self.ticks = 0
+        elif self.best - distance > STALL_PROGRESS_M:
+            self.best = distance
+            self.ticks = 0
+        else:
+            self.ticks += 1
+
+        if self.ticks >= STALL_LIMIT_STEPS or self.stage_ticks >= STALL_LIMIT_STEPS:
+            self.triggered = True
 
 
 @dataclass(frozen=True)
@@ -216,6 +324,7 @@ def run_episode(
     sigmas: list[float] = []
     last_observation = None
     last_truth = None
+    stall = _StallTracker()
 
     try:
         for _ in range(scenario.task.max_steps):
@@ -258,7 +367,17 @@ def run_episode(
                 sigmas.append(best.position_sigma_m)
             commanded = output.diagnostics.get("waypoint_target")
             if commanded is not None:
-                trace.commanded_poses.append(np.asarray(commanded, dtype=np.float64))
+                target_point = np.asarray(commanded, dtype=np.float64)
+                trace.commanded_poses.append(target_point)
+                end_effector = np.asarray(
+                    observation.robot.end_effector_pose.position.array, dtype=np.float64
+                )
+                stall.update(
+                    target_point,
+                    float(np.linalg.norm(end_effector - target_point)),
+                    bool(output.diagnostics.get("reached_waypoint", False)),
+                    stage=output.diagnostics.get("waypoint"),
+                )
 
             if transition.collision:
                 collision_steps += 1
@@ -282,6 +401,18 @@ def run_episode(
                     satisfied={k: bool(v) for k, v in result.satisfied.items()},
                 )
             if status is not TaskStatus.RUNNING or transition.terminated:
+                break
+            if stall.triggered:
+                # A stall is a failure with a known cause, not a timeout. The
+                # distinction is the point: TIMEOUT means the budget ran out
+                # without the loop learning why, and reporting a stuck arm as a
+                # timeout is how a failure taxonomy ends up with a single entry
+                # standing for every cause at once.
+                status = TaskStatus.FAILURE
+                outcome_message = (
+                    f"stalled {stall.ticks} ticks from the commanded waypoint "
+                    f"(best {stall.best * 1000.0:.1f} mm)"
+                )
                 break
     finally:
         backend.close(handle)
