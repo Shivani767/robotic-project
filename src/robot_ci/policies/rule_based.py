@@ -144,6 +144,52 @@ class PickAndPlacePolicy(RobotPolicy):
         #: Grasp offset applied along the approach axis, to sit between the
         #: fingers rather than on the object centre.
         self.grasp_bias_m = float(config.parameters.get("grasp_bias_m", 0.0))
+        #: Confidence-gate budget, in control steps.
+        #:
+        #: This is the candidate's documented behavioural change. While the
+        #: fused object pose is *less* certain than :attr:`max_position_sigma_m`
+        #: the policy refuses to commit the descent: it holds the approach pose
+        #: and re-observes, because a grasp executed from an untrusted estimate
+        #: is how a manipulator damages itself or the part. The budget is
+        #: bounded so that an uncertainty which never resolves delays the
+        #: episode by at most this many steps instead of deadlocking it.
+        #:
+        #: The baseline is unaffected by this code path for a structural reason
+        #: rather than a conventional one: its threshold is ``1e9``, so
+        #: ``uncertain`` is never true and the gate can never engage. That is
+        #: what keeps the two policies separated by exactly one documented
+        #: change -- the threshold -- with no duplicated policy code.
+        self.max_gate_holds = int(config.parameters.get("max_gate_holds", 10))
+        self._init_motion_limits(scenario)
+
+    def _init_motion_limits(self, scenario: ScenarioConfig) -> None:
+        """Derive the joint slew bound and the joint-limit arrays.
+
+        Per-joint slew bound, in radians per control tick.
+
+        The IK solution is a *pose* target, and sending it straight to the
+        position actuators asks the arm to arrive at the next waypoint in one
+        control period. Measured on the waypoint sequence that is ~1 m/s of
+        end-effector travel, which is not a slow approach, it is a flick: the
+        pads arrive at the object with enough momentum to throw it back out, so
+        the grasp registers and is then lost during the lift. Nothing in the
+        episode reports this as a control fault -- the arm reaches every
+        waypoint, on time, and the object is simply no longer held.
+
+        The bound is the embodiment's own declared velocity limit over the
+        control period, so it is a property of the robot rather than a tuning
+        constant. A scenario that declares no velocity limits is treated as
+        unconstrained and keeps the previous behaviour, because inventing a
+        limit would silently change results for anyone who set none.
+        """
+        limits = scenario.robot.limits
+        self.joint_lower = np.asarray(limits.lower, dtype=np.float64)
+        self.joint_upper = np.asarray(limits.upper, dtype=np.float64)
+        self.max_joint_step: np.ndarray | None = None
+        if len(limits.max_velocity) == len(limits.lower):
+            self.max_joint_step = np.asarray(limits.max_velocity, dtype=np.float64) / float(
+                scenario.robot.control_hz
+            )
 
     # -- lifecycle ---------------------------------------------------------
     def reset(self, config: PolicyConfig, seed: int, scenario: ScenarioConfig | None = None) -> None:
@@ -155,6 +201,7 @@ class PickAndPlacePolicy(RobotPolicy):
         self.step_count = 0
         self._state = {
             "waypoint_index": 0,
+            "drive_index": 0,
             "dwell": 0,
             "close_dwell": 0,
             "phase": "approach",
@@ -163,12 +210,15 @@ class PickAndPlacePolicy(RobotPolicy):
             "ik_converged": True,
             "last_ik_error_m": 0.0,
             "belief_sigma_m": 0.0,
+            "gate_holds": 0,
+            "gate_cleared": False,
         }
         self.task = create_task(self.scenario)
         self.jacobian_provider = None
-        limits = self.scenario.robot.limits
-        self.joint_lower = np.asarray(limits.lower, dtype=np.float64)
-        self.joint_upper = np.asarray(limits.upper, dtype=np.float64)
+        # A reset may arrive with a different embodiment, and the slew bound and
+        # the joint limits are properties of that embodiment rather than of the
+        # policy, so both are re-derived whenever the scenario changes.
+        self._init_motion_limits(self.scenario)
 
     def attach_planner(self, provider: JacobianProvider | None) -> None:
         """Attach a Jacobian source so the policy can solve IK.
@@ -202,42 +252,70 @@ class PickAndPlacePolicy(RobotPolicy):
 
         if not state["waypoints"]:
             state["waypoints"] = [w.array.copy() for w in self.task.waypoints(target)]
+            self._apply_clearance_bias(state["waypoints"])
             state["waypoint_index"] = 0
+
+        waypoints = state["waypoints"]
+        index = int(state["waypoint_index"])
+
+        # -- confidence gate (the candidate's behavioural change) -----------
+        # While the object estimate is too uncertain to trust, refuse to
+        # commit the descent: hold the approach pose and re-observe. Only the
+        # grasp waypoint is gated -- once the object is held, an uncertain
+        # estimate is no longer a reason to stop, and gating the carry would
+        # command the arm back toward a pose the object has left.
+        gated = self._gate_active(index, uncertain, state)
+        drive = 0 if gated else index
+        state["drive_index"] = drive
 
         joints = self._solve_for(observation, target)
         if joints is None:
             diagnostics["reason"] = "IK unavailable; holding position"
             return PolicyOutput(Action.joint_positions(observation.robot.positions_array), diagnostics)
 
-        waypoints = state["waypoints"]
-        index = int(state["waypoint_index"])
-        current_waypoint = waypoints[min(index, len(waypoints) - 1)]
+        current_waypoint = waypoints[min(drive, len(waypoints) - 1)]
 
-        gripper = self._gripper_command(observation, state)
+        gripper = self._gripper_command(observation, state, gated=gated)
         action = self._compose(joints, gripper)
 
         # Advance the waypoint cursor once the arm has held the commanded pose
         # for a dwell. Leaving the grasp waypoint additionally requires the
         # fingers to have finished closing, so the lift never starts before the
-        # grasp is physically complete.
+        # grasp is physically complete. A gated step holds its dwell at zero:
+        # otherwise the hold would bank progress and the grasp would be
+        # committed on the very first step after the gate expired, which is the
+        # opposite of waiting for a better estimate.
         ee = observation.robot.end_effector_pose.position.array
         reached = float(np.linalg.norm(ee - current_waypoint)) < 0.02
-        state["dwell"] = state["dwell"] + 1 if reached else 0
+        state["dwell"] = 0 if gated else (state["dwell"] + 1 if reached else 0)
         grasp_settled = index != 1 or int(state.get("close_dwell", 0)) >= 6
-        if state["dwell"] >= 6 and grasp_settled and index < len(waypoints) - 1:
+        if (
+            not gated
+            and state["dwell"] >= 6
+            and grasp_settled
+            and index < len(waypoints) - 1
+        ):
             state["waypoint_index"] = index + 1
             state["dwell"] = 0
             state["close_dwell"] = 0
             state["planned_joints"] = None
+            # Drop the plan's waypoint tag with the plan itself, so the next
+            # step re-plans instead of inheriting a configuration that was
+            # solved for a waypoint the arm has already left.
+            state["planned_waypoint"] = None
 
         diagnostics.update(
             {
                 "waypoint": index,
+                "drive_waypoint": drive,
                 "waypoint_count": len(waypoints),
                 "reached_waypoint": reached,
                 "dwell": state["dwell"],
                 "belief_sigma_m": round(sigma, 5),
                 "uncertain_belief": uncertain,
+                "gated": gated,
+                "gate_holds": int(state.get("gate_holds", 0)),
+                "gate_cleared": bool(state.get("gate_cleared", False)),
                 "gripper_open": gripper > 0.5 * OPEN_WIDTH_M,
                 "ik_converged": state["ik_converged"],
                 "ik_error_mm": round(state["last_ik_error_m"] * 1000.0, 2),
@@ -246,6 +324,50 @@ class PickAndPlacePolicy(RobotPolicy):
             }
         )
         return PolicyOutput(action, diagnostics)
+
+    def _gate_active(self, index: int, uncertain: bool, state: dict[str, Any]) -> bool:
+        """Whether the confidence gate should suspend the descent this step.
+
+        Args:
+            index: The logical waypoint index (independent of the gate).
+            uncertain: Whether the fused pose is beyond the trust threshold.
+            state: Mutable policy state; the hold counter is advanced here.
+
+        Returns:
+            ``True`` when the policy should hold the approach pose instead of
+            descending to the grasp.
+        """
+        if self.max_gate_holds <= 0 or bool(state.get("gate_cleared")):
+            return False
+        if not uncertain:
+            return False
+        # Only the grasp commit is gated; see the call site for why.
+        if index != 1:
+            return False
+        holds = int(state.get("gate_holds", 0))
+        if holds >= self.max_gate_holds:
+            # Budget exhausted. Clear the gate for the rest of the episode so
+            # the policy degrades to baseline behaviour rather than holding
+            # until the episode times out.
+            state["gate_cleared"] = True
+            return False
+        state["gate_holds"] = holds + 1
+        return True
+
+    def _apply_clearance_bias(self, waypoints: list[np.ndarray]) -> None:
+        """Raise the carry waypoints by ``clearance_bias_m``.
+
+        Applies to the lift and the transit-over-target waypoints only. The
+        release pose is deliberately left alone: raising it would make the
+        object be released above the target, which fails placement instead of
+        protecting it. A bias of ``0.0`` -- the default for both compared
+        policies -- is a no-op, so this cannot silently confound the
+        baseline/candidate comparison.
+        """
+        if self.clearance_bias_m == 0.0:
+            return
+        for position in waypoints[2:4]:
+            position[2] = position[2] + self.clearance_bias_m
 
     # -- internals ---------------------------------------------------------
     def _resolve_target(self, observation: Observation) -> Pose | None:
@@ -274,7 +396,10 @@ class PickAndPlacePolicy(RobotPolicy):
         if self.jacobian_provider is None:
             return None
         waypoints = state["waypoints"]
-        index = int(state["waypoint_index"])
+        # The drive index, not the logical index: when the confidence gate is
+        # holding the approach pose the logical index has already advanced to
+        # the grasp, and solving for it would descend anyway.
+        index = int(state.get("drive_index", state["waypoint_index"]))
         if not waypoints:
             return None
         goal = waypoints[min(index, len(waypoints) - 1)]
@@ -282,6 +407,21 @@ class PickAndPlacePolicy(RobotPolicy):
         # The gripper approaches from above, so the waypoint is expressed as a
         # position and a fixed top-down orientation.
         command_pose = Pose(position=Vec3.from_iterable(goal), orientation=TOP_DOWN)
+
+        # Plan once per waypoint, then execute that plan.
+        #
+        # Re-solving every control tick looks natural and is wrong twice over.
+        # It costs a full IK solve per step, and -- because the solver is
+        # seeded from the previous *solution* rather than from the arm -- each
+        # solve may land in a different basin, so the commanded configuration
+        # moves while the arm is still travelling toward the old one. Under a
+        # velocity limit that becomes a visible excursion: measured, the
+        # end-effector wandered 40 mm sideways while carrying the object and
+        # shook it out of the gripper. A plan is a commitment: it is computed
+        # when the waypoint changes and held until then, which is also what a
+        # real motion controller does.
+        if state.get("planned_waypoint") == index and state.get("planned_joints") is not None:
+            return self._rate_limit(observation, np.asarray(state["planned_joints"]))
 
         seed_q = state.get("planned_joints")
         if seed_q is None:
@@ -320,12 +460,41 @@ class PickAndPlacePolicy(RobotPolicy):
             if seeded.position_error < result.position_error:
                 result = seeded
         state["planned_joints"] = result.joint_positions
+        state["planned_waypoint"] = index
         state["ik_converged"] = result.converged
         state["last_ik_error_m"] = result.position_error
         del target
-        return result.joint_positions
+        return self._rate_limit(observation, result.joint_positions)
 
-    def _gripper_command(self, observation: Observation, state: dict[str, Any]) -> float:
+    def _rate_limit(self, observation: Observation, goal: np.ndarray) -> np.ndarray:
+        """Bound how far the joints may travel on this control tick.
+
+        The returned value is a *command*, not the IK solution: it is the point
+        on the segment from the arm's current configuration to the solution that
+        the velocity limits allow this tick. When no limit is declared the
+        solution is passed through unchanged, so an unconstrained scenario
+        behaves exactly as it did before this existed.
+
+        Args:
+            observation: Supplies the arm's measured configuration.
+            goal: The IK solution for the current waypoint.
+
+        Returns:
+            The joint command to send this tick.
+        """
+        if self.max_joint_step is None:
+            return goal
+        current = observation.robot.positions_array
+        delta = goal - current
+        # A per-joint bound is a box, not a ball: clamp each axis independently.
+        # Scaling the whole vector by a single factor would satisfy the limit
+        # only by slowing the slowest joint to the fastest one's rate.
+        step = np.clip(delta, -self.max_joint_step, self.max_joint_step)
+        return current + step
+
+    def _gripper_command(
+        self, observation: Observation, state: dict[str, Any], *, gated: bool = False
+    ) -> float:
         """Decide the gripper aperture for this step.
 
         The gripper has its own dwell, separate from the waypoint dwell. Advancing
@@ -333,11 +502,17 @@ class PickAndPlacePolicy(RobotPolicy):
         an object the gripper never actually closed on, and the failure is
         invisible in the diagnostics: the arm reaches every waypoint on time and
         the object simply never moves.
+
+        While the confidence gate is holding, the aperture is forced open: the
+        gate exists to avoid committing a grasp from an untrusted estimate, and
+        closing the fingers during the hold would commit it anyway.
         """
         index = int(state["waypoint_index"])
         close_dwell = int(state.get("close_dwell", 0))
         state["close_dwell"] = close_dwell
 
+        if gated:
+            return OPEN_WIDTH_M
         if index == 0:
             # Above the object, still open.
             return OPEN_WIDTH_M
@@ -460,7 +635,14 @@ _DEFAULT_V2 = PolicyConfig(
         PolicyComponent.PLANNER: "waypoint_v1",
         PolicyComponent.CONTROLLER: "ik_dls_v1",
     },
-    parameters={"max_position_sigma_m": 0.05, "clearance_bias_m": 0.01},
+    # ``clearance_bias_m`` is deliberately 0.0, not 0.01. Raising the carry
+    # waypoints is a *second* behavioural change, and the whole point of a
+    # two-arm comparison is that a measured difference is attributable to one
+    # change. With the bias non-zero the version-2 regression could be caused by
+    # either the gate or the clearance, and this grid could not separate them.
+    # The parameter stays implemented (``_apply_clearance_bias``) and declared
+    # here so an ablation can exercise it as its own factor.
+    parameters={"max_position_sigma_m": 0.05, "clearance_bias_m": 0.0},
 )
 
 #: Registry of policy factories, keyed by :attr:`PolicyConfig.implementation`.
