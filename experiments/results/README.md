@@ -13,6 +13,7 @@ that could later be mistaken for a measurement.
 .venv/bin/python experiments/rq4_reproducibility.py        # writes rq4_*.json
 .venv/bin/python experiments/rq2_conditional_vs_aggregate.py  # writes rq2_*.json
 .venv/bin/python experiments/rq3_ablation_attribution.py     # writes rq3_*.json
+.venv/bin/python experiments/rq5_perturbation_boundaries.py  # writes rq5_*.json
 .venv/bin/python -m robot_ci.cli.main diagnose --backend mujoco \
     --axis depth_noise_mm:0:8:mm --seeds 4
 ```
@@ -245,7 +246,72 @@ n=6 per arm a single episode moves a success rate by 0.167, which is why
 planner and controller are tied at -0.042. The perception effect is two
 episodes clear of them, which is enough to rank and not enough to call precise.
 
-## 8. Diagnosis output
+## 8. RQ5: perturbation boundary curves
+
+`experiments/rq5_perturbation_boundaries.py`. Each axis swept alone with the
+others nominal, 6 seeds, arms `baseline=policy_v3, candidate=policy_v1`.
+
+### Two axes have a boundary
+
+**Depth noise** -- the clean case:
+
+| depth noise | baseline | candidate | delta |
+|---|---|---|---|
+| 0 mm | 1.00 | 1.00 | +0.00 |
+| 1 mm | 0.67 | 0.33 | **-0.33** |
+| 2 mm | 0.50 | 0.17 | -0.33 |
+| 4 mm | 0.17 | 0.00 | -0.17 |
+| 8 mm | 0.17 | 0.00 | -0.17 |
+
+Identical at nominal, separated by the first swept level, and both arms
+degrading monotonically afterwards. This is the curve shape the framework is
+looking for.
+
+**Joint-encoder noise:**
+
+| joint noise | baseline | candidate | delta |
+|---|---|---|---|
+| 0 rad | 1.00 | 1.00 | +0.00 |
+| 0.005 rad | 0.83 | 1.00 | **+0.17** |
+| 0.02 rad | 0.83 | 0.67 | -0.17 |
+| 0.05 rad | 0.67 | 0.50 | -0.17 |
+
+The candidate is *better* at the first noise level and worse at the next two, so
+the sign of the effect changes along this axis. A single aggregate number for
+this axis would average three different stories into one.
+
+### Five axes have no separation, and two of those are real findings
+
+| axis | range swept | outcome |
+|---|---|---|
+| latency_ms | 0-200 | 1.00 throughout |
+| occlusion_percent | 0-60 | 1.00 throughout |
+| clutter_count | 0-9 | 1.00 throughout |
+| object_friction | 1.0-0.1 | 0.50 at 1.0, 1.00 below |
+| depth_bias_mm | 0-20 | 0.00 from 2 mm |
+
+**Latency and occlusion are flat for a structural reason, not by accident.** The
+policy latches its plan on the first control tick and never consults RGB, so a
+delayed or occluded frame is never acted on. These are not behavioural factors
+for this task, and a benchmark sweeping them spends episodes to measure nothing.
+That is a finding about the *task and policy pair*, not about the axes, and it
+would transfer to any plan-once policy on a static object.
+
+**Depth bias is far more destructive than depth noise, and that asymmetry is
+worth recording.** A 2 mm systematic offset takes both arms to 0.00, while 1 mm
+of Gaussian noise still leaves the baseline at 0.67. Noise is what the
+averaging in `policy_v3` is designed to remove; bias is not noise, so averaging
+cannot remove it, and the arm aims at a position that is simply wrong. A
+benchmark that swept only Gaussian noise would have ranked the perception
+subsystem as robust to depth error, which is false.
+
+**Object friction is non-monotonic**: 1.0 is *worse* for both arms (0.50) than
+0.6 or 0.3 (1.00). The gripper's closing command was tuned against the default
+friction, so at the high end the grasp pushes the object rather than gripping
+it. The two arms are identical, so this is a property of the embodiment and the
+tuning, not a regression.
+
+## 9. Diagnosis output
 
 `robot-ci diagnose` was validated by running it, and its first output was wrong:
 it attributed a regression to the planner on a 64 ms difference in
@@ -267,5 +333,6 @@ No numbers exist for these and none are written anywhere in this repository.
 - The *interaction* case for RQ3: no regression with a genuine two-factor
   interaction has been constructed, so the pairwise design is untested on the
   only situation it exists for. See section 7.
-- RQ5 (multi-axis perturbation boundary curves).
+- Multi-axis boundary surfaces. RQ5 sweeps one axis at a time, which attributes
+  a boundary to a factor but cannot see interactions between them.
 - Dashboard, ROS 2 / MoveIt / Isaac backends, notebook backend.
