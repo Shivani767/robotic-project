@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import itertools
-from collections.abc import Iterator
+from collections.abc import Iterator, Sequence
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 
 from robot_ci.core.errors import ScenarioError
 from robot_ci.core.io import load_yaml, write_yaml
@@ -78,16 +78,26 @@ def save_scenario(scenario: ScenarioConfig, path: str | Path) -> Path:
     return target
 
 
-def set_by_path(config: ScenarioConfig, path: str, value: float) -> ScenarioConfig:
+def set_by_path(
+    config: ScenarioConfig, path: str, value: float | Sequence[float]
+) -> ScenarioConfig:
     """Return a copy of ``config`` with one dotted field path set.
 
     Dotted paths address nested models, e.g. ``"sensors.depth.sigma_mm"``.
     Indexing is supported for sequences, e.g. ``"objects.0.position.x"``.
 
+    ``value`` may be a sequence, which replaces the whole sequence at ``path``.
+    Some faults are inherently vector-valued -- a colour cast is a per-channel
+    shift, not a magnitude -- and previously such a field could only be set by
+    hand. The benchmark suite hit this immediately: it tried to inject a colour
+    shift as a scalar, the field was a 3-tuple, validation rejected it, and the
+    only reason the failure was visible rather than a silent pass is that
+    ``run_benchmark`` checks the injection took effect.
+
     Args:
         config: The scenario to modify (not mutated).
         path: Dotted field path.
-        value: New scalar value.
+        value: New scalar, or a sequence replacing the one at ``path``.
 
     Returns:
         A new, validated scenario.
@@ -104,12 +114,34 @@ def set_by_path(config: ScenarioConfig, path: str, value: float) -> ScenarioConf
     for part in parts[:-1]:
         cursor = _descend(cursor, part, path)
     leaf = parts[-1]
-    if isinstance(cursor, list):
-        _assign_index(cursor, leaf, value, path)
+    if isinstance(value, (list, tuple)) and not leaf.isdigit():
+        # A whole-sequence replacement. The field must already be a sequence,
+        # otherwise the caller has mistyped a scalar path as a vector one and
+        # silently creating the field would hide that.
+        container = cursor if isinstance(cursor, dict) else None
+        if container is None or leaf not in container or not isinstance(
+            container[leaf], (list, tuple)
+        ):
+            raise ScenarioError(
+                f"path {path!r} does not address a sequence, so it cannot be set "
+                f"to a sequence of {len(value)}",
+                code="scenario.not_a_sequence",
+                path=path,
+            )
+        if len(value) != len(container[leaf]):
+            raise ScenarioError(
+                f"path {path!r} is a sequence of {len(container[leaf])}, but "
+                f"{len(value)} values were supplied",
+                code="scenario.sequence_length",
+                path=path,
+            )
+        container[leaf] = list(value)
+    elif isinstance(cursor, list):
+        _assign_index(cursor, leaf, _as_scalar(value), path)
     elif isinstance(cursor, tuple):
         # model_dump returns tuples; converting to a list lets the parent
         # re-validate the modified sequence.
-        _replace_index(cursor, leaf, value, path)
+        _replace_index(cursor, leaf, _as_scalar(value), path)
     else:
         if leaf not in cursor:
             raise ScenarioError(
@@ -138,7 +170,43 @@ _CORRUPTION_PARENTS: tuple[tuple[str, ...], ...] = (
 )
 
 
-def _auto_enable_corruption(data: dict[str, Any], path: str, value: float) -> None:
+def _as_scalar(value: float | Sequence[float]) -> float:
+    """Narrow a swept value to a scalar.
+
+    The whole-sequence branch in :func:`set_by_path` handles sequences and
+    returns, so reaching an indexed assignment with a sequence means the caller
+    wrote ``a.b.0`` with a list, which is a mistake worth surfacing rather than
+    truncating.
+    """
+    if isinstance(value, (list, tuple)):
+        raise ScenarioError(
+            "a sequence was supplied for a single indexed element; index the "
+            "sequence or replace it as a whole",
+            code="scenario.sequence_for_index",
+        )
+    # The isinstance guard above is the whole narrowing story; mypy does not
+    # narrow the Sequence arm of the union through it, and the value is a float
+    # by the signature. Casting says so rather than re-checking the type.
+    return float(cast("float", value))
+
+
+def _is_nonzero(value: object) -> bool:
+    """Whether a swept value should count as an active corruption.
+
+    A vector-valued fault -- a per-channel colour cast, say -- is active if any
+    of its components is non-zero, not only if the container is truthy. Testing
+    the container's truthiness would leave an all-zero cast armed, which is
+    harmless, and a real cast disarmed, which is not.
+    """
+    if isinstance(value, (list, tuple)):
+        return any(_is_nonzero(item) for item in value)
+    try:
+        return float(value) != 0.0  # type: ignore[arg-type]
+    except (TypeError, ValueError):
+        return bool(value)
+
+
+def _auto_enable_corruption(data: dict[str, Any], path: str, value: object) -> None:
     """Arm the ``enabled`` flags above a swept corruption magnitude."""
     parts = tuple(path.split("."))
     for parent in _CORRUPTION_PARENTS:
@@ -148,13 +216,13 @@ def _auto_enable_corruption(data: dict[str, Any], path: str, value: float) -> No
             node: Any = data
             for part in parent:
                 node = node.get(part) if isinstance(node, dict) else None
-            if isinstance(node, dict) and float(value) != 0.0:
+            if isinstance(node, dict) and _is_nonzero(value):
                 node["enabled"] = True
             return
     if parts[:2] == ("sensors", "camera") and "latency" in parts and parts[-1] != "enabled":
         latency = data.get("sensors", {}).get("camera", {}).get("latency")
         camera = data.get("sensors", {}).get("camera")
-        if isinstance(latency, dict) and float(value) != 0.0:
+        if isinstance(latency, dict) and _is_nonzero(value):
             latency["enabled"] = True
             if isinstance(camera, dict):
                 camera["enabled"] = True
