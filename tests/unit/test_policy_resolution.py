@@ -132,8 +132,20 @@ def test_null_gate_keeps_identical_policies_identical() -> None:
     scenario = ScenarioConfig(scenario_id="nullgate", seed=11)
     v1 = create_policy(PolicyConfig(name="policy_v1"), scenario)
     v2 = create_policy(PolicyConfig(name="policy_v2"), scenario)
+    # The point of the comparison is that exactly one arm has a gate that can
+    # engage. Asserting the literal trip point here would only re-state the
+    # default, and did so until the default moved and this test began failing
+    # on a number nobody had changed on purpose. What has to hold is the
+    # *shape*: the baseline can never be gated, and the candidate must be gated
+    # at a threshold small enough to be reachable. The previous value, 0.05, was
+    # not -- it corresponded to 50 mm of depth noise, by which point the arm had
+    # already failed for unrelated reasons, so the gate could never fire and the
+    # two arms were the same policy wearing different labels.
     assert v1.max_position_sigma_m == pytest.approx(1e9)
-    assert v2.max_position_sigma_m == pytest.approx(0.05)
+    assert 0.0 < v2.max_position_sigma_m <= 0.01, (
+        f"the candidate's gate trips at {v2.max_position_sigma_m} m, which is "
+        "outside the range of sensor noise this task can be run at"
+    )
 
     backend = create_backend("mujoco")
     observed: dict[str, list[float]] = {"policy_v1": [], "policy_v2": []}

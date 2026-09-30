@@ -131,11 +131,22 @@ def _drive(
         ee = np.asarray(provider.forward(joints)[0], dtype=np.float64)
     return outputs
 
-#: Confidence gate on policy_v2, from its declared default.
-GATE_SIGMA_M = 0.05
+#: Confidence gate on policy_v2, read from its declared default rather than
+#: restated here.
+#:
+#: It used to be hard-coded to 0.05 and the test still passed after the default
+#: moved to 0.004, because the fixtures happened to sit on either side of both
+#: values. A test that keeps passing while the number it claims to pin has
+#: changed is worse than no test: it certifies a constant the code no longer
+#: holds. The fixtures below are now derived from this, so moving the default
+#: moves the test with it and a value outside the range fails loudly.
+GATE_SIGMA_M = create_policy(
+    PolicyConfig(name="policy_v2"), ScenarioConfig(scenario_id="gate_probe", seed=1)
+).max_position_sigma_m
+
 #: A sigma the baseline always tolerates but the candidate does not.
-ABOVE_GATE_SIGMA_M = 0.06
-BELOW_GATE_SIGMA_M = 0.002
+ABOVE_GATE_SIGMA_M = GATE_SIGMA_M * 1.5
+BELOW_GATE_SIGMA_M = GATE_SIGMA_M * 0.5
 #: Steps needed to reach the grasp waypoint: 6 dwell steps to leave waypoint 0.
 #:
 #: The toy arm is rate-limited like every other embodiment, so "reaching" the
@@ -220,3 +231,107 @@ def test_gate_budget_is_bounded_and_clears() -> None:
     assert candidate[-1].diagnostics["gate_cleared"] is True
     # Spending exactly the budget is what makes the cost measurable.
     assert sum(1 for o in candidate if o.diagnostics["gated"]) == budget
+
+
+# --- Plan acceptance -------------------------------------------------------
+#
+# The IK solver reports ``converged`` when its iteration stops improving, which
+# for a pose it cannot quite reach means it returns its best attempt and calls
+# that success. On the far transit waypoint that accepted 4.97 mm of position
+# error *and* 0.85 rad of orientation error, and the arm then spent the rest of
+# the episode rotating 43 degrees towards an orientation it was blocked from
+# reaching -- dragging the rigidly-held object with it and failing a placement
+# that had otherwise succeeded within 13 mm.
+#
+# These tests pin the acceptance rule and the excursion gate directly, with no
+# simulator involved.
+
+
+def _ik_result(position_error: float, orientation_error: float, joints: np.ndarray):
+    """An ``IKResult`` reporting exactly the residuals under test."""
+    from robot_ci.planning.kinematics import IKResult
+
+    return IKResult(
+        joint_positions=np.asarray(joints, dtype=np.float64),
+        converged=True,
+        position_error=position_error,
+        orientation_error=orientation_error,
+        iterations=200,
+    )
+
+
+def test_a_solve_that_missed_the_orientation_is_not_accepted() -> None:
+    """``converged`` alone must not certify a solve.
+
+    This is the exact shape of the defect: a solver that stopped improving on an
+    unreachable orientation sets ``converged``, and accepting that is what let
+    a 0.85 rad wrist error through.
+    """
+    policy = create_policy(PolicyConfig(name="policy_v1"), ScenarioConfig(scenario_id="ik"))
+    tolerance = policy.ik_options.orientation_tolerance
+    joints = np.zeros(7)
+
+    # Converged, and the position is well inside tolerance -- only the
+    # orientation betrays it.
+    assert not policy._pose_achieved(_ik_result(1e-4, 10 * tolerance, joints))
+    # Both residuals inside tolerance: accepted.
+    assert policy._pose_achieved(_ik_result(1e-4, tolerance / 2, joints))
+
+
+def test_a_far_but_exact_plan_is_refused() -> None:
+    """An exact pose in a distant basin is still the wrong plan.
+
+    Driving there is a sweep through the scene: measured, it sent the gripper
+    to 374 mm on the way to a 58 mm waypoint and knocked the object off the
+    table. A correct plan that destroys the episode is not a correct plan.
+    """
+    from robot_ci.policies.rule_based import _IK_MAX_PLANNED_TRAVEL_RAD
+
+    scenario = ScenarioConfig(scenario_id="ik", seed=1)
+    policy = create_policy(PolicyConfig(name="policy_v1"), scenario)
+    dof = scenario.robot.dof
+    here = np.zeros(dof)
+    observation = _observation(scenario, sigma_m=0.002, ee=np.array([0.0, 0.0, 0.5]), joints=here)
+
+    # A coordinated move: the same total travel spread across every joint.
+    coordinated = np.full(dof, _IK_MAX_PLANNED_TRAVEL_RAD / dof)
+    assert policy._fallback_reachable(coordinated, observation), (
+        "a coordinated move within the budget must be allowed; rejecting it "
+        "stalled the arm at 50 mm and never carried the object at all"
+    )
+
+    # The same total travel concentrated in one joint is a different basin.
+    reversed_joint = np.zeros(dof)
+    reversed_joint[0] = _IK_MAX_PLANNED_TRAVEL_RAD + 1.0
+    assert not policy._fallback_reachable(reversed_joint, observation)
+
+
+def test_fallback_seeds_are_deterministic_and_exclude_the_current_pose() -> None:
+    """Seeds must be reproducible, and must not repeat the attempt already made.
+
+    Reproducibility is the reason these are a fixed lattice rather than random
+    draws: an experiment that re-planned differently on a re-run could not be
+    compared against itself.
+    """
+    scenario = ScenarioConfig(scenario_id="ik", seed=1)
+    policy = create_policy(PolicyConfig(name="policy_v1"), scenario)
+    dof = scenario.robot.dof
+    joints = np.zeros(dof)
+    observation = _observation(scenario, sigma_m=0.002, ee=np.array([0.0, 0.0, 0.5]), joints=joints)
+
+    first = policy._fallback_seeds(observation)
+    second = policy._fallback_seeds(observation)
+    assert len(first) == len(second)
+    for a, b in zip(first, second, strict=True):
+        assert np.array_equal(a, b), "fallback seeds must be deterministic"
+
+    # None of them may be the configuration we are already in: re-solving from
+    # the same seed is the attempt that just failed.
+    for seed in first:
+        assert not np.allclose(seed, joints, atol=1e-3)
+
+    # Every seed must lie inside the joint limits it will be solved against.
+    lower = policy.joint_lower
+    upper = policy.joint_upper
+    for seed in first:
+        assert np.all(seed >= lower - 1e-9) and np.all(seed <= upper + 1e-9)

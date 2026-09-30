@@ -791,11 +791,28 @@ _DEFAULT_V2 = PolicyConfig(
     # ``clearance_bias_m`` is deliberately 0.0, not 0.01. Raising the carry
     # waypoints is a *second* behavioural change, and the whole point of a
     # two-arm comparison is that a measured difference is attributable to one
-    # change. With the bias non-zero the version-2 regression could be caused by
-    # either the gate or the clearance, and this grid could not separate them.
-    # The parameter stays implemented (``_apply_clearance_bias``) and declared
-    # here so an ablation can exercise it as its own factor.
-    parameters={"max_position_sigma_m": 0.05, "clearance_bias_m": 0.0},
+    # change. The parameter stays implemented (``_apply_clearance_bias``) and
+    # declared here so an ablation can exercise it as its own factor.
+    #
+    # ``max_position_sigma_m`` is derived from the grasp, not chosen. A parallel
+    # gripper has to centre the object between the pads; the error budget for
+    # that is half the object width, since past that the pads close on one face
+    # and lever the object out. For the nominal 16 mm cube that budget is 8 mm,
+    # and requiring it to hold at 2 sigma puts the trip point at sigma = 4 mm.
+    #
+    # The previous value of 0.05 was 12x larger than the budget it is supposed to
+    # protect, which made the gate inert rather than conservative: measured over
+    # a depth-noise grid, v1 and v2 were identical at every level, and the gate
+    # only engaged at 50 mm of depth noise -- where the arm had already failed
+    # to place the object at 10 mm for an unrelated reason. A safety interlock
+    # that cannot engage is not a conservative policy, it is no policy at all,
+    # and a two-arm comparison of two identical policies measures nothing.
+    #
+    # Note this makes the candidate *worse* under noise, which is the expected
+    # and interesting direction: refusing to act on an untrusted estimate is
+    # exactly what costs success rate on the episodes where the estimate would
+    # have been good enough. That trade is the thing worth measuring.
+    parameters={"max_position_sigma_m": 0.004, "clearance_bias_m": 0.0},
 )
 
 #: Registry of policy factories, keyed by :attr:`PolicyConfig.implementation`.
