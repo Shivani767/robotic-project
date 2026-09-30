@@ -20,6 +20,10 @@ dashboard/node_modules/
 # Results and artifacts (regenerate with `robot-ci experiment run`)
 experiments/results/*
 !experiments/results/.gitkeep
+# The measured-results record is source, not a generated artifact. It is the
+# only thing in this directory that is hand-written, and it is the file that
+# keeps a placeholder from being mistaken for a measurement later on.
+!experiments/results/README.md
 *.jsonl
 *.sqlite
 *.db
