@@ -1,43 +1,47 @@
 # Measured results
 
-Every number in this file came from a command recorded in the repository. Nothing
-here is projected, interpolated, or illustrative. Where an experiment has not
-been run, the table says so rather than carrying a placeholder that could later
-be mistaken for a measurement.
+Every number below came from a command in this repository. Nothing is projected,
+interpolated, or illustrative. Negative results are recorded as findings, and
+experiments that have not been run say so rather than carrying a placeholder
+that could later be mistaken for a measurement.
 
-## How to reproduce
+## Reproducing
 
 ```bash
-# Phase-4 status: does the arm complete pick-and-place at all?
 .venv/bin/python -m robot_ci.cli.main validate
-
-# Task success across seeds, both policies
-# (script: the seed scan reported in "Task success" below)
-
-# Depth-noise conditional grid, 8 seeds per cell
-# depth_noise_mm  v1 succ  v2 succ  delta
+.venv/bin/python experiments/rq1_search_strategies.py     # writes rq1_*.json
+.venv/bin/python experiments/rq4_reproducibility.py        # writes rq4_*.json
+.venv/bin/python -m robot_ci.cli.main diagnose --backend mujoco \
+    --axis depth_noise_mm:0:8:mm --seeds 4
 ```
 
-## Task success on the MuJoCo arm
+## 1. Task success on the MuJoCo arm
 
-`policy_v1`, `policy_v2`, bounded gripper, 200-step budget, pick-and-place.
+`policy_v1`, 200+ step budget, pick-and-place, MuJoCo.
 
 | seeds | successes | rate |
 |---|---|---|
-| 1..24 scan (24 seeds) | 12 | 50.0% |
-| named sweep (42, 7, 1234) x 2 arms | 4 / 6 | 66.7% |
+| 1..24 | 12 | 50.0% |
 
-This was **0.000** before commit `3309762`. The four defects fixed there are
-documented in that commit message; each was found by measurement, not inspection.
+This was **0.000** before commit `3309762`. Four independent defects, each found
+by measurement, are documented in that commit.
 
-The two arms agree on every seed tried. That is expected and is verified
-separately in `tests/unit/test_policy_resolution.py`: they differ by exactly one
-parameter, the confidence-gate threshold, and the only failure mode in the
-nominal band is one the gate does not address.
+### Episode length, and why the step cap no longer dominates
 
-## Depth-noise conditional grid (RQ2 setup)
+| outcome | steps | note |
+|---|---|---|
+| success | 76-77 | |
+| failure | 127-128 | stall-detected |
 
-8 seeds per cell (1, 3, 4, 6, 8, 9, 12, 13), bounded gripper, MuJoCo.
+Failures previously ran the full 300-tick cap. The runner could not distinguish a
+stuck arm from a slow one, and the case that accounted for every 300-tick
+failure was not a motion stall at all: the arm arrived within tolerance and sat
+there because the grasp never registered and the waypoint cursor never advanced.
+Distance-to-waypoint cannot see that; the policy's waypoint index can.
+
+## 2. policy_v1 vs policy_v2: no regression (null result)
+
+8 seeds per cell, bounded gripper, MuJoCo.
 
 | depth noise | v1 success | v2 success | delta |
 |---|---|---|---|
@@ -47,84 +51,114 @@ nominal band is one the gate does not address.
 | 6 mm | 0.25 | 0.38 | +0.12 |
 | 8 mm | 0.00 | 0.00 | +0.00 |
 
-**This is a null result and is reported as one.** There is no success-rate
-regression between the two arms on this axis. The +0.12 at 6 mm is a single
-seed out of eight; with n=8 per cell it is not distinguishable from zero, and
-the framework's own confidence intervals say so.
+**There is no success-rate regression between these two arms.** The +0.12 at
+6 mm is one seed out of eight and the framework's own intervals do not separate
+it from zero.
 
-### What the candidate does cost
+The candidate's gate is a bounded *fail-open* hold, so what it spends is control
+ticks rather than successes: at 4 mm the candidate takes a median 192 steps
+against the baseline's 188 (+0.23 s), with identical success.
 
-The candidate's gate is a bounded fail-open hold, so what it spends is steps
-rather than successes. Same seeds:
+This null was not the first result. The gate originally tripped at 50 mm of
+depth noise, where both arms had already failed for unrelated reasons, so the two
+arms were the same policy under different labels and the "null" was an artefact.
+See commit `b0eae7e`.
 
-| depth noise | arm | success | median steps | median completion |
+## 3. policy_v3: a positive control, and a falsified half-hypothesis
+
+`policy_v3` averages pose samples before committing to a plan. It exists so the
+detection machinery can be validated against a regression known to exist.
+
+6 seeds, MuJoCo:
+
+| depth noise | v1 | v3 | delta |
+|---|---|---|---|
+| 0 mm | 1.00 | 1.00 | +0.00 |
+| 4 mm | 0.00 | 0.17 | +0.17 |
+| 8 mm | 0.00 | 0.17 | +0.17 |
+| 12 mm | 0.00 | 0.17 | +0.17 |
+
+The prediction had two halves. **The first is confirmed**: averaging wins where
+depth noise dominates. **The second is falsified**: it was predicted to lose
+under sensor latency, and camera latency turns out to be completely inert on
+this task (v1 = 1.00 at 0, 50, 100 and 200 ms).
+
+The reason is structural: the policy latches its plan on the first control tick
+and the object never moves, so a delayed frame is never acted on. **Latency is
+not a behavioural factor for any plan-once policy on a static-object task**, and
+a benchmark that sweeps it is spending compute to measure nothing. Recorded
+because a falsified prediction is a result.
+
+## 4. RQ1: search strategies
+
+`experiments/rq1_search_strategies.py`. Arms are `baseline=policy_v3`,
+`candidate=policy_v1` -- the searcher looks for conditions where the candidate
+fails and the baseline succeeds, and `policy_v1` is the arm that regresses.
+
+Budget 24 oracle evaluations, identical for every strategy, seed 3.
+
+| strategy | evals | wall clock | counterexample | minimal? |
 |---|---|---|---|---|
-| 0 mm | v1 | 1.00 | 74 | 3.72 s |
-| 0 mm | v2 | 1.00 | 74 | 3.72 s |
-| 4 mm | v1 | 0.50 | 188 | 9.40 s |
-| 4 mm | v2 | 0.50 | 192 | 9.63 s |
-| 6 mm | v1 | 0.25 | 300 | 15.00 s |
-| 6 mm | v2 | 0.38 | 300 | 15.00 s |
-| 8 mm | v1 | 0.00 | 300 | 15.00 s |
-| 8 mm | v2 | 0.00 | 300 | 15.00 s |
+| random | **1** | 1.4 s | 7.6 mm | no |
+| grid | 2 | 4.2 s | 4.0 mm | no |
+| binary | 8 | 16.1 s | **0.75 mm** | yes |
+| adaptive | 15 | 24.6 s | **0.75 mm** | yes |
 
-Identical at nominal, +4 steps at 4 mm, and no difference at 6 mm or beyond.
+**Tests-to-failure alone ranks random best, and that is the wrong answer.**
+Random is 15x cheaper than adaptive and its counterexample is 10x less minimal:
+it needs 7.6 mm of noise to reproduce where 0.75 mm suffices. A strategy that
+reports only "found" is hiding half its result.
 
-### An observation that matters more than the null
+Limitations, which matter for how this is quoted:
 
-At 6 mm and 8 mm the median is 300 steps -- the step cap. Under depth noise
-this arm is not misplacing the object; it is **running out of budget**. Success
-at 6 mm is 0.25 while `placement_error` on the failures stays small. The
-binding constraint in the noise band is episode length, not grasp accuracy.
+* One trial per strategy. This cannot support a claim that any strategy is
+  better in general; it shows the trade-off exists and that the two metrics must
+  be reported together.
+* One axis, one seed. A per-seed separation exists on seed 3 and on 0 of the
+  other 11 seeds scanned, so the discovery itself is seed-specific (see RQ4).
+* Binary and adaptive spend their budget *minimising*; grid and random spend
+  theirs finding *something*. They are solving different problems, and the
+  comparison is only fair because both metrics are shown.
 
-That is a finding about the harness and the control loop, not about the policy
-comparison, and it is the first thing to fix before any of RQ1-RQ5 can give a
-clean answer: a benchmark whose failures are dominated by a timeout is not
-measuring what it claims to measure.
+## 5. RQ4: counterexample reproducibility
 
-## Counterexample search
+`experiments/rq4_reproducibility.py`. The counterexample discovered above is
+`depth_noise_mm = 1.0`, replayed on 11 seeds disjoint from the discovery seed.
 
-`robot-ci counterexample search --backend mujoco --strategy adaptive --budget 12
---axis depth_noise_mm:0:20:mm`, default scenario:
+**Reproduction rate: 4 / 11 = 36.4%**
 
-```
-no counterexample found
-strategy  : adaptive
-evaluated : 9 points
-note      : no counterexample found along the severity ramp
-exit code : 0
-```
+Of the 7 non-reproducing seeds, 5 are ones where both arms succeed and 2 where
+both fail. A 1 mm counterexample is too mild a condition to separate the arms on
+most seeds.
 
-A true negative, and a searched one: 9 points were evaluated before concluding
-it. It used to report the same headline after evaluating **1** point, because
-the default seed was one the task cannot be solved on -- see commit `88da704`.
+This is the number that has to travel with any claim of a behavioural boundary.
+A counterexample reproduced on a third of seeds is a property of the seed as
+much as of the condition, and reporting it without this figure would be
+misleading.
 
-## Confidence-gate window
+## 6. Diagnosis output
 
-The gate trips when the fused pose sigma exceeds its threshold. The mapping from
-depth noise to that sigma is analytic (`sensors.corruption.belief_position_sigma_m`):
+`robot-ci diagnose` was validated by running it, and its first output was wrong:
+it attributed a regression to the planner on a 64 ms difference in
+`planning_time_ms` between two arms whose success rates agreed to sixteen digits.
+Planning time is wall-clock. Two guards now prevent that, both pinned by tests:
 
-| depth noise | belief sigma | gate fires (threshold 0.004 m) |
-|---|---|---|
-| 0 mm | 0.0020 m | no |
-| 5 mm | 0.0054 m | yes |
-| 10 mm | 0.0102 m | yes |
-| 50 mm | 0.0500 m | yes |
-| 100 mm | 0.1000 m | yes |
-
-The threshold was previously 0.05 m, i.e. 50 mm of depth noise -- past the point
-where the arm had already failed for an unrelated reason, so the gate could
-never engage and the two arms were the same policy under different labels. See
-commit `b0eae7e`.
+* cost metrics are excluded from attribution (`planning_time_ms`; episode length
+  and completion time are *not* excluded, because spending extra control ticks
+  to reach the same place is a real behavioural cost)
+* a diagnosis with no success change reports no regression and names no
+  subsystem
 
 ## Not yet run
 
-These are specified in the plan and are **NOT RUN**. No numbers exist for them
-and none are written anywhere in this repository.
+No numbers exist for these and none are written anywhere in this repository.
 
-- RQ1  search-strategy comparison (grid / random / binary / adaptive)
-- RQ3  ablation engine: OFAT and interaction-aware subsystem attribution
-- RQ4  counterexample reproduction rate across seeds
-- RQ5  multi-axis perturbation boundary curves
-- Diagnosis and failure-taxonomy output
-- Dashboard
+- RQ2 (aggregate vs conditional evaluation) as a standalone experiment. The
+  depth-noise grid in section 2 is conditional evaluation, and it is what
+  established the v1/v2 null, but the aggregate-vs-conditional contrast has not
+  been run as its own comparison.
+- RQ3 (ablation: correlation only vs OFAT vs interaction-aware). The ablation
+  engine is built, tested and exposed through `robot-ci diagnose`, but no
+  ablation has been run against a real regression on the simulator.
+- RQ5 (multi-axis perturbation boundary curves).
+- Dashboard, ROS 2 / MoveIt / Isaac backends, notebook backend.
