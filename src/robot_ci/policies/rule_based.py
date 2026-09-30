@@ -120,10 +120,27 @@ class PickAndPlacePolicy(RobotPolicy):
         # and measured against this arm a 90-iteration budget stalls at 7.3 mm
         # while 200 converges to 2.0 mm. The shortfall is not a tolerance the
         # solver ignores -- the damped step simply has not converged yet.
+        # 0.5 mm, not 2 mm. The grasp is the precision bottleneck: measured
+        # across seeds, the end-effector arrives within 2.6-3.0 mm of the object
+        # on the seeds that succeed and 3.9-4.6 mm on the ones that fail, so the
+        # usable band is about +/-1 mm wide. A solver that is content to stop at
+        # 2 mm is therefore no more accurate than the thing it has to hit, and it
+        # lands inside the band roughly half the time.
+        #
+        # Measured over 8 seeds, changing nothing else:
+        #
+        #     ik_pos_tol = 2e-3   0.500
+        #     ik_pos_tol = 1e-3   0.625
+        #     ik_pos_tol = 5e-4   0.750
+        #
+        # A loose tolerance was not a free choice. `converged` means "stopped
+        # improving", so a 2 mm tolerance silently accepted plans the arm could
+        # not execute to the precision the grasp needs, and the episode failed at
+        # the object with no diagnostic pointing at the planner.
         self.ik_options = IKOptions(
             damping=float(config.parameters.get("ik_damping", 0.05)),
             max_iterations=int(config.parameters.get("ik_iterations", 200)),
-            position_tolerance=float(config.parameters.get("ik_pos_tol", 2.0e-3)),
+            position_tolerance=float(config.parameters.get("ik_pos_tol", 5.0e-4)),
             orientation_tolerance=float(config.parameters.get("ik_rot_tol", 0.08)),
         )
         self.home_seed = np.asarray(scenario.robot.home_position, dtype=np.float64)
