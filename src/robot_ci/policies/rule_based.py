@@ -194,6 +194,28 @@ class PickAndPlacePolicy(RobotPolicy):
         #: what keeps the two policies separated by exactly one documented
         #: change -- the threshold -- with no duplicated policy code.
         self.max_gate_holds = int(config.parameters.get("max_gate_holds", 10))
+        #: Exponential-smoothing factor for the believed object position, in
+        #: ``[0, 1)``. Zero disables it.
+        #:
+        #: This is the change that makes ``policy_v3`` a usable *positive
+        #: control* for the regression machinery, so its trade-off is deliberate
+        #: and documented rather than accidental. Smoothing trades latency for
+        #: variance: it suppresses the per-tick jitter of a noisy estimate, and
+        #: it lags behind a genuinely moved object by the same amount. So it
+        #: helps when depth noise is the dominant error and hurts when sensor
+        #: latency is, which is exactly the shape of conditional regression the
+        #: framework exists to find.
+        self.estimate_smoothing = float(config.parameters.get("estimate_smoothing", 0.0))
+        if not 0.0 <= self.estimate_smoothing < 1.0:
+            raise ValueError(
+                f"estimate_smoothing must be in [0, 1), got {self.estimate_smoothing}"
+            )
+        #: Control ticks the candidate spends collecting pose samples before it
+        #: commits to a plan. Zero disables settling.
+        self.settle_steps = int(config.parameters.get("settle_steps", 0))
+        #: Running sum of observed positions, and how many have been seen.
+        self._smoothed: np.ndarray | None = None
+        self._settle = 0
         self._init_motion_limits(scenario)
 
     def _init_motion_limits(self, scenario: ScenarioConfig) -> None:
@@ -233,6 +255,7 @@ class PickAndPlacePolicy(RobotPolicy):
             self.scenario = scenario
         self.seed = seed
         self.step_count = 0
+        self._reset_estimate()
         self._state = {
             "waypoint_index": 0,
             "drive_index": 0,
@@ -285,7 +308,25 @@ class PickAndPlacePolicy(RobotPolicy):
         uncertain = sigma > self.max_position_sigma_m
 
         if not state["waypoints"]:
+            planned = target.position.array
+            if self.settle_steps > 0:
+                averaged = self._settled_estimate(target.position.array)
+                if averaged is None:
+                    # Still collecting. Hold position rather than plan on one
+                    # noisy sample: the whole point of the candidate is not to
+                    # do that.
+                    diagnostics["settling"] = self._settle
+                    return PolicyOutput(
+                        Action.joint_positions(observation.robot.positions_array), diagnostics
+                    )
+                planned = averaged
             state["waypoints"] = [w.array.copy() for w in self.task.waypoints(target)]
+            if self.settle_steps > 0:
+                # Shift the grasp waypoint onto the averaged estimate. Only the
+                # grasp is re-aimed: the place waypoint is a property of the
+                # task, not of where the object was seen.
+                offset = planned - np.asarray(target.position.array, dtype=np.float64)
+                state["waypoints"][1] = state["waypoints"][1] + offset
             self._apply_clearance_bias(state["waypoints"])
             state["waypoint_index"] = 0
 
@@ -577,6 +618,37 @@ class PickAndPlacePolicy(RobotPolicy):
         step = np.clip(delta, -self.max_joint_step, self.max_joint_step)
         return current + step
 
+    def _settled_estimate(self, position: np.ndarray) -> np.ndarray | None:
+        """Accumulate observations and return the mean once enough have arrived.
+
+        Smoothing cannot be applied at plan time, because at plan time there is
+        exactly one observation and averaging a single sample with itself is a
+        no-op that looks like a working filter. A variance reduction has to
+        *defer* the decision in order to collect the samples it averages, and
+        that deferral is the entire cost of the technique: the policy spends
+        ticks holding position instead of moving, and its plan is built from an
+        estimate that is ``settle_steps`` ticks stale.
+
+        Returns:
+            The mean of the accumulated positions once the settle window is
+            full, or ``None`` while still collecting -- callers treat ``None``
+            as "keep waiting".
+        """
+        current = np.asarray(position, dtype=np.float64)
+        if self._smoothed is None:
+            self._smoothed = current.copy()
+        else:
+            self._smoothed = self._smoothed + current
+        self._settle += 1
+        if self._settle < max(1, self.settle_steps):
+            return None
+        return self._smoothed / self._settle
+
+    def _reset_estimate(self) -> None:
+        """Forget accumulated samples, at the start of an episode."""
+        self._smoothed = None
+        self._settle = 0
+
     def _pose_achieved(self, result: IKResult) -> bool:
         """Whether a solve actually reached the commanded pose.
 
@@ -768,6 +840,20 @@ def policy_v2(
     )
 
 
+def policy_v3(
+    config: PolicyConfig | None = None, scenario: ScenarioConfig | None = None
+) -> PickAndPlacePolicy:
+    """Positive control: averages pose samples before committing to a plan.
+
+    See :data:`_DEFAULT_V3` for why this policy exists. Summarised: it should
+    help where depth noise dominates and hurt where sensor latency does, which
+    is a falsifiable prediction the experiment suite tests rather than assumes.
+    """
+    return PickAndPlacePolicy(
+        config or _DEFAULT_V3, scenario or ScenarioConfig()
+    )
+
+
 class MockPolicy(RobotPolicy):
     """A policy that does nothing useful, for exercising the harness.
 
@@ -845,11 +931,38 @@ _DEFAULT_V2 = PolicyConfig(
     parameters={"max_position_sigma_m": 0.004, "clearance_bias_m": 0.0},
 )
 
+#: Positive control: a candidate with a *documented, deliberate* trade-off.
+#:
+#: This policy exists so the detection machinery can be validated against a
+#: regression that is known to exist. Demonstrating that a regression detector
+#: works requires a positive control; without one, "no regression found" and
+#: "the detector is blind" are indistinguishable, and the null results recorded
+#: in ``experiments/results/README.md`` would be uninterpretable.
+#:
+#: It is not a pretend candidate. The change is a real technique with a real
+#: cost: the policy averages several pose samples before committing to a plan,
+#: which suppresses depth noise but spends control ticks holding position and
+#: builds its plan from an estimate that is ``settle_steps`` ticks stale. The
+#: prediction is therefore falsifiable and specific -- it should help where
+#: depth noise dominates and hurt where latency does, and RQ2 tests exactly
+#: that. If it does not, the hypothesis is wrong and is reported as wrong.
+_DEFAULT_V3 = PolicyConfig(
+    name="policy_v3",
+    version="3.0.0",
+    components={
+        PolicyComponent.PERCEPTION: "fusion_v2_settled",
+        PolicyComponent.PLANNER: "waypoint_v1",
+        PolicyComponent.CONTROLLER: "ik_dls_v1",
+    },
+    parameters={"estimate_smoothing": 0.5, "settle_steps": 6, "clearance_bias_m": 0.0},
+)
+
 #: Registry of policy factories, keyed by :attr:`PolicyConfig.implementation`.
 _REGISTRY: dict[str, Any] = {
     "rule_based": policy_v1,
     "policy_v1": policy_v1,
     "policy_v2": policy_v2,
+    "policy_v3": policy_v3,
     "mock": lambda config, scenario: MockPolicy(config, scenario),
 }
 
@@ -858,6 +971,7 @@ _REGISTRY: dict[str, Any] = {
 _NAMED_DEFAULTS: dict[str, PolicyConfig] = {
     "policy_v1": _DEFAULT_V1,
     "policy_v2": _DEFAULT_V2,
+    "policy_v3": _DEFAULT_V3,
 }
 
 
