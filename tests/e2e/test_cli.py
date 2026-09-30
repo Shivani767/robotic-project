@@ -451,10 +451,22 @@ def test_regression_command_detects_from_a_finished_experiment(tmp_path: Path) -
     assert (target / "regression.json").exists()
 
 
-def test_test_command_is_reserved_for_phase_14() -> None:
-    result = invoke("test", "--backend", "mujoco")
-    assert result.exit_code == EXIT_NOT_IMPLEMENTED
-    assert "Phase 14" in result.output
+def test_test_command_runs_a_real_gate_on_the_mock_backend() -> None:
+    """`robot-ci test` must run gates, not announce that it is unimplemented.
+
+    Uses the mock backend and one seed so the test stays fast; the gate's logic
+    is backend-independent and the MuJoCo run is exercised by
+    ``experiments/`` and the demo. Asserts the verdict is accompanied by the
+    coverage that produced it, since a pass with no episode count is exactly the
+    failure mode this command is built to avoid.
+    """
+    result = invoke("test", "--backend", "mock", "--seeds", "1", "--no-benchmarks")
+    assert result.exit_code in (EXIT_OK, EXIT_REGRESSION), result.output
+    assert "ROBOT CI" in result.output
+    assert "Episodes" in result.output, "the verdict must state what it ran"
+    assert "Blocking delta" in result.output, "the verdict must state its threshold"
+    for gate in ("environment", "regression"):
+        assert gate in result.output, f"the {gate} gate did not run"
 
 
 def test_unavailable_backend_exit_code() -> None:
@@ -462,3 +474,23 @@ def test_unavailable_backend_exit_code() -> None:
     assert EXIT_BACKEND_UNAVAILABLE != EXIT_CONFIG_ERROR
     result = invoke("backend", "probe", "gazebo")
     assert result.exit_code == EXIT_BACKEND_UNAVAILABLE
+
+
+def test_condition_value_reduces_a_cell_label_to_the_swept_axis() -> None:
+    """The gate's condition column must show which condition the row is about.
+
+    Found by running the gate: at 80 columns rich truncated the condition column
+    to the bare scenario id, so four different noise levels all printed as
+    "nominal" -- the one column a reader most needs was the one being hidden.
+    The fix is a label short enough not to need truncating, with the axis named
+    in the header.
+    """
+    from robot_ci.cli.main import _condition_value, _sort_key
+
+    assert _condition_value("nominal [depth_noise_mm=2.0]", "depth_noise_mm") == "2.0"
+    assert _condition_value("nominal", "depth_noise_mm") == "nominal"
+    labels = ["n [depth_noise_mm=8.0]", "n [depth_noise_mm=2.0]", "n [depth_noise_mm=4.0]"]
+    ordered = sorted(labels, key=lambda label: _sort_key(label, "depth_noise_mm"))
+    assert [_condition_value(x, "depth_noise_mm") for x in ordered] == ["2.0", "4.0", "8.0"]
+    # An unparseable label must sort last, not raise: the reader still needs it.
+    assert _sort_key("mystery", "depth_noise_mm")[0] == 1

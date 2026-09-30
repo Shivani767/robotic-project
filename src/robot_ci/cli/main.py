@@ -686,11 +686,265 @@ def dashboard_reserved() -> None:
 
 @app.command("test")
 @handle_errors
-def test_reserved(
+def test_command(
     backend: Annotated[str, typer.Option(help="Backend to test with.")] = "mujoco",
+    seeds: Annotated[int, typer.Option(help="Seeds per condition per arm.")] = 4,
+    baseline: Annotated[str, typer.Option(help="Baseline policy name.")] = "policy_v1",
+    candidate: Annotated[str, typer.Option(help="Candidate policy name.")] = "policy_v2",
+    no_benchmarks: Annotated[
+        bool, typer.Option("--no-benchmarks", help="Skip the failure-injection suite.")
+    ] = False,
 ) -> None:
-    """Run the full regression suite (Phase 14)."""
-    not_implemented("robot-ci test", 14, f"(--backend {backend} is validated; the suite arrives in Phase 14.)")
+    """Run the full regression gate. Exits non-zero on a blocking regression.
+
+    This is the command a change is gated on, so it is built around one
+    property: it must not report a pass it has not earned. Every gate prints how
+    many episodes, conditions and seeds it actually ran, a gate that could not
+    run is an error rather than a skip, and finding no regression exits 0 with
+    the coverage that supports it -- which is a different claim from finding
+    nothing to report.
+
+    All gates run even after one fails, so a single invocation reports every
+    problem rather than making the reader fix them one at a time.
+    """
+    from robot_ci.evaluation.suite import (
+        GateResult,
+        GateStatus,
+        SuiteConfig,
+        default_suite_config,
+        run_suite,
+    )
+
+    config = SuiteConfig(
+        backend=backend,
+        baseline=baseline,
+        candidate=candidate,
+        seeds=max(1, seeds),
+        run_benchmarks=not no_benchmarks,
+    )
+
+    def environment_gate() -> GateResult:
+        """Confirm the backend loads and the scenario catalogue validates."""
+        from robot_ci.scenarios import default_scenario
+        from robot_ci.simulation import create_backend
+
+        try:
+            engine = create_backend(config.backend)
+            engine.reset(default_scenario(), seed=0)
+            engine.close_all()
+        except Exception as error:
+            return GateResult(
+                name="environment",
+                status=GateStatus.ERROR,
+                detail=f"backend {config.backend!r} could not start: {error}",
+            )
+        return GateResult(
+            name="environment",
+            status=GateStatus.PASSED,
+            detail=f"backend {config.backend} starts and the catalogue validates",
+            coverage="scenario catalogue + 1 reset",
+        )
+
+    def regression_gate(suite: SuiteConfig) -> GateResult:
+        """Run both arms across the sweep and score every condition."""
+        from robot_ci.experiments.runner import run_episode
+        from robot_ci.models.scenario import PolicyConfig
+        from robot_ci.policies import create_policy
+        from robot_ci.regression import RegressionConfig, detect_regressions
+        from robot_ci.scenarios import default_scenario, set_by_path
+        from robot_ci.simulation import create_backend
+
+        base = default_scenario()
+        engine = create_backend(suite.backend)
+        episodes: list[Any] = []
+        try:
+            for level in suite.levels:
+                condition = set_by_path(base, suite.axis_path, level)
+                for name in (suite.baseline, suite.candidate):
+                    for seed in range(suite.seeds):
+                        episodes.append(
+                            run_episode(
+                                engine,
+                                create_policy(PolicyConfig(name=name), condition),
+                                condition,
+                                seed=seed,
+                                experiment_id="robot_ci_test",
+                            )
+                        )
+        finally:
+            engine.close_all()
+
+        report = detect_regressions(
+            episodes,
+            baseline_name=suite.baseline,
+            candidate_name=suite.candidate,
+            config=RegressionConfig(
+                blocking_delta=suite.blocking_delta, warning_delta=suite.warning_delta
+            ),
+        )
+        blocking = [f for f in report.findings if f.severity == "blocking"]
+        table = Table(title="robot-ci test", header_style="bold")
+        # The condition column is the one a reader needs most, and it was the one
+        # being truncated: at 80 columns rich squeezed it to the bare scenario id,
+        # so four different noise levels all printed as "nominal". Folding
+        # instead of truncating keeps the level visible, and the scenario id is
+        # dropped from the display because the bracketed suffix already says
+        # which field and value the row is about.
+        table.add_column(f"{suite.axis_name}")
+        for column in ("baseline", "candidate", "delta", "verdict"):
+            table.add_column(column)
+        # Sorted by the swept value, not by cell key: the detector groups by
+        # condition values and emits them in key order, which put 8 mm before
+        # 2 mm. A sweep read out of order is a sweep nobody can follow.
+        for cell in sorted(
+            report.cells, key=lambda c: _sort_key(c.condition, suite.axis_name)
+        ):
+            finding = next((f for f in report.findings if f.condition == cell.condition), None)
+            table.add_row(
+                _condition_value(cell.condition, suite.axis_name),
+                f"{cell.baseline_success:.2f} (n={cell.n_baseline})",
+                f"{cell.candidate_success:.2f} (n={cell.n_candidate})",
+                f"{cell.delta:+.2f}",
+                f"[red]{finding.severity}[/]" if finding else "",
+            )
+        console.print(table)
+
+        coverage = (
+            f"{len(report.cells)} conditions x {suite.seeds} seeds x 2 arms, "
+            f"{len(episodes)} episodes"
+        )
+        if blocking:
+            worst = min(blocking, key=lambda f: f.delta)
+            return GateResult(
+                name="regression",
+                status=GateStatus.FAILED,
+                detail=(
+                    f"{len(blocking)} blocking regression(s); worst "
+                    f"{worst.condition} at {worst.delta:+.2f}"
+                ),
+                coverage=coverage,
+                episodes=len(episodes),
+            )
+        return GateResult(
+            name="regression",
+            status=GateStatus.PASSED,
+            detail=(
+                f"no condition passed the {suite.blocking_delta:+.2f} blocking threshold "
+                f"(global delta {report.global_delta:+.3f})"
+            ),
+            coverage=coverage,
+            episodes=len(episodes),
+        )
+
+    def benchmark_gate(suite: SuiteConfig) -> GateResult:
+        """Run the failure-injection suite and check it against its expectations."""
+        from robot_ci.evaluation import benchmark_suite, run_benchmark
+        from robot_ci.experiments.runner import run_episode
+        from robot_ci.models.scenario import PolicyConfig, ScenarioConfig
+        from robot_ci.policies import create_policy
+        from robot_ci.scenarios import default_scenario
+
+        base = default_scenario()
+        engine = create_backend(suite.backend)
+        mismatches: list[str] = []
+        ran = 0
+        try:
+
+            def evaluate(
+                scenario: ScenarioConfig, seeds: Sequence[int]
+            ) -> tuple[float, dict[str, float]]:
+                """Run one benchmark condition and average its metrics."""
+                hits = 0
+                totals: dict[str, list[float]] = {}
+                for seed in seeds:
+                    result = run_episode(
+                        engine,
+                        create_policy(PolicyConfig(name=suite.baseline), scenario),
+                        scenario,
+                        seed=seed,
+                        experiment_id="robot_ci_test_bench",
+                    )
+                    hits += int(result.success)
+                    for metric in result.metrics:
+                        totals.setdefault(metric.name.value, []).append(float(metric.value))
+                return hits / len(seeds), {k: sum(v) / len(v) for k, v in totals.items()}
+
+            for benchmark in benchmark_suite():
+                ran += 1
+                try:
+                    outcome = run_benchmark(
+                        benchmark,
+                        base_scenario=base,
+                        seeds=tuple(range(suite.seeds)),
+                        evaluate=evaluate,
+                    )
+                except ValueError as error:
+                    mismatches.append(f"{benchmark.id}: {error}")
+                    continue
+                if outcome.expectation_met is False:
+                    mismatches.append(f"{benchmark.id}: prediction did not hold")
+        finally:
+            engine.close_all()
+
+        if mismatches:
+            return GateResult(
+                name="benchmarks",
+                status=GateStatus.FAILED,
+                detail=f"{len(mismatches)} benchmark expectation(s) did not hold",
+                coverage=f"{ran} benchmarks, {ran * suite.seeds} episodes",
+                episodes=ran * suite.seeds,
+            )
+        return GateResult(
+            name="benchmarks",
+            status=GateStatus.PASSED,
+            detail=f"all {ran} benchmark expectations held",
+            coverage=f"{ran} benchmarks, {ran * suite.seeds} episodes",
+            episodes=ran * suite.seeds,
+        )
+
+    report = run_suite(
+        default_suite_config(backend, seeds=seeds),
+        environment=environment_gate,
+        regression=regression_gate,
+        benchmarks=benchmark_gate if not no_benchmarks else None,
+    )
+    console.print(Panel("\n".join(report.summary_lines()), title="ROBOT CI", style="bold"))
+    if report.blocking_failures:
+        console.print(
+            f"[red]{len(report.blocking_failures)} blocking failure(s):[/] "
+            + ", ".join(g.name for g in report.blocking_failures)
+        )
+        raise typer.Exit(EXIT_REGRESSION)
+
+
+def _sort_key(label: str, axis_name: str) -> tuple[int, float, str]:
+    """Sort a cell by the numeric value of the swept axis.
+
+    Falls back to placing unparseable labels last rather than raising: a cell
+    the sort cannot read is still a cell the reader needs to see.
+    """
+    value = _condition_value(label, axis_name)
+    try:
+        return (0, float(value), "")
+    except ValueError:
+        return (1, 0.0, value)
+
+
+def _condition_value(label: str, axis_name: str) -> str:
+    """Reduce a cell label to the value of the swept axis.
+
+    ``nominal [depth_noise_mm=2.0]`` becomes ``2.0``, and the column is headed
+    with the axis name. Printing the full label did not work: at 80 columns rich
+    truncated the condition column to the bare scenario id, so four different
+    noise levels all read "nominal" -- the one column a reader most needs was the
+    one being hidden. A label short enough not to need truncating is the fix;
+    the full label is in the JSON artifact either way.
+    """
+    marker = f"{axis_name}="
+    if marker in label:
+        tail = label[label.index(marker) + len(marker) :]
+        return tail.rstrip("]").split(",")[0].strip()
+    return label
 
 
 def _parse_axis_spec(spec: str) -> Any:
