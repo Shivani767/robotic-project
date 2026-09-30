@@ -232,6 +232,25 @@ class SimulatorBackend(ABC):
     def capabilities(self) -> BackendCapabilities:
         """Report what this backend supports."""
 
+    def is_operational(self) -> tuple[bool, str]:
+        """Whether this backend can actually *run* here, and why not if it cannot.
+
+        Separate from construction, and the distinction matters. A backend that
+        needs an external runtime -- Isaac Sim's app, a ROS 2 graph, a GPU
+        context -- can be constructible on a machine that cannot run it, because
+        construction is cheap and loading the runtime is not. Reporting such a
+        backend as available is worse than omitting it: ``robot-ci validate``
+        would say Isaac works on a Mac, and the failure would arrive later, on
+        the first episode, after the user has committed to a plan.
+
+        The default is operational, because a backend with no external
+        requirements always is. Backends with requirements override this.
+
+        Returns:
+            ``(operational, reason)``; ``reason`` is empty when operational.
+        """
+        return True, ""
+
     def info(self) -> BackendInfo:
         """Return identity and capability metadata for artifact records."""
         return BackendInfo(
@@ -370,6 +389,7 @@ _REGISTRY: dict[str, tuple[str, str]] = {
     "synthetic": ("robot_ci.simulation.synthetic", "SyntheticBackend"),
     "mujoco": ("robot_ci.simulation.mujoco", "MuJoCoBackend"),
     "gazebo": ("robot_ci.simulation.gazebo", "GazeboBackend"),
+    "isaac_sim": ("robot_ci.simulation.isaac_sim", "IsaacSimBackend"),
 }
 
 
@@ -465,7 +485,12 @@ def probe_backend(name: str) -> dict[str, Any]:
     which backends are usable on their machine.
 
     Returns:
-        ``{"name", "available", "reason", "capabilities"}``.
+        ``{"name", "available", "usable", "reason", "capabilities"}``.
+
+        ``available`` means the backend could be constructed; ``usable`` means it
+        can actually run an episode here. They differ for backends with external
+        runtime requirements, and a caller that checks only ``available`` will
+        report a backend as usable on a machine that cannot run it.
     """
     try:
         backend = create_backend(name)
@@ -473,15 +498,20 @@ def probe_backend(name: str) -> dict[str, Any]:
         return {
             "name": name,
             "available": False,
+            "usable": False,
             "reason": exc.message,
             "capabilities": None,
         }
     try:
+        operational, reason = backend.is_operational()
         capabilities = backend.capabilities()
         return {
             "name": name,
+            # Construction succeeded, so the backend is *available*; whether it
+            # can run is reported separately and folds into ``usable``.
             "available": True,
-            "reason": "",
+            "usable": operational,
+            "reason": reason,
             "capabilities": capabilities,
         }
     finally:

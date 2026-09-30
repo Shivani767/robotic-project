@@ -128,14 +128,24 @@ def validate_command(
         result: dict[str, Any] = (
             probe_backend(name)
             if probe
-            else {"name": name, "available": None, "reason": "not probed", "capabilities": None}
+            else {
+                "name": name,
+                "available": None,
+                "usable": None,
+                "reason": "not probed",
+                "capabilities": None,
+            }
         )
         caps = result["capabilities"]
-        if result["available"] is False:
-            table.add_row(name, "[red]unavailable[/]", "-", "-", result["reason"][:48])
-            if name in {"mock", "synthetic"}:
+        # "usable", not "available": a backend whose runtime is absent can still
+        # be constructed, and calling that available would tell a user on a Mac
+        # that Isaac Sim works here.
+        usable = result.get("usable", result["available"])
+        if usable is False:
+            table.add_row(name, "[red]unusable here[/]", "-", "-", result["reason"][:48])
+            if name in {"mock", "synthetic", "mujoco"}:
                 problems.append(f"backend {name}: {result['reason']}")
-        elif result["available"] is None:
+        elif usable is None:
             table.add_row(name, "[dim]not probed[/]", "-", "-", "--no-probe")
         else:
             table.add_row(
@@ -259,7 +269,9 @@ def backend_list() -> None:
         detail = result["reason"] or (caps.notes if caps else "") or "-"
         table.add_row(
             name,
-            "[green]yes[/]" if result["available"] else "[red]no[/]",
+            "[green]yes[/]"
+            if result.get("usable", result["available"])
+            else "[yellow]constructible, unusable here[/]",
             ("yes" if caps.physics else "no") if caps else "-",
             str(caps.max_dof) if caps else "-",
             detail[:50],
