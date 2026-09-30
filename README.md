@@ -112,7 +112,9 @@ code 5 and say so; they never return fabricated numbers.
 
 * `ENVIRONMENT_REPORT.md` - measured machine capabilities and the MuJoCo finding
 * `IMPLEMENTATION_PLAN.md` - phase map, acceptance criteria, risk register
-* `docs/` - architecture, experiment design, and phase guides (in progress)
+* [`docs/`](docs/README.md) - architecture, backends, methodology and
+  troubleshooting. Every page carries an evidence label: **Verified locally**,
+  **Implemented but unverified**, or **Unavailable on current macOS**
 
 ## 8. Limitations (stated honestly)
 
