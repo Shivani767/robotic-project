@@ -1,5 +1,11 @@
 # Measured results
 
+> **Staleness notice.** Commit `dc61715` changed `ik_pos_tol` from 2 mm to
+> 0.5 mm, which changed task behaviour: nominal solvability on 12 seeds rose
+> from 50.0% to 66.7%. **RQ1, RQ3, RQ4 and RQ5 below were measured before that
+> commit and are stale.** RQ2 has been re-run and its numbers are current. The
+> stale sections are labelled individually. Re-run them before quoting them.
+
 Every number below came from a command in this repository. Nothing is projected,
 interpolated, or illustrative. Negative results are recorded as findings, and
 experiments that have not been run say so rather than carrying a placeholder
@@ -92,7 +98,7 @@ not a behavioural factor for any plan-once policy on a static-object task**, and
 a benchmark that sweeps it is spending compute to measure nothing. Recorded
 because a falsified prediction is a result.
 
-## 4. RQ1: search strategies
+## 4. RQ1: search strategies  <!-- STALE (pre-dc61715) -->
 
 `experiments/rq1_search_strategies.py`. Arms are `baseline=policy_v3`,
 `candidate=policy_v1` -- the searcher looks for conditions where the candidate
@@ -123,7 +129,7 @@ Limitations, which matter for how this is quoted:
   theirs finding *something*. They are solving different problems, and the
   comparison is only fair because both metrics are shown.
 
-## 5. RQ4: counterexample reproducibility
+## 5. RQ4: counterexample reproducibility  <!-- STALE (pre-dc61715) -->
 
 `experiments/rq4_reproducibility.py`. The counterexample discovered above is
 `depth_noise_mm = 1.0`, replayed on 11 seeds disjoint from the discovery seed.
@@ -147,19 +153,20 @@ misleading.
 | depth noise | baseline | candidate | delta |
 |---|---|---|---|
 | 0 mm | 8/8 | 8/8 | +0.00 |
-| 1 mm | 4/8 | 3/8 | -0.12 |
-| 2 mm | 4/8 | 2/8 | **-0.25** |
-| 4 mm | 1/8 | 0/8 | -0.12 |
-| 8 mm | 1/8 | 0/8 | -0.12 |
+| 1 mm | 7/8 | 4/8 | **-0.38** |
+| 2 mm | 7/8 | 4/8 | **-0.38** |
+| 4 mm | 5/8 | 2/8 | **-0.38** |
+| 8 mm | 2/8 | 1/8 | -0.12 |
 
 | scoring | result |
 |---|---|
-| aggregate over 40 runs | baseline 0.450, candidate 0.325, **delta -0.125** |
-| conditional | **4 blocking findings**, worst **-0.25** at 2 mm |
+| aggregate over 40 runs | baseline 0.725, candidate 0.475, **delta -0.250** |
+| conditional | **4 blocking findings**, worst **-0.38** |
 
-**The aggregate is exactly half the severity of the worst condition it averages
-over.** Conditional evaluation reports a regression twice as severe as the
-aggregate implies, and says which condition produces it.
+**The aggregate reports two thirds the severity of the worst condition it
+averages over** (-0.25 against -0.38), and conditional evaluation names the
+three conditions responsible. Three cells sit at exactly -0.38, which is a
+consistent gradient rather than three independent coincidences.
 
 **The stronger form of the claim is not demonstrated here.** RQ2 as specified
 asks whether conditional evaluation finds regressions that aggregate metrics
@@ -184,7 +191,7 @@ Fixed in `5f40a24`. Everything measured before that commit using the
 conditional path -- including the RQ1 strategy comparison, which drives the same
 searcher -- was produced by code that could not separate conditions.
 
-## 7. RQ3: attributing a regression to a subsystem
+## 7. RQ3: attributing a regression to a subsystem  <!-- STALE (pre-dc61715) -->
 
 `experiments/rq3_ablation_attribution.py`. Arms `baseline=policy_v3`,
 `candidate=policy_v1`, 6 seeds at 2 mm depth noise.
@@ -246,7 +253,7 @@ n=6 per arm a single episode moves a success rate by 0.167, which is why
 planner and controller are tied at -0.042. The perception effect is two
 episodes clear of them, which is enough to rank and not enough to call precise.
 
-## 8. RQ5: perturbation boundary curves
+## 8. RQ5: perturbation boundary curves  <!-- STALE (pre-dc61715) -->
 
 `experiments/rq5_perturbation_boundaries.py`. Each axis swept alone with the
 others nominal, 6 seeds, arms `baseline=policy_v3, candidate=policy_v1`.

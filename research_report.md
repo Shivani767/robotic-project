@@ -10,6 +10,14 @@ every figure is reproducible with the commands in
 simulated on paper, or copied from a previous session.** Where an experiment was
 not run, it says so.
 
+> **Staleness.** Commit `dc61715` tightened `ik_pos_tol` from 2 mm to 0.5 mm,
+> which raised nominal solvability on 12 seeds from 50.0% to 66.7% and
+> therefore changed task behaviour. RQ2 below has been re-run and is current.
+> **RQ1, RQ3, RQ4 and RQ5 were measured before that commit and are stale**; they
+> are kept in this report as they stood, labelled, rather than deleted, because
+> removing them would misrepresent what was known when. Re-run them before
+> quoting them.
+
 ---
 
 ## 1. Research question
@@ -86,16 +94,17 @@ exists; it cannot show that any strategy is better in general.
 | depth noise | baseline | candidate | delta |
 |---|---|---|---|
 | 0 mm | 8/8 | 8/8 | +0.00 |
-| 1 mm | 4/8 | 3/8 | -0.12 |
-| 2 mm | 4/8 | 2/8 | **-0.25** |
-| 4 mm | 1/8 | 0/8 | -0.12 |
-| 8 mm | 1/8 | 0/8 | -0.12 |
+| 1 mm | 7/8 | 4/8 | **-0.38** |
+| 2 mm | 7/8 | 4/8 | **-0.38** |
+| 4 mm | 5/8 | 2/8 | **-0.38** |
+| 8 mm | 2/8 | 1/8 | -0.12 |
 
-Aggregate over 40 runs: **-0.125**. Worst conditional cell: **-0.25**.
+Aggregate over 40 runs: **-0.250**. Worst conditional cell: **-0.38**.
 
-**The aggregate is exactly half the severity of the worst condition it averages
-over.** Conditional evaluation reports a regression twice as severe as the
-aggregate implies, and identifies which condition produces it.
+**The aggregate reports two thirds the severity of the worst condition it
+averages over**, and conditional evaluation names the three conditions
+responsible. Three cells sit at exactly -0.38, which is a consistent gradient
+rather than three independent coincidences.
 
 The stronger form of the claim -- that aggregate metrics *hide* a regression
 entirely -- is **not demonstrated**. That requires favourable and adverse cells
