@@ -11,6 +11,7 @@ that could later be mistaken for a measurement.
 .venv/bin/python -m robot_ci.cli.main validate
 .venv/bin/python experiments/rq1_search_strategies.py     # writes rq1_*.json
 .venv/bin/python experiments/rq4_reproducibility.py        # writes rq4_*.json
+.venv/bin/python experiments/rq2_conditional_vs_aggregate.py  # writes rq2_*.json
 .venv/bin/python -m robot_ci.cli.main diagnose --backend mujoco \
     --axis depth_noise_mm:0:8:mm --seeds 4
 ```
@@ -136,7 +137,52 @@ A counterexample reproduced on a third of seeds is a property of the seed as
 much as of the condition, and reporting it without this figure would be
 misleading.
 
-## 6. Diagnosis output
+## 6. RQ2: conditional vs aggregate evaluation
+
+`experiments/rq2_conditional_vs_aggregate.py`. Arms `baseline=policy_v3`,
+`candidate=policy_v1`, 8 seeds x 5 noise levels = 40 runs per arm.
+
+| depth noise | baseline | candidate | delta |
+|---|---|---|---|
+| 0 mm | 8/8 | 8/8 | +0.00 |
+| 1 mm | 4/8 | 3/8 | -0.12 |
+| 2 mm | 4/8 | 2/8 | **-0.25** |
+| 4 mm | 1/8 | 0/8 | -0.12 |
+| 8 mm | 1/8 | 0/8 | -0.12 |
+
+| scoring | result |
+|---|---|
+| aggregate over 40 runs | baseline 0.450, candidate 0.325, **delta -0.125** |
+| conditional | **4 blocking findings**, worst **-0.25** at 2 mm |
+
+**The aggregate is exactly half the severity of the worst condition it averages
+over.** Conditional evaluation reports a regression twice as severe as the
+aggregate implies, and says which condition produces it.
+
+**The stronger form of the claim is not demonstrated here.** RQ2 as specified
+asks whether conditional evaluation finds regressions that aggregate metrics
+*hide* -- aggregate near zero, conditional strongly negative. That requires a
+grid where the candidate is better in some cells and worse in others, so the
+effects cancel. On this grid the candidate is adverse in every adverse cell and
+neutral at nominal, so nothing cancels and the aggregate is also adverse.
+Demonstrating the strong form needs a pair whose trade-off runs in opposite
+directions across two axes; no such pair has been constructed yet.
+
+### This experiment found the project's worst bug
+
+The first run of RQ2 returned one finding labelled "nominal" with delta -0.125
+and never mentioned the -0.25 cell. The detector was grouping conditional cells
+by `scenario_id`, so a sweep that perturbs a scenario in place -- which is what
+the counterexample search, `robot-ci diagnose` and this script all do -- pooled
+every cell into one. A conditional analysis that conditions on nothing returns
+an aggregate result under a name promising otherwise, and the output looked
+exactly like a correct one.
+
+Fixed in `5f40a24`. Everything measured before that commit using the
+conditional path -- including the RQ1 strategy comparison, which drives the same
+searcher -- was produced by code that could not separate conditions.
+
+## 7. Diagnosis output
 
 `robot-ci diagnose` was validated by running it, and its first output was wrong:
 it attributed a regression to the planner on a 64 ms difference in
@@ -153,10 +199,8 @@ Planning time is wall-clock. Two guards now prevent that, both pinned by tests:
 
 No numbers exist for these and none are written anywhere in this repository.
 
-- RQ2 (aggregate vs conditional evaluation) as a standalone experiment. The
-  depth-noise grid in section 2 is conditional evaluation, and it is what
-  established the v1/v2 null, but the aggregate-vs-conditional contrast has not
-  been run as its own comparison.
+- The *strong* form of RQ2: a grid on which favourable and adverse cells cancel
+  in the aggregate. See section 6.
 - RQ3 (ablation: correlation only vs OFAT vs interaction-aware). The ablation
   engine is built, tested and exposed through `robot-ci diagnose`, but no
   ablation has been run against a real regression on the simulator.
