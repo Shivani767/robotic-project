@@ -230,10 +230,15 @@ def os_environ_gl() -> str:
 
 
 def _default_scenario() -> Any:
-    """Build the nominal scenario used by the self-checks."""
-    from robot_ci.models.scenario import ScenarioConfig
+    """Build the nominal scenario used by the self-checks.
 
-    return ScenarioConfig()
+    Delegates to the catalogue rather than constructing a bare
+    ``ScenarioConfig()``, which carries no placed objects and would report a
+    nominal condition in which the task is impossible.
+    """
+    from robot_ci.scenarios import default_scenario
+
+    return default_scenario()
 
 
 # --------------------------------------------------------------- backend
@@ -726,7 +731,13 @@ def counterexample_search(
     backend: Annotated[str, typer.Option(help="Simulator backend.")] = "mock",
     baseline: Annotated[str, typer.Option(help="Baseline policy name.")] = "policy_v1",
     candidate: Annotated[str, typer.Option(help="Candidate policy name.")] = "policy_v2",
-    max_steps: Annotated[int, typer.Option(help="Step budget per episode.")] = 90,
+    # 240, not 90. A successful episode on the nominal condition needs 74
+    # steps, and 4 mm of depth noise pushes the median to 188 -- a budget of 90
+    # therefore truncates the very episodes the search is looking for and calls
+    # the resulting timeouts failures. `reproduce` uses the same figure on
+    # purpose: it has to be able to replay what `search` found, and a smaller
+    # budget there would make every found counterexample unreproducible.
+    max_steps: Annotated[int, typer.Option(help="Step budget per episode.")] = 240,
     output: Annotated[Path | None, typer.Option("--output", "-o", help="Artifact YAML path.")] = None,
 ) -> None:
     """Search for a condition where the baseline succeeds and the candidate fails.
@@ -742,12 +753,16 @@ def counterexample_search(
         discover,
         save_counterexample,
     )
-    from robot_ci.models.scenario import PolicyConfig, ScenarioConfig
-    from robot_ci.scenarios import load_scenario
+    from robot_ci.models.scenario import PolicyConfig
+    from robot_ci.scenarios import default_scenario, load_scenario
 
     specs = list(axis) if axis else ["depth_noise_mm:0:60:mm"]
     space = SearchSpace([_parse_axis_spec(spec) for spec in specs])
-    base = load_scenario(scenario) if scenario is not None else ScenarioConfig()
+    # The nominal catalogue family at a pinned, verified-solvable seed, not a
+    # bare ScenarioConfig(): its default seed 0 is a nominal condition this arm
+    # cannot solve (55 mm placement error), so the search stopped after one
+    # evaluation and reported a false "both arms fail at nominal".
+    base = load_scenario(scenario) if scenario is not None else default_scenario()
     searcher = _make_searcher(strategy, space, budget=budget, tolerance=tolerance)
     request = DiscoveryRequest(
         experiment_id="counterexample_search",
@@ -819,7 +834,13 @@ def counterexample_search(
 def counterexample_reproduce(
     artifact: Annotated[Path, typer.Argument(help="Counterexample YAML written by `search`.")],
     backend: Annotated[str, typer.Option(help="Simulator backend.")] = "mock",
-    max_steps: Annotated[int, typer.Option(help="Step budget per episode.")] = 90,
+    # 240, not 90. A successful episode on the nominal condition needs 74
+    # steps, and 4 mm of depth noise pushes the median to 188 -- a budget of 90
+    # therefore truncates the very episodes the search is looking for and calls
+    # the resulting timeouts failures. `reproduce` uses the same figure on
+    # purpose: it has to be able to replay what `search` found, and a smaller
+    # budget there would make every found counterexample unreproducible.
+    max_steps: Annotated[int, typer.Option(help="Step budget per episode.")] = 240,
     seeds: Annotated[
         str, typer.Option(help="Comma-separated seeds; defaults to the artifact's own seed.")
     ] = "",

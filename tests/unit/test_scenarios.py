@@ -169,3 +169,50 @@ def test_variable_spec_rejects_duplicates() -> None:
 def test_variable_spec_span() -> None:
     variable = VariableSpec(name="d", path="sensors.depth.sigma_mm", values=(0.0, 5.0, 20.0))
     assert variable.span == (0.0, 20.0)
+
+
+def test_default_scenario_is_a_task_that_can_be_solved() -> None:
+    """The fallback condition must be solvable, or every result drawn from it is void.
+
+    Commands with an optional ``--scenario`` used to fall back to a bare
+    ``ScenarioConfig()``. That object has no objects placed and none of the
+    control settings a grasp depends on, so every episode on it fails -- and
+    ``robot-ci counterexample search`` reported, with no hedging:
+
+        no counterexample found
+        note: both arms fail at nominal, so no baseline success exists
+
+    which reads as a measured null result and is in fact an empty scene. A
+    false negative is worse than a crash here, because the search is a CI gate:
+    it would pass a release while having evaluated nothing.
+    """
+    from robot_ci.models.scenario import ScenarioConfig
+    from robot_ci.scenarios import default_scenario
+
+    scenario = default_scenario()
+    assert scenario.objects, "the default condition must contain an object to grasp"
+    assert scenario.sensors.is_nominal, "the default condition must be uncorrupted"
+    # The placement goal has to be on the table. An off-table goal is a nominal
+    # condition in name only: the arm cannot place the object there, so every
+    # episode fails for a reason that has nothing to do with the policy.
+    goal = scenario.task.target_pose.position
+    extent = scenario.environment.table_extent_m
+    assert abs(goal.x) < extent[0], f"goal x={goal.x} is off a {extent[0]} m table"
+    assert abs(goal.y) < extent[1], f"goal y={goal.y} is off a {extent[1]} m table"
+
+    # And reproducible, since it is what a bare invocation searches.
+    assert default_scenario().seed == scenario.seed
+    assert default_scenario(seed=7).seed == 7
+
+    # The real defect was the seed, not the scene: a bare ScenarioConfig is
+    # perfectly well-formed, but its default seed 0 is a nominal condition this
+    # arm cannot solve (measured: 55 mm placement error, 44 mm lift, against
+    # 5.2 mm and 50 mm on the pinned default). A search on it stopped after a
+    # single evaluation and reported a false "both arms fail at nominal".
+    # Solvability itself is a simulator property and is covered by
+    # tests/integration, not asserted here.
+
+    assert ScenarioConfig().seed != default_scenario().seed, (
+        "if the bare default ever becomes the pinned seed, the reason this "
+        "helper exists needs re-checking"
+    )
