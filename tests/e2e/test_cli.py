@@ -181,11 +181,33 @@ def test_experiment_show_rejects_invalid_yaml(tmp_path: Path) -> None:
     assert result.exit_code != EXIT_OK
 
 
+def test_diagnose_reports_a_measured_comparison_not_a_guess() -> None:
+    """`diagnose` must run episodes and print numbers, not a template.
+
+    A diagnosis that renders its hedged wording correctly but was handed no
+    measurements would still look right, so the test asserts on the arithmetic:
+    the per-condition rates have to be multiples of the seed count.
+    """
+    result = invoke("diagnose", "--backend", "mock", "--seeds", "2", "--no-ablation")
+    assert result.exit_code == EXIT_OK, result.output
+    lowered = result.output.lower()
+    assert "diagnosis:" in lowered
+    assert "baseline" in lowered and "candidate" in lowered
+    # The association table must be present, and the caveat must travel with it.
+    assert "strongest association" in lowered or "no association" in lowered
+
+
+def test_diagnose_rejects_a_malformed_axis() -> None:
+    """A bad axis is a usage error, not a silently empty sweep."""
+    result = invoke("diagnose", "--axis", "depth_noise_mm")
+    assert result.exit_code == EXIT_USAGE
+    assert "NAME:LOWER:UPPER" in result.output
+
+
 @pytest.mark.parametrize(
     "command",
     [
         ("experiment", "compare"),
-        ("diagnosis",),
         ("boundary",),
         ("report",),
         ("dashboard",),

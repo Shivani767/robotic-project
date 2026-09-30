@@ -250,3 +250,74 @@ def test_a_rate_change_at_the_zero_boundary_is_still_measurable() -> None:
     )
     assert not math.isnan(result.evidence[0].change or float("nan"))
     assert "grasp_success" in result.summary()
+
+
+def test_wall_clock_time_cannot_implicate_a_subsystem() -> None:
+    """Planning time is jitter, not behaviour.
+
+    Measured: a diagnosis of two arms with identical success rates to sixteen
+    digits attributed a regression to the planner on a 64 ms difference in
+    ``planning_time_ms``. Planning time moves with machine load between runs, so
+    attributing a behavioural cause to it manufactures a finding out of noise.
+    """
+    result = diagnose(
+        condition="depth_noise_mm=0",
+        baseline_metrics={
+            "task_success": 1.0,
+            "planning_time_ms": 1028.0,
+            "placement_error_m": 0.007306,
+        },
+        candidate_metrics={
+            "task_success": 1.0,
+            "planning_time_ms": 963.4,
+            "placement_error_m": 0.007306,
+        },
+        samples=4,
+    )
+    assert result.suspected_subsystem == "", (
+        "no subsystem may be named when only a cost metric differs"
+    )
+    assert "no regression detected" in result.confidence_phrase
+    # The difference is still reported, marked as excluded, rather than hidden.
+    assert "excluded from attribution" in result.summary()
+
+
+def test_an_unchanged_success_rate_yields_no_attribution() -> None:
+    """With nothing to explain, the honest output is a null.
+
+    Offering a subsystem anyway answers a question nobody asked, and the metrics
+    that will be found to support it are the ones that move between identical
+    runs.
+    """
+    result = diagnose(
+        condition="nominal",
+        baseline_metrics={"task_success": 0.75, "grasp_error_m": 0.003},
+        candidate_metrics={"task_success": 0.75, "grasp_error_m": 0.003},
+        samples=6,
+    )
+    assert result.suspected_subsystem == ""
+    assert result.counter_experiment == ""
+    assert "nothing to attribute" in result.confidence_phrase
+    assert "no regression detected" in result.summary()
+
+
+def test_a_real_regression_is_still_attributed_after_the_guards() -> None:
+    """The two guards must not swallow a genuine finding."""
+    result = diagnose(
+        condition="depth_noise_mm=10",
+        baseline_metrics={
+            "task_success": 0.75,
+            "planning_time_ms": 1000.0,
+            "grasp_error_m": 0.003,
+            "perception_confidence": 0.9,
+        },
+        candidate_metrics={
+            "task_success": 0.0,
+            "planning_time_ms": 1010.0,
+            "grasp_error_m": 0.031,
+            "perception_confidence": 0.3,
+        },
+        samples=8,
+    )
+    assert result.suspected_subsystem == "perception"
+    assert "consistent with" in result.confidence_phrase

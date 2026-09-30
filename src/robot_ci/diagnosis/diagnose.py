@@ -136,6 +136,27 @@ def _confidence_phrase(effect: float, samples: int) -> str:
     return "no association above noise; a different explanation is likely"
 
 
+#: Metrics that are cost, not behaviour, and so cannot implicate a subsystem.
+#:
+#: ``planning_time_ms`` is wall-clock: it moves with machine load and solver
+#: warm-up between runs, and two arms doing the same work legitimately differ on
+#: it by tens of milliseconds. Measured: a diagnosis of an unchanged arm
+#: attributed a "regression" to the planner on a 64 ms difference in planning
+#: time, with task_success identical to sixteen digits. Attributing a behavioural
+#: cause to measurement jitter is worse than attributing nothing.
+#:
+#: Episode length and completion time are deliberately *not* excluded: those are
+#: real behavioural costs, and a policy that spends four extra control ticks
+#: reaching the same place has genuinely changed.
+_NON_BEHAVIOURAL_METRICS: frozenset[str] = frozenset({"planning_time_ms"})
+
+#: Smallest success-rate change treated as a real difference rather than noise.
+#:
+#: Below this there is no regression to explain, and an attribution offered
+#: anyway would be an explanation of noise. Set from the seed-to-seed variation
+#: observed on the nominal condition rather than chosen for convenience.
+_SUCCESS_NOISE_FLOOR = 1e-9
+
 #: Metric that most directly implicates each subsystem, in the order they are
 #: consulted. The mapping is deliberately small: a metric is only listed here if
 #: the subsystem that owns it is the only one that can move it.
@@ -215,6 +236,41 @@ def diagnose(
         )
     )
 
+    # Differences in cost metrics are reported before anything else, including
+    # on the null path below, so a reader can see what was observed and why it
+    # was not used to implicate anything.
+    for name in sorted(_NON_BEHAVIOURAL_METRICS & baseline_metrics.keys() & candidate_metrics.keys()):
+        evidence.append(
+            Evidence(
+                statement=(
+                    f"{name} differed but is a cost metric, not evidence of "
+                    "behaviour, so it is excluded from attribution"
+                ),
+                metric=name,
+                baseline_value=float(baseline_metrics[name]),
+                candidate_value=float(candidate_metrics[name]),
+                change=float(candidate_metrics[name]) - float(baseline_metrics[name]),
+            )
+        )
+
+    # No success change means there is no regression to explain. Attributing a
+    # subsystem anyway produces a confident answer to a question nobody asked,
+    # and the metrics that will be found to support it are the ones that move
+    # between identical runs. The null is reported as a null.
+    if abs(success_change) < _SUCCESS_NOISE_FLOOR:
+        return Diagnosis(
+            condition=condition,
+            suspected_subsystem="",
+            confidence_phrase="no regression detected; nothing to attribute",
+            evidence=tuple(evidence),
+            failure_categories=tuple(dict.fromkeys(e.category.value for e in failures)),
+            limitations=(
+                "task_success is identical between the two arms at this condition, "
+                "so no subsystem is implicated; differences in cost metrics are "
+                "measurement jitter unless they persist across repeats",
+            ),
+        )
+
     # Rank candidate metrics by standardised change. Cohen's h is used for
     # rates because it is defined at the 0 and 1 boundaries, where an ordinary
     # standardised mean difference is undefined -- and a regression report whose
@@ -222,6 +278,8 @@ def diagnose(
     scored: list[tuple[float, str, Evidence]] = []
     for name, candidate_value in candidate_metrics.items():
         if name not in baseline_metrics or name == success_metric:
+            continue
+        if name in _NON_BEHAVIOURAL_METRICS:
             continue
         baseline_value = float(baseline_metrics[name])
         change = float(candidate_value) - baseline_value

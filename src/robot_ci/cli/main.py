@@ -8,6 +8,7 @@ Every later command from the project specification is registered and reports
 
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from pathlib import Path
 from typing import Annotated, Any
 
@@ -908,6 +909,223 @@ def counterexample_reproduce(
         )
         if strict:
             raise typer.Exit(EXIT_REGRESSION)
+
+
+#: Policy parameters the ablation engine varies, and the subsystem that reads
+#: each one. Declared here rather than in the diagnosis package so the CLI's
+#: defaults are visible in one place and can be overridden per run.
+DEFAULT_ABLATION_FACTORS: tuple[tuple[str, tuple[float, ...], str], ...] = (
+    ("max_position_sigma_m", (0.004, 0.05), "perception"),
+    ("clearance_bias_m", (0.0, 0.05), "planner"),
+    ("ik_damping", (0.05, 0.2), "controller"),
+    ("grasp_width_fraction", (0.7, 0.85), "gripper"),
+)
+
+
+def _ablation_factors() -> list[Any]:
+    """Build the default ablation factors from the table above."""
+    from robot_ci.diagnosis import AblationFactor
+    from robot_ci.models.scenario import PolicyComponent
+
+    return [
+        AblationFactor(parameter, values, PolicyComponent(subsystem))
+        for parameter, values, subsystem in DEFAULT_ABLATION_FACTORS
+    ]
+
+
+def _mean_metrics(results: Iterable[Any]) -> dict[str, float]:
+    """Average every metric across episodes, skipping ones nobody recorded."""
+    totals: dict[str, list[float]] = {}
+    for result in results:
+        for metric in result.metrics:
+            totals.setdefault(metric.name.value, []).append(float(metric.value))
+    return {name: sum(values) / len(values) for name, values in totals.items() if values}
+
+
+def _success_rate(results: Sequence[Any]) -> float:
+    """Fraction of episodes that succeeded."""
+    return sum(1 for result in results if result.success) / len(results) if results else 0.0
+
+
+@app.command("diagnose")
+@handle_errors
+def diagnose_command(
+    scenario: Annotated[
+        Path | None, typer.Option(help="Base scenario YAML. Defaults to the nominal catalogue family.")
+    ] = None,
+    backend: Annotated[str, typer.Option(help="Simulator backend.")] = "mock",
+    baseline: Annotated[str, typer.Option(help="Baseline policy name.")] = "policy_v1",
+    candidate: Annotated[str, typer.Option(help="Candidate policy name.")] = "policy_v2",
+    axis: Annotated[
+        str | None,
+        typer.Option(help="NAME:LOWER:UPPER[:UNIT] condition to sweep, e.g. depth_noise_mm:0:10:mm"),
+    ] = None,
+    seeds: Annotated[int, typer.Option(help="Seeds per cell and per arm.")] = 4,
+    skip_ablation: Annotated[bool, typer.Option("--no-ablation", help="Skip the OFAT sweep.")] = False,
+) -> None:
+    """Compare two policies, classify their failures, and attribute the difference.
+
+    Runs a small two-arm sweep over one condition axis, reports the conditional
+    success difference per cell, classifies the candidate's failures, and then
+    substitutes one policy parameter at a time to see which subsystem the
+    difference is associated with.
+
+    The attribution is an association measured by substitution. It is reported in
+    that language deliberately: varying a parameter also varies the trajectories
+    it produces, so a component can be credited with an effect that belongs to
+    the episodes it happened to run on.
+    """
+    from robot_ci.diagnosis import classify_failure, diagnose, run_ablation
+    from robot_ci.experiments.runner import run_episode
+    from robot_ci.models.scenario import PolicyConfig
+    from robot_ci.policies import create_policy
+    from robot_ci.scenarios import default_scenario, load_scenario, set_by_path
+    from robot_ci.simulation import create_backend
+
+    base = load_scenario(scenario) if scenario is not None else default_scenario()
+    seed_list = [base.seed + index for index in range(seeds)]
+
+    points: list[dict[str, float]] = [{}]
+    axis_label = "nominal"
+    if axis is not None:
+
+        parts = axis.split(":")
+        if len(parts) not in (3, 4):
+            fail(f"axis {axis!r} must be NAME:LOWER:UPPER[:UNIT]")
+        if _axis_path(parts[0]) == parts[0] and not parts[0].startswith("sensors."):
+            fail(f"{parts[0]!r} is not a known variable; pass e.g. depth_noise_mm:0:10:mm")
+        low, high = float(parts[1]), float(parts[2])
+        steps = 4
+        points = [{parts[0]: low + (high - low) * i / steps} for i in range(steps + 1)]
+        axis_label = parts[0]
+
+    def evaluate_condition(point: dict[str, float]) -> tuple[list[Any], list[Any]]:
+        """Run both arms over every seed at one point on the axis."""
+        condition = base if not point else set_by_path(base, _axis_path(axis_label), next(iter(point.values())))
+        engine = create_backend(backend)
+        try:
+            arms: dict[str, list[Any]] = {baseline: [], candidate: []}
+            for name in (baseline, candidate):
+                for seed in seed_list:
+                    arms[name].append(
+                        run_episode(
+                            engine,
+                            create_policy(PolicyConfig(name=name), condition),
+                            condition,
+                            seed=seed,
+                            experiment_id="diagnose",
+                        )
+                    )
+            return arms[baseline], arms[candidate]
+        finally:
+            engine.close_all()
+
+    table = Table(title=f"diagnosis: {baseline} vs {candidate}", header_style="bold")
+    for column in ("condition", "baseline", "candidate", "delta"):
+        table.add_column(column)
+    worst: tuple[float, dict[str, Any], dict[str, Any], list[Any]] | None = None
+    for point in points:
+        base_results, cand_results = evaluate_condition(point)
+        base_rate, cand_rate = _success_rate(base_results), _success_rate(cand_results)
+        label = f"{next(iter(point.values())):g}" if point else "nominal"
+        delta = cand_rate - base_rate
+        style = "red" if delta <= -0.10 else ("yellow" if delta <= -0.05 else "green")
+        table.add_row(label, f"{base_rate:.2f}", f"{cand_rate:.2f}", f"[{style}]{delta:+.2f}[/{style}]")
+        if worst is None or delta < worst[0]:
+            failures = [
+                event
+                for result in cand_results
+                if not result.success
+                for event in classify_failure(
+                    {m.name.value: float(m.value) for m in result.metrics},
+                    step=result.steps,
+                    message=str(result.status),
+                )
+            ]
+            worst = (delta, _mean_metrics(base_results), _mean_metrics(cand_results), failures)
+    console.print(table)
+
+    if worst is None:
+        console.print("[yellow]no conditions were evaluated[/]")
+        return
+    delta, base_metrics, cand_metrics, failures = worst
+    condition_label = "nominal" if not points[0] else f"{axis_label}={next(iter(points[0].values())):g}"
+    console.print()
+    console.print(
+        diagnose(
+            condition=condition_label,
+            baseline_metrics=base_metrics,
+            candidate_metrics=cand_metrics,
+            samples=len(seed_list),
+            failures=failures,
+        ).summary()
+    )
+
+    if skip_ablation:
+        return
+    console.print()
+    console.print("[bold]ablation (one factor at a time)[/]")
+    from robot_ci.models.scenario import PolicyConfig as _PolicyConfig
+
+    reference = _PolicyConfig(name=candidate)
+
+    def evaluate_arm(config: Any, _arm_id: str) -> tuple[float, int, dict[str, float]]:
+        """Measure one ablation arm over the same seeds and conditions."""
+        engine = create_backend(backend)
+        try:
+            results = [
+                run_episode(
+                    engine,
+                    create_policy(config, point_scenario(base, axis_label, point)),
+                    point_scenario(base, axis_label, point),
+                    seed=seed,
+                    experiment_id="ablation",
+                )
+                for point in points
+                for seed in seed_list
+            ]
+            return _success_rate(results), len(results), _mean_metrics(results)
+        finally:
+            engine.close_all()
+
+    outcome = run_ablation(reference, _ablation_factors(), evaluate_arm, designs=("ofat",))
+    arm_table = Table(header_style="bold")
+    for column in ("arm", "success", "n", "change"):
+        arm_table.add_column(column)
+    reference_rate = outcome.arms[0].success_rate
+    for arm in outcome.arms:
+        arm_table.add_row(
+            arm.description,
+            f"{arm.success_rate:.2f}",
+            str(arm.samples),
+            f"{arm.success_rate - reference_rate:+.2f}",
+        )
+    console.print(arm_table)
+    for subsystem, effect in outcome.attribution:
+        console.print(
+            f"  {subsystem:12s} {effect:+.2f}  "
+            + ("strongest association" if abs(effect) == max(abs(e) for _, e in outcome.attribution) else "")
+        )
+    console.print(f"[dim]{outcome.note}[/]")
+
+
+def point_scenario(base: Any, axis_label: str, point: dict[str, float]) -> Any:
+    """Return the scenario for one point on the sweep axis."""
+    from robot_ci.scenarios import set_by_path as _set
+
+    if not point:
+        return base
+    return _set(base, _axis_path(axis_label), next(iter(point.values())))
+
+
+def _axis_path(name: str) -> str:
+    """Resolve a variable name to the scenario path it controls."""
+    from robot_ci.models.scenario import variable_path
+
+    if name == "depth_noise_mm":
+        return "sensors.depth.sigma_mm"
+    resolved = variable_path(name)
+    return resolved or name
 
 
 @app.command("export")
