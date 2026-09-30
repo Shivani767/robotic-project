@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import functools
 from collections.abc import Callable
-from typing import Any, TypeVar
+from typing import Any, NoReturn, TypeVar
 
 import typer
 from rich.console import Console
@@ -76,13 +76,17 @@ def handle_errors(func: Callable[..., T]) -> Callable[..., T]:
     return wrapper
 
 
-def fail(message: str, *, code: int = EXIT_USAGE) -> None:
-    """Print an error and exit with ``code``."""
+def fail(message: str, *, code: int = EXIT_USAGE) -> NoReturn:
+    """Print an error and exit with ``code``.
+
+    Typed ``NoReturn`` because it always raises: that is what lets type
+    checkers narrow a value guarded by ``if x is None: fail(...)``.
+    """
     error_console.print(f"[bold red]error[/] {message}")
     raise typer.Exit(code)
 
 
-def not_implemented(command: str, phase: int, detail: str = "") -> None:
+def not_implemented(command: str, phase: int, detail: str = "") -> NoReturn:
     """Report a command that belongs to a later development phase.
 
     The project deliberately surfaces unimplemented phases instead of returning

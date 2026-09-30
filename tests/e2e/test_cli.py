@@ -17,6 +17,7 @@ from robot_ci.cli.common import (
     EXIT_NOT_IMPLEMENTED,
     EXIT_OK,
     EXIT_REGRESSION,
+    EXIT_USAGE,
 )
 from robot_ci.cli.main import app
 
@@ -184,8 +185,6 @@ def test_experiment_show_rejects_invalid_yaml(tmp_path: Path) -> None:
     "command",
     [
         ("experiment", "compare"),
-        ("counterexample", "search"),
-        ("counterexample", "reproduce"),
         ("diagnosis",),
         ("boundary",),
         ("report",),
@@ -198,6 +197,131 @@ def test_later_phase_commands_report_not_implemented(command: tuple[str, ...]) -
     result = invoke(*command)
     assert result.exit_code == EXIT_NOT_IMPLEMENTED, f"{command} exited {result.exit_code}"
     assert "not implemented" in result.output.lower()
+
+
+def test_counterexample_search_finds_nothing_where_nothing_can_exist(tmp_path: Path) -> None:
+    """`robot-ci counterexample search` runs a real search, not a stub.
+
+    On the mock backend the policy cannot move the arm, so no policy difference
+    can exist. A stub would say "not implemented"; the real command instead
+    runs the search, evaluates oracle points, and reports the honest negative
+    with exit code 0 -- "no counterexample" is a result, not an error.
+    """
+    result = invoke(
+        "counterexample",
+        "search",
+        "--backend",
+        "mock",
+        "--budget",
+        "8",
+        "--max-steps",
+        "4",
+        "--output",
+        str(tmp_path / "ce.yaml"),
+    )
+    assert result.exit_code == EXIT_OK, result.output
+    assert "no counterexample found" in result.output.lower()
+
+
+def test_counterexample_search_rejects_a_bad_axis() -> None:
+    """An axis that is not a NAME:LOWER:UPPER spec must be a usage error."""
+    result = invoke(
+        "counterexample", "search", "--backend", "mock", "--axis", "not_an_axis", "--budget", "2"
+    )
+    assert result.exit_code == EXIT_USAGE, result.output
+
+
+def test_counterexample_reproduce_reports_a_rate(tmp_path: Path) -> None:
+    """`robot-ci counterexample reproduce` replays a stored artifact.
+
+    The artifact describes a disagreement the mock backend cannot produce, so
+    the replay must honestly report 0/1 and refuse to confirm the failure --
+    exit 0 in advisory mode, since the rate itself is the finding.
+    """
+    from robot_ci.counterexamples import Counterexample, save_counterexample
+
+    artifact = Counterexample(
+        counterexample_id="cli_replay_check",
+        experiment_id="cli",
+        base_scenario_id="nominal",
+        scenario_config_hash="sha256:test",
+        task="pick_and_place",
+        seed=1,
+        baseline_policy="policy_v1",
+        candidate_policy="policy_v2",
+        perturbation={"depth_noise_mm": 10.0},
+        perturbation_paths={"depth_noise_mm": "sensors.depth.sigma_mm"},
+        axes_payload=[
+            {
+                "name": "depth_noise_mm",
+                "path": "sensors.depth.sigma_mm",
+                "lower": 0.0,
+                "upper": 60.0,
+                "unit": "mm",
+            }
+        ],
+        base_scenario_payload={
+            "schema_version": "1.0.0",
+            "scenario_id": "nominal",
+            "seed": 1,
+        },
+        baseline_success=True,
+        candidate_success=False,
+    )
+    saved = save_counterexample(artifact, tmp_path / "ce.yaml")
+    result = invoke(
+        "counterexample", "reproduce", str(saved), "--backend", "mock", "--max-steps", "4"
+    )
+    assert result.exit_code == EXIT_OK, result.output
+    assert "0/1" in result.output and "0.000" in result.output
+
+
+def test_counterexample_reproduce_strict_exits_nonzero_on_non_reproduction(
+    tmp_path: Path,
+) -> None:
+    """`--strict` turns a non-reproducing artifact into a CI failure."""
+    from robot_ci.counterexamples import Counterexample, save_counterexample
+
+    artifact = Counterexample(
+        counterexample_id="cli_strict_check",
+        experiment_id="cli",
+        base_scenario_id="nominal",
+        scenario_config_hash="sha256:test",
+        task="pick_and_place",
+        seed=1,
+        baseline_policy="policy_v1",
+        candidate_policy="policy_v2",
+        perturbation={"depth_noise_mm": 10.0},
+        perturbation_paths={"depth_noise_mm": "sensors.depth.sigma_mm"},
+        axes_payload=[
+            {
+                "name": "depth_noise_mm",
+                "path": "sensors.depth.sigma_mm",
+                "lower": 0.0,
+                "upper": 60.0,
+                "unit": "mm",
+            }
+        ],
+        base_scenario_payload={
+            "schema_version": "1.0.0",
+            "scenario_id": "nominal",
+            "seed": 1,
+        },
+        baseline_success=True,
+        candidate_success=False,
+    )
+    saved = save_counterexample(artifact, tmp_path / "ce.yaml")
+    result = invoke(
+        "counterexample",
+        "reproduce",
+        str(saved),
+        "--backend",
+        "mock",
+        "--max-steps",
+        "4",
+        "--strict",
+    )
+    assert result.exit_code == EXIT_REGRESSION, result.output
 
 
 def test_regression_command_detects_from_a_finished_experiment(tmp_path: Path) -> None:

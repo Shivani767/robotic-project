@@ -31,6 +31,7 @@ __all__ = [
     "PolicyConfig",
     "ScenarioConfig",
     "VariableSpec",
+    "variable_path",
 ]
 
 
@@ -259,6 +260,22 @@ _WELL_KNOWN_VARIABLE_PATHS: dict[str, str] = {
     "object_x_cm": "objects.0.position.x",
     "rgb_blur_px": "sensors.rgb.blur_kernel_px",
 }
+
+
+def variable_path(name: str) -> str | None:
+    """Return the scenario field a well-known variable name sweeps.
+
+    This is the public counterpart of :data:`_WELL_KNOWN_VARIABLE_PATHS`, so a
+    caller can build a search axis from a name alone without reaching into a
+    private table.
+
+    Args:
+        name: Variable name, e.g. ``"depth_noise_mm"``.
+
+    Returns:
+        The dotted path, or ``None`` when the name is not well known.
+    """
+    return _WELL_KNOWN_VARIABLE_PATHS.get(name)
 
 
 class VariableSpec(VersionedModel):

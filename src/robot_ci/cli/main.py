@@ -642,18 +642,251 @@ def test_reserved(
     not_implemented("robot-ci test", 14, f"(--backend {backend} is validated; the suite arrives in Phase 14.)")
 
 
+def _parse_axis_spec(spec: str) -> Any:
+    """Parse ``NAME[@PATH]:LOWER:UPPER[:UNIT]`` into a search axis.
+
+    The path is optional because the experiment schema already maps well-known
+    variable names to scenario fields; ``@`` is only needed for a name the table
+    does not know. Requiring the path on every axis would make a one-line search
+    invocation unreasonably verbose.
+    """
+    from robot_ci.counterexamples import PerturbationAxis
+    from robot_ci.models.scenario import variable_path
+
+    parts = spec.split(":")
+    head, tail = parts[0], parts[1:]
+    if len(tail) not in (2, 3):
+        fail(
+            f"axis {spec!r} must be NAME[@PATH]:LOWER:UPPER[:UNIT], "
+            "e.g. depth_noise_mm:0:60:mm"
+        )
+    try:
+        lower, upper = float(tail[0]), float(tail[1])
+    except ValueError:
+        fail(f"axis {spec!r} has non-numeric bounds: {tail[0]!r}, {tail[1]!r}")
+    unit = tail[2] if len(tail) == 3 else ""
+    if "@" in head:
+        name, path = head.split("@", 1)
+        if not path:
+            fail(f"axis {spec!r} declares an empty path after '@'")
+    else:
+        name = head
+        inferred = variable_path(name)
+        if not inferred:
+            fail(
+                f"{name!r} is not a well-known variable; pass an explicit path as "
+                f"{name}@PATH:LOWER:UPPER[:UNIT]"
+            )
+        path = inferred
+    return PerturbationAxis(name, path, lower, upper, unit)
+
+
+def _make_searcher(name: str, space: Any, *, budget: int, tolerance: float | None) -> Any:
+    """Instantiate a strategy by name.
+
+    The tolerance is passed only where it exists; spelling each branch out keeps
+    the constructor arguments visible to the type checker instead of hiding them
+    behind an ``**kwargs`` dict that erases them.
+    """
+    from robot_ci.counterexamples import (
+        AdaptiveBoundarySearcher,
+        BinaryBoundarySearcher,
+        GridSearcher,
+        RandomSearcher,
+    )
+
+    if name == "grid":
+        return GridSearcher(space, budget=budget)
+    if name == "random":
+        return RandomSearcher(space, budget=budget, seed=0)
+    if name == "binary":
+        if tolerance is None:
+            return BinaryBoundarySearcher(space, budget=budget)
+        return BinaryBoundarySearcher(space, budget=budget, tolerance=tolerance)
+    if name == "adaptive":
+        if tolerance is None:
+            return AdaptiveBoundarySearcher(space, budget=budget)
+        return AdaptiveBoundarySearcher(space, budget=budget, tolerance=tolerance)
+    fail(f"unknown strategy {name!r}; choose from grid, random, binary, adaptive")
+
+
 @counterexample_app.command("search")
 @handle_errors
-def counterexample_search_reserved() -> None:
-    """Search for a counterexample (Phase 7)."""
-    not_implemented("robot-ci counterexample search", 7)
+def counterexample_search(
+    axis: Annotated[
+        list[str] | None,
+        typer.Option("--axis", help="NAME[@PATH]:LOWER:UPPER[:UNIT]; repeatable."),
+    ] = None,
+    scenario: Annotated[Path | None, typer.Option("--scenario", help="Base scenario YAML.")] = None,
+    strategy: Annotated[str, typer.Option(help="grid | random | binary | adaptive")] = "adaptive",
+    budget: Annotated[int, typer.Option(help="Maximum oracle evaluations.")] = 64,
+    tolerance: Annotated[
+        float | None, typer.Option(help="Bisection tolerance, in axis units.")
+    ] = None,
+    backend: Annotated[str, typer.Option(help="Simulator backend.")] = "mock",
+    baseline: Annotated[str, typer.Option(help="Baseline policy name.")] = "policy_v1",
+    candidate: Annotated[str, typer.Option(help="Candidate policy name.")] = "policy_v2",
+    max_steps: Annotated[int, typer.Option(help="Step budget per episode.")] = 90,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Artifact YAML path.")] = None,
+) -> None:
+    """Search for a condition where the baseline succeeds and the candidate fails.
+
+    The default axis is depth noise over ``0..60 mm``, chosen because that is the
+    axis the candidate's confidence gate responds to. A search that finds nothing
+    exits 0: "no counterexample" is a result, not an error.
+    """
+    from robot_ci.counterexamples import (
+        DiscoveryRequest,
+        EpisodeOracle,
+        SearchSpace,
+        discover,
+        save_counterexample,
+    )
+    from robot_ci.models.scenario import PolicyConfig, ScenarioConfig
+    from robot_ci.scenarios import load_scenario
+
+    specs = list(axis) if axis else ["depth_noise_mm:0:60:mm"]
+    space = SearchSpace([_parse_axis_spec(spec) for spec in specs])
+    base = load_scenario(scenario) if scenario is not None else ScenarioConfig()
+    searcher = _make_searcher(strategy, space, budget=budget, tolerance=tolerance)
+    request = DiscoveryRequest(
+        experiment_id="counterexample_search",
+        base_scenario=base,
+        space=space,
+        baseline_policy=baseline,
+        candidate_policy=candidate,
+        seed=int(base.seed),
+        backend=backend,
+        git_commit=_git_head(),
+    )
+
+    oracle = EpisodeOracle(
+        base_scenario=base,
+        space=space,
+        baseline=PolicyConfig(name=request.baseline_policy),
+        candidate=PolicyConfig(name=request.candidate_policy),
+        backend_name=backend,
+        max_steps=max_steps,
+    )
+    try:
+        result = discover(request, oracle, searcher)
+    finally:
+        oracle.close()
+
+    outcome = result.outcome
+    if not result.found:
+        console.print(
+            Panel(
+                f"[bold yellow]no counterexample found[/]\n"
+                f"strategy  : {outcome.strategy}\n"
+                f"evaluated : {outcome.evaluations} points\n"
+                f"note      : {outcome.notes}",
+                title="counterexample search",
+                border_style="yellow",
+            )
+        )
+        return
+
+    artifact = result.counterexample
+    if artifact is None:  # pragma: no cover - guarded by found
+        fail("counterexample reported found but no artifact was built")
+    lines = [
+        f"strategy   : {outcome.strategy}",
+        f"evaluated  : {outcome.evaluations} points",
+        f"severity   : {artifact.severity:.4f}",
+        "condition  : " + ", ".join(f"{k}={v:g}" for k, v in sorted(artifact.perturbation.items())),
+        f"baseline   : {artifact.baseline_policy} -> success",
+        f"candidate  : {artifact.candidate_policy} -> failure",
+    ]
+    if artifact.boundary is not None:
+        lines.append(f"boundary   : {artifact.boundary:.4f} ({artifact.boundary_axis})")
+    if artifact.bracket is not None:
+        lines.append(f"bracket    : [{artifact.bracket[0]:.4f}, {artifact.bracket[1]:.4f}]")
+    if artifact.necessary_axes:
+        lines.append(f"necessary  : {', '.join(artifact.necessary_axes)}")
+    console.print(Panel("\n".join(lines), title="counterexample found", border_style="green"))
+
+    target = output or (
+        Path("experiments/results/counterexamples") / f"{artifact.counterexample_id}.yaml"
+    )
+    saved = save_counterexample(artifact, target)
+    console.print(f"[green]artifact[/] {saved}")
+    console.print(f"reproduce: robot-ci counterexample reproduce {saved}")
 
 
 @counterexample_app.command("reproduce")
 @handle_errors
-def counterexample_reproduce_reserved() -> None:
-    """Reproduce a counterexample (Phase 7)."""
-    not_implemented("robot-ci counterexample reproduce", 7)
+def counterexample_reproduce(
+    artifact: Annotated[Path, typer.Argument(help="Counterexample YAML written by `search`.")],
+    backend: Annotated[str, typer.Option(help="Simulator backend.")] = "mock",
+    max_steps: Annotated[int, typer.Option(help="Step budget per episode.")] = 90,
+    seeds: Annotated[
+        str, typer.Option(help="Comma-separated seeds; defaults to the artifact's own seed.")
+    ] = "",
+    strict: Annotated[
+        bool, typer.Option("--strict/--no-strict", help="Exit 1 unless every seed reproduced.")
+    ] = False,
+) -> None:
+    """Re-run a stored counterexample and report how often it reproduces."""
+    from robot_ci.counterexamples import EpisodeOracle, load_counterexample, reproduce
+    from robot_ci.models.scenario import PolicyConfig
+
+    stored = load_counterexample(artifact)
+    space = stored.space()
+    base = stored.base_scenario()
+    seed_list = (
+        [int(part) for part in seeds.split(",") if part.strip()] if seeds.strip() else [stored.seed]
+    )
+
+    def make_oracle(seed: int) -> EpisodeOracle:
+        """Rebuild the discovery conditions under a requested seed.
+
+        ``reproduce`` releases any oracle that exposes ``close``, so each attempt
+        gets its own backend and none is leaked.
+        """
+        return EpisodeOracle(
+            base_scenario=base.model_copy(update={"seed": seed}),
+            space=space,
+            baseline=PolicyConfig(name=stored.baseline_policy),
+            candidate=PolicyConfig(name=stored.candidate_policy),
+            backend_name=backend,
+            max_steps=max_steps,
+        )
+
+    report = reproduce(stored, make_oracle, seeds=seed_list)
+
+    lines = [
+        f"counterexample: {stored.counterexample_id}",
+        "condition     : "
+        + ", ".join(f"{k}={v:g}" for k, v in sorted(stored.perturbation.items())),
+        f"seeds         : {', '.join(str(s) for s in report.seeds)}",
+        f"reproduced    : {report.reproduced}/{report.attempts} ({report.rate:.3f})",
+        f"all agreed    : {'yes' if report.consistent else 'NO'}",
+    ]
+    colour = "green" if report.rate == 1.0 else "yellow"
+    console.print(Panel("\n".join(lines), title="reproduction", border_style=colour))
+
+    table = Table(title="per-seed outcomes", title_style="bold")
+    table.add_column("seed", justify="right")
+    table.add_column("baseline")
+    table.add_column("candidate")
+    table.add_column("reproduced")
+    for record in report.trials:
+        table.add_row(
+            str(record["seed"]),
+            "success" if record["baseline_success"] else "failure",
+            "success" if record["candidate_success"] else "failure",
+            "[green]yes[/]" if record["reproduced"] else "[red]no[/]",
+        )
+    console.print(table)
+    if report.rate < 1.0:
+        console.print(
+            "[yellow]a counterexample that reproduces only under some seeds is a "
+            "property of the seed, not of the condition; do not report it as a "
+            "regression without stating the reproduction rate.[/]"
+        )
+        if strict:
+            raise typer.Exit(EXIT_REGRESSION)
 
 
 @app.command("export")

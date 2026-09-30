@@ -37,6 +37,17 @@ def test_named_policies_are_behaviourally_distinct():
 
     Asserts on the parameters the policy actually branches on, not on the
     config's labels: comparing names is exactly what failed to catch this.
+
+    Note what is *not* asserted here. Until this change both arms carried a
+    different ``clearance_bias_m`` and an identical confidence-gate threshold,
+    and neither parameter reached a branch: the clearance was never read and the
+    gate only fed a diagnostic. A test on the config values therefore passed
+    while the two policies were bit-identical on the simulator -- measured, the
+    arms agreed on ``grasp_error_m`` to 16 digits at both 0 mm and 60 mm of
+    depth noise. Distinctness is now asserted on the threshold, which is the
+    single parameter that changes behaviour, and equality of the clearance is
+    asserted deliberately so that a future second difference cannot be
+    introduced without comment.
     """
     config = _config()
     baseline = create_policy(config.baseline, config.scenario)
@@ -46,7 +57,13 @@ def test_named_policies_are_behaviourally_distinct():
         "both arms resolved to the same confidence gate, so the harness is "
         "comparing a policy against itself"
     )
-    assert baseline.clearance_bias_m != candidate.clearance_bias_m
+    assert baseline.clearance_bias_m == candidate.clearance_bias_m == 0.0, (
+        "a non-zero clearance bias would be a second behavioural difference, "
+        "and a v1/v2 regression could no longer be attributed to the gate"
+    )
+    # The gate must be able to engage at all: a zero budget would make the
+    # candidate's one documented change inert.
+    assert candidate.max_gate_holds > 0
 
 
 def test_named_policy_gets_its_declared_components():
