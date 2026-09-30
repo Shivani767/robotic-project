@@ -205,14 +205,18 @@ class PickAndPlacePolicy(RobotPolicy):
         #: helps when depth noise is the dominant error and hurts when sensor
         #: latency is, which is exactly the shape of conditional regression the
         #: framework exists to find.
-        self.estimate_smoothing = float(config.parameters.get("estimate_smoothing", 0.0))
-        if not 0.0 <= self.estimate_smoothing < 1.0:
-            raise ValueError(
-                f"estimate_smoothing must be in [0, 1), got {self.estimate_smoothing}"
-            )
         #: Control ticks the candidate spends collecting pose samples before it
         #: commits to a plan. Zero disables settling.
+        #:
+        #: The average taken over those samples is a plain mean. An exponential
+        #: weighting parameter was declared here and removed: it was validated
+        #: and stored but never read, because the settle window is a fixed
+        #: length and a mean is what that window produces. A dead knob is worse
+        #: than no knob, because an ablation that varies it measures nothing and
+        #: reports the absence of an effect as a finding.
         self.settle_steps = int(config.parameters.get("settle_steps", 0))
+        if self.settle_steps < 0:
+            raise ValueError(f"settle_steps must be >= 0, got {self.settle_steps}")
         #: Running sum of observed positions, and how many have been seen.
         self._smoothed: np.ndarray | None = None
         self._settle = 0
@@ -954,7 +958,7 @@ _DEFAULT_V3 = PolicyConfig(
         PolicyComponent.PLANNER: "waypoint_v1",
         PolicyComponent.CONTROLLER: "ik_dls_v1",
     },
-    parameters={"estimate_smoothing": 0.5, "settle_steps": 6, "clearance_bias_m": 0.0},
+    parameters={"settle_steps": 6, "clearance_bias_m": 0.0},
 )
 
 #: Registry of policy factories, keyed by :attr:`PolicyConfig.implementation`.

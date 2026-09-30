@@ -915,9 +915,18 @@ def counterexample_reproduce(
 #: each one. Declared here rather than in the diagnosis package so the CLI's
 #: defaults are visible in one place and can be overridden per run.
 DEFAULT_ABLATION_FACTORS: tuple[tuple[str, tuple[float, ...], str], ...] = (
+    # Perception: the confidence gate, and the settle window. ``settle_steps``
+    # is the parameter that actually causes the policy_v1 / policy_v3
+    # regression, so an ablation that omitted it would have nothing to find and
+    # would report the absence of an effect as a finding.
     ("max_position_sigma_m", (0.004, 0.05), "perception"),
+    ("settle_steps", (0, 6), "perception"),
+    # Planner: waypoint clearance, and where the grasp is aimed.
     ("clearance_bias_m", (0.0, 0.05), "planner"),
+    ("grasp_bias_m", (0.0, 0.01), "planner"),
+    # Controller: the IK solver and the gripper's closing force.
     ("ik_damping", (0.05, 0.2), "controller"),
+    ("ik_restarts", (6, 24), "controller"),
     ("grasp_width_fraction", (0.7, 0.85), "gripper"),
 )
 
