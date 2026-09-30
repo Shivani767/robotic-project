@@ -489,9 +489,10 @@ def build_scene_xml(scenario: ScenarioConfig) -> str:
             xy = np.array([spec.position.array[0], spec.position.array[1]])
         else:
             xy = None
+            inner, outer = env.object_spawn_radius_m
             for _ in range(80):
                 angle = float(rng.uniform(0.0, 2.0 * np.pi))
-                radius = float(rng.uniform(0.08, 0.20))
+                radius = float(rng.uniform(inner, outer))
                 candidate = np.array(env.workspace_center) + radius * np.array(
                     [np.cos(angle), np.sin(angle)]
                 )

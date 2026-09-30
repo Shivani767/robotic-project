@@ -103,7 +103,12 @@ class AblationResult(BaseModel):
         attribution: Subsystem name paired with the success-rate change caused
             by varying it, largest absolute change first. A subsystem whose
             factor changed nothing is still listed, with a change of zero.
+            Arms that broke the task outright are excluded -- see
+            :func:`_collapses`.
         reference_arm_id: Identifier of the reference arm.
+        collapsed_arms: Descriptions of arms excluded from the ranking because
+            their perturbation broke the task rather than degrading it. Reported
+            so the exclusion is visible rather than silent.
         note: The caveat that must travel with the numbers, or ``""``.
     """
 
@@ -111,7 +116,36 @@ class AblationResult(BaseModel):
     arms: tuple[AblationArm, ...]
     attribution: tuple[tuple[str, float], ...] = ()
     reference_arm_id: str = ""
+    collapsed_arms: tuple[str, ...] = ()
     note: str = ""
+
+
+#: Success rate at or below which an arm is treated as having broken the task.
+#:
+#: A floor on the arm's own rate, not a drop from the reference. An earlier
+#: version used a 0.30 *drop*, which also excluded genuinely informative large
+#: effects -- it swept in a 0.80 -> 0.30 arm, which is a strong gradient rather
+#: than a broken task, and a guard that hides those hides the regressions this
+#: module exists for.
+#:
+#: What actually distinguishes the two is whether the perturbation left the task
+#: possible at all. Measured: 0.53 -> 0.00 when the clearance bias is raised to
+#: 50 mm, and 0.53 -> 0.00 when IK damping is raised to 0.2. Both take every
+#: episode to failure, so neither says anything about why a *partial* regression
+#: happens, and both outranked the perception factor that does explain it.
+COLLAPSE_RATE_FLOOR = 0.05
+
+
+def _collapses(rate: float) -> bool:
+    """Whether an arm's perturbation broke the task rather than degrading it.
+
+    Args:
+        rate: Success rate of the ablation arm.
+
+    Returns:
+        True if the arm should be excluded from attribution ranking.
+    """
+    return rate <= COLLAPSE_RATE_FLOOR
 
 
 def build_ofat(
@@ -256,6 +290,7 @@ def run_ablation(
         arms=tuple(arms),
         attribution=_attribute(factor_list, arms, reference_id),
         reference_arm_id=reference_id,
+        collapsed_arms=_collapsed(factor_list, arms, reference_id),
         note=_attribution_note(factor_list, arms),
     )
 
@@ -267,10 +302,25 @@ def _attribute(
 ) -> tuple[tuple[str, float], ...]:
     """Rank subsystems by the success-rate change their factor produced.
 
-    A subsystem is credited with the *mean* change over the one-factor arms
-    that vary it, so a parameter with several values is not over-counted by
-    simply having more rows. Pairwise arms are excluded: their effect belongs to
-    the combination, and crediting it to either factor would be arbitrary.
+    A subsystem is credited with the *mean* change over the one-factor arms that
+    vary it, so a parameter with several values is not over-counted by simply
+    having more rows. Pairwise arms are excluded: their effect belongs to the
+    combination, and crediting it to either factor would be arbitrary.
+
+    Arms whose perturbation collapses the task are excluded from the ranking and
+    reported separately. This is the difference between an explanatory
+    attribution and a destructive one, and getting it wrong is not subtle:
+    measured on the policy_v1 / policy_v3 regression, ranking every arm by
+    absolute effect blamed the *planner* and the *controller*, because raising
+    the clearance bias to 50 mm and the IK damping to 0.2 each drove the success
+    rate from 0.53 to 0.00 and so dominated the ranking. Neither has anything to
+    do with why the candidate is worse. Meanwhile the arm that actually
+    explains the regression -- restoring the perception-stage averaging, worth
+    +0.07 -- ranked fourth, below two arms that merely break everything.
+
+    A factor that destroys the task is not evidence about the cause of a subtler
+    failure, and the same is true in reverse: the most destructive knob is
+    always available, so ranking by effect size systematically selects for it.
     """
     reference = next(arm for arm in arms if arm.arm_id == reference_id)
     owner = {factor.parameter: factor for factor in factors}
@@ -279,7 +329,7 @@ def _attribute(
         if arm.arm_id == reference_id or len(arm.active_factors) != 1:
             continue
         factor = owner.get(arm.active_factors[0])
-        if factor is None:
+        if factor is None or _collapses(arm.success_rate):
             continue
         effects.setdefault(factor.subsystem.value, []).append(
             arm.success_rate - reference.success_rate
@@ -290,6 +340,32 @@ def _attribute(
     return tuple(sorted(ranked, key=lambda item: -abs(item[1])))
 
 
+def _collapsed(
+    factors: Sequence[AblationFactor],
+    arms: Sequence[AblationArm],
+    reference_id: str,
+) -> tuple[str, ...]:
+    """Describe the one-factor arms excluded from the attribution ranking.
+
+    Returned rather than silently dropped: an ablation that hides half its arms
+    invites the reader to assume the hidden ones agreed.
+    """
+    reference = next(arm for arm in arms if arm.arm_id == reference_id)
+    owner = {factor.parameter: factor for factor in factors}
+    excluded: list[str] = []
+    for arm in arms:
+        if arm.arm_id == reference_id or len(arm.active_factors) != 1:
+            continue
+        if not _collapses(arm.success_rate):
+            continue
+        subsystem = owner[arm.active_factors[0]].subsystem.value
+        excluded.append(
+            f"{arm.description} -> {arm.success_rate:.2f} "
+            f"(from {reference.success_rate:.2f}, {subsystem})"
+        )
+    return tuple(excluded)
+
+
 def _attribution_note(factors: Sequence[AblationFactor], arms: Sequence[AblationArm]) -> str:
     """State the limitation that always accompanies an attribution.
 
@@ -298,6 +374,9 @@ def _attribution_note(factors: Sequence[AblationFactor], arms: Sequence[Ablation
     """
     return (
         f"{len(factors)} factor(s) varied over {len(arms) - 1} arm(s). "
+        "Arms whose perturbation collapsed the task are excluded from the "
+        "ranking, because the most destructive knob is always available and "
+        "ranking by effect size would systematically select for it. "
         "Attribution here is an association measured by substitution, not a "
         "causal claim: varying a parameter also varies the trajectories it "
         "produces, so a component can be credited with an effect that belongs "

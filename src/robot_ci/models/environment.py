@@ -138,6 +138,26 @@ class EnvironmentConfig(VersionedModel):
         ),
     )
     object_friction: float = Field(default=0.6, ge=0.0, le=2.0, description="Object/table friction coefficient.")
+    object_spawn_radius_m: tuple[float, float] = Field(
+        default=(0.05, 0.13),
+        description=(
+            "Inner and outer radius of the annulus objects are placed in, about "
+            "`workspace_center`, in metres.\n\n"
+            "This was 0.08-0.20 m, and the upper bound was wrong: with the "
+            "workspace centre 0.60 m in front of the base at y=-0.30, a spawn at "
+            "the outer edge is 0.80 m out. Measured over 12 seeds from the "
+            "runner's own seed derivation, the task was solvable on only 5 of "
+            "them with no corruption at all -- 41.7% -- so more than half of all "
+            "benchmark conditions were unsolvable before any policy was "
+            "evaluated.\n\n"
+            "That is the worst kind of benchmark defect, because it is "
+            "invisible in the results: failures look like policy failures, and a "
+            "10% regression is invisible inside 58% unsolvability. The default "
+            "now keeps spawns within the arm's comfortable top-down reach. Widen "
+            "it deliberately when the question is about the edge of the "
+            "workspace, and expect solvability to fall with it."
+        ),
+    )
     clutter_count: int = Field(default=0, ge=0, le=64, description="Number of non-task distractor objects.")
     clutter_separation_m: float = Field(default=0.12, gt=0.0, le=2.0, description="Minimum separation between clutter objects.")
     obstacle_count: int = Field(default=0, ge=0, le=32, description="Number of static obstacles in the workspace.")

@@ -91,6 +91,22 @@ def _factors() -> list[AblationFactor]:
     ]
 
 
+def _factors_for(base: dict[str, float]) -> list[AblationFactor]:
+    """One factor per key of ``base``, owned by the subsystem that reads it."""
+    owner = {
+        "settle_steps": PolicyComponent.PERCEPTION,
+        "max_position_sigma_m": PolicyComponent.PERCEPTION,
+        "clearance_bias_m": PolicyComponent.PLANNER,
+        "ik_damping": PolicyComponent.CONTROLLER,
+        "grasp_width_fraction": PolicyComponent.GRIPPER,
+    }
+    return [
+        AblationFactor(key, (base[key], base[key] + 1.0), owner[key])
+        for key in base
+        if key in owner
+    ]
+
+
 def _reference() -> PolicyConfig:
     return PolicyConfig(
         name="policy_v2",
@@ -321,3 +337,76 @@ def test_a_real_regression_is_still_attributed_after_the_guards() -> None:
     )
     assert result.suspected_subsystem == "perception"
     assert "consistent with" in result.confidence_phrase
+
+
+def test_a_destructive_knob_must_not_win_the_attribution() -> None:
+    """Ranking by effect size selects for the factor that merely breaks the task.
+
+    Measured by ``robot-ci diagnose --backend mujoco`` on the policy_v1 /
+    policy_v3 regression. The reference arm scored 0.53. Two perturbations took
+    it to 0.00 -- a 50 mm clearance bias, which drops the object, and an IK
+    damping of 0.2, which the solver cannot converge with -- and the attribution
+    duly named the *planner* and the *controller*. The arm that actually
+    explains the regression, restoring the perception-stage averaging, was worth
+    +0.07 and ranked below both.
+
+    The most destructive knob is always available, so ranking by absolute effect
+    systematically finds it. An attribution that names a factor which breaks
+    every episode has not explained anything about a partial regression.
+    """
+    base = {
+        "settle_steps": 0.0,
+        "clearance_bias_m": 0.0,
+        "ik_damping": 0.05,
+        "grasp_width_fraction": 0.7,
+    }
+    # The success rates observed, per arm, in the run described above.
+    observed = {
+        ("settle_steps",): 0.60,
+        ("clearance_bias_m",): 0.00,
+        ("ik_damping",): 0.00,
+        ("grasp_width_fraction",): 0.67,
+    }
+
+    def evaluate(config: PolicyConfig, _arm_id: str) -> tuple[float, int, dict[str, float]]:
+        params = dict(config.parameters)
+        active = tuple(k for k in base if abs(params.get(k, 0.0) - base[k]) > 1e-12)
+        return (observed[active] if active else 0.53), 15, {}
+
+    result = run_ablation(
+        PolicyConfig(name="policy_v1", parameters=base),
+        _factors_for(base),
+        evaluate,
+        designs=("ofat",),
+    )
+    ranked = dict(result.attribution)
+    assert "planner" not in ranked, "a factor that drops the task to 0.00 is not evidence"
+    assert "controller" not in ranked
+    assert PolicyComponent.PERCEPTION.value in ranked, (
+        "the perception factor is the known cause and must survive the ranking"
+    )
+    # The exclusion is reported, not silent.
+    assert len(result.collapsed_arms) == 2
+    assert all("0.00" in arm for arm in result.collapsed_arms)
+
+
+def test_a_mild_degradation_is_still_ranked() -> None:
+    """The exclusion must not swallow ordinary, informative effects.
+
+    Only arms that break the task are excluded. A factor that costs a third of
+    the success rate is exactly the kind of effect an attribution should see, and
+    a guard that removed those too would hide the regressions this module exists
+    for.
+    """
+    base = {"ik_damping": 0.05}
+    factors = [AblationFactor("ik_damping", (0.05, 0.35), PolicyComponent.CONTROLLER)]
+
+    def evaluate(config: PolicyConfig, _arm_id: str) -> tuple[float, int, dict[str, float]]:
+        rate = 0.40 if config.parameters.get("ik_damping") == 0.35 else 0.80
+        return rate, 10, {}
+
+    result = run_ablation(
+        PolicyConfig(name="policy_v1", parameters=base), factors, evaluate, designs=("ofat",)
+    )
+    assert dict(result.attribution)[PolicyComponent.CONTROLLER.value] == pytest.approx(-0.40)
+    assert result.collapsed_arms == ()

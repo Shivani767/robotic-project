@@ -1032,7 +1032,10 @@ def diagnose_command(
     table = Table(title=f"diagnosis: {baseline} vs {candidate}", header_style="bold")
     for column in ("condition", "baseline", "candidate", "delta"):
         table.add_column(column)
-    worst: tuple[float, dict[str, Any], dict[str, Any], list[Any]] | None = None
+    # (delta, label, baseline metrics, candidate metrics, failures) for the
+    # worst cell seen. The label travels with the numbers so the diagnosis is
+    # attributed to the cell it was measured on.
+    worst: tuple[float, str, dict[str, Any], dict[str, Any], list[Any]] | None = None
     for point in points:
         base_results, cand_results = evaluate_condition(point)
         base_rate, cand_rate = _success_rate(base_results), _success_rate(cand_results)
@@ -1040,6 +1043,7 @@ def diagnose_command(
         delta = cand_rate - base_rate
         style = "red" if delta <= -0.10 else ("yellow" if delta <= -0.05 else "green")
         table.add_row(label, f"{base_rate:.2f}", f"{cand_rate:.2f}", f"[{style}]{delta:+.2f}[/{style}]")
+        cell_label = "nominal" if not point else f"{axis_label}={next(iter(point.values())):g}"
         if worst is None or delta < worst[0]:
             failures = [
                 event
@@ -1051,14 +1055,19 @@ def diagnose_command(
                     message=str(result.status),
                 )
             ]
-            worst = (delta, _mean_metrics(base_results), _mean_metrics(cand_results), failures)
+            worst = (
+                delta,
+                cell_label,
+                _mean_metrics(base_results),
+                _mean_metrics(cand_results),
+                failures,
+            )
     console.print(table)
 
     if worst is None:
         console.print("[yellow]no conditions were evaluated[/]")
         return
-    delta, base_metrics, cand_metrics, failures = worst
-    condition_label = "nominal" if not points[0] else f"{axis_label}={next(iter(points[0].values())):g}"
+    delta, condition_label, base_metrics, cand_metrics, failures = worst
     console.print()
     console.print(
         diagnose(
