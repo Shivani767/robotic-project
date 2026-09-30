@@ -40,6 +40,40 @@ PY=".venv/bin/python"
 RESULTS=""
 OVERALL=0
 
+# Preflight: fail as an ENVIRONMENT problem, not as a code problem.
+#
+# Without this, a checkout with no .venv falls back to the system python3, every
+# pytest call dies with "No module named pytest", and the script reports
+# VERIFICATION FAILED -- which reads as "the code is broken" when the code is
+# fine and the environment was never set up. Conflating those two is the same
+# error class this project exists to catch, committed in its own checker.
+preflight() {
+  local missing=0
+  for tool in pytest mypy ruff; do
+    "$PY" -c "import $tool" 2>/dev/null || missing=1
+  done
+  "$PY" -c "import robot_ci" 2>/dev/null || {
+    echo "robot_ci is not importable by $PY" >&2; missing=1; }
+  [ "$missing" -eq 0 ] && return 0
+  cat >&2 <<EOF
+
+This checkout has no usable development environment.
+
+  interpreter : $("$PY" -V 2>&1)  ($PY)
+
+That is an environment problem, not a failing check, so it is reported as one
+rather than as VERIFICATION FAILED. To set one up:
+
+  python3 -m venv .venv
+  .venv/bin/pip install -e ".[dev]"
+
+Then re-run. Exit 2 means the script could not run; exit 1 means a check failed.
+
+EOF
+  exit 2
+}
+preflight
+
 # Advisory checks report, and are recorded in the JSON, but do not fail the
 # run. They exist so a known deviation is visible on every run rather than
 # discovered later. Promote one to blocking by calling run_check_blocking.

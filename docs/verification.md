@@ -50,6 +50,29 @@ holes, one of them invisible to the tool that had been run every time.
   baseline tag would bury the audit trail. It is fixed separately and the count
   is published here.
 
+### A third instance, in the fix for the first two
+
+Checking the tagged baseline in a clean worktree surfaced a third one. The
+worktree has no `.venv`, so the script fell back to the system `python3`, every
+`pytest` call died with *No module named pytest*, and the script printed
+**VERIFICATION FAILED** with exit 1.
+
+That is false. The code was fine; the environment had never been set up. The
+script had conflated "a check failed" with "the script could not run" and
+reported an environment problem as a defect in the code under test — the same
+error class, in the mechanism written to catch that error class.
+
+Fixed by a preflight that distinguishes the three exits:
+
+| Exit | Meaning |
+|---|---|
+| `0` | every check exited 0 |
+| `1` | at least one check genuinely failed |
+| `2` | the script could not run — no usable interpreter, or dependencies missing |
+
+The clean-worktree case is now exit 2 with instructions to run
+`pip install -e ".[dev]"`, not a claim that the code is broken.
+
 ### The generalisation
 
 This is the project's thesis applied to itself. A robotics system that reports
@@ -131,6 +154,10 @@ bash scripts/verify.sh --quick                  # skip the experiments, ~1 min
 bash scripts/verify.sh --json record.json       # machine-readable record
 echo $?
 ```
+
+Exit codes: `0` all passed, `1` a check failed, `2` the script could not run (no
+usable interpreter or missing dependencies — an environment problem, not a
+failing check).
 
 The record is written to `experiments/results/verification_baseline.json` and
 the transcript to `verification_baseline.txt`.
