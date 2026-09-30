@@ -191,7 +191,7 @@ Fixed in `5f40a24`. Everything measured before that commit using the
 conditional path -- including the RQ1 strategy comparison, which drives the same
 searcher -- was produced by code that could not separate conditions.
 
-## 7. RQ3: attributing a regression to a subsystem  <!-- STALE (pre-dc61715) -->
+## 7. RQ3: attributing a regression to a subsystem  <!-- RE-RUN post-dc61715 -->
 
 `experiments/rq3_ablation_attribution.py`. Arms `baseline=policy_v3`,
 `candidate=policy_v1`, 6 seeds at 2 mm depth noise.
@@ -199,8 +199,7 @@ searcher -- was produced by code that could not separate conditions.
 **Ground truth is known, not inferred.** The two arms differ in exactly one
 subsystem: `policy_v3` averages pose samples before committing to a plan, which
 is a perception-stage change. A method that names the controller or the gripper
-has identified the wrong thing. Without ground truth, "the ablation implicates
-perception" and "the ablation is broken" produce the same sentence.
+has identified the wrong thing.
 
 | method | implicated | episodes | correct? |
 |---|---|---|---|
@@ -208,50 +207,53 @@ perception" and "the ablation is broken" produce the same sentence.
 | OFAT | **perception** | 216 | **yes** |
 | interaction-aware | **perception** | 216 | **yes** |
 
-**Correlation-only analysis gets it wrong, and confidently.** It ranks
-`trajectory_deviation_m` first (r = -0.991) and therefore blames the planner:
+**The conclusion survived the IK change that overturned two of RQ5's findings,
+and the baseline got more confidently wrong:**
 
 | correlation | metric | subsystem |
 |---|---|---|
-| -0.991 | trajectory_deviation_m | planner |
-| +0.680 | pose_sigma_m | **perception** |
-| -0.597 | grasp_error_m | gripper |
-| -0.294 | placement_error_m | planner |
+| -0.993 | trajectory_deviation_m | planner |
+| -0.423 | placement_error_m | planner |
+| +0.365 | pose_sigma_m | **perception** |
+| -0.194 | grasp_error_m | gripper |
 
-The metric that correlates almost perfectly with the outcome is a *downstream
-consequence* of the regression, not its cause, and the perception metric that
-does encode the cause ranks second. Correlation finds what co-varies with
-failure; ablation finds what causes it, and those are different questions.
-
-OFAT recovers perception with an effect of +0.083 on a 0-6 success-rate scale,
-against -0.042 for both planner and controller and 0.0 for the gripper:
-
-| subsystem | effect |
-|---|---|
-| **perception** | **+0.083** |
-| planner | -0.042 |
-| controller | -0.042 |
-| gripper | 0.000 |
+The metric that correlates almost perfectly with the outcome is a downstream
+consequence of the regression, not its cause, and the perception metric that
+encodes the cause now ranks *third*, further behind than before. Correlation
+finds what co-varies with failure; ablation finds what causes it.
 
 The cost is 18x the episodes (216 against 12) for a correct answer instead of a
 plausible wrong one.
 
+### Why this one held and RQ5's did not
+
+Worth recording, because the contrast is the useful part. Both experiments were
+re-run after `dc61715` changed the IK tolerance, and they went opposite ways:
+RQ3's conclusion was unchanged while RQ5 lost two of its findings.
+
+The difference is what each claim rests on. RQ3 compares a *ranking* over 36
+arms, so it is integrating over many measurements and a global change in solver
+accuracy moves every arm together. RQ5's withdrawn claims were *single-cell*
+boundary readings on a near-threshold axis at n=6, which is exactly the shape of
+claim that a global tuning change can invalidate. A method-comparison result
+and a single-cell curve reading do not deserve the same confidence, and it is not
+obvious in advance which is which.
+
 ### The interaction-aware design added nothing here
 
-OFAT and interaction-aware produce the same answer, because this regression has
+OFAT and interaction-aware return the same answer, because this regression has
 no interaction: one parameter, one subsystem, one effect. The 21 pairwise arms
-doubled the cost and changed nothing. That is reported rather than presented as
-a success, because a design that only pays off on regressions with genuine
+doubled the cost and changed nothing. Reported rather than presented as a
+success, because a design that only pays off on regressions with genuine
 interactions should be justified by evidence of such a regression, and none has
 been constructed yet.
 
 ### Cost of the small grid
 
-One noise level of six seeds, chosen because 36 ablation arms over a five-cell
-grid is ~1200 episodes for no extra signal. The price is noisy effects: at
-n=6 per arm a single episode moves a success rate by 0.167, which is why
-planner and controller are tied at -0.042. The perception effect is two
-episodes clear of them, which is enough to rank and not enough to call precise.
+One noise level of six seeds. The price is noisy effects: at n=6 a single
+episode moves a success rate by 0.167, which is why the arms are tied in
+places. The perception effect is clear of them, which is enough to rank and not
+enough to call precise.
 
 ## 8. RQ5: perturbation boundary curves  <!-- RE-RUN post-dc61715 -->
 

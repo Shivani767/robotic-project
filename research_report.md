@@ -133,13 +133,21 @@ subsystem, perception.
 | interaction-aware | **perception** | 216 | **yes** |
 
 Correlation-only analysis is wrong *and confident*: it ranks
-`trajectory_deviation_m` first (r = -0.991), a downstream consequence rather than
-a cause, while the perception metric that does encode the cause ranks second.
+`trajectory_deviation_m` first at r = -0.993, a downstream consequence rather
+than a cause, while the perception metric that encodes the cause ranks third.
 Correlation finds what co-varies with failure; ablation finds what causes it.
 
-The interaction-aware design returned the same answer as OFAT and changed
+The interaction-aware design returns the same answer as OFAT and changes
 nothing, because this regression has no interaction. Its 21 pairwise arms
 doubled the cost for no gain. Reported rather than presented as a success.
+
+**This result held across a change that overturned two of RQ5's findings.** Both
+were re-run after commit `dc61715` tightened the IK tolerance. The distinction is
+what each claim rests on: RQ3 compares a ranking over 36 arms, so a global
+change in solver accuracy moves every arm together, while RQ5's withdrawn claims
+were single-cell readings on a near-threshold axis at n=6. A method comparison
+and a single-cell curve reading do not deserve the same confidence, and it is not
+obvious in advance which is which.
 
 ### RQ4 -- counterexample reproducibility
 
