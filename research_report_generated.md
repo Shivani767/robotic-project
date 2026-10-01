@@ -1,12 +1,12 @@
 # Robot CI: research report (generated)
 
-Generated 2026-09-30 19:34 UTC by `experiments/make_research_report.py` from the artifacts in `experiments/results/`. Every number below is read from those files; none is transcribed.
+Generated 2026-10-01 10:08 UTC by `experiments/make_research_report.py` from the artifacts in `experiments/results/`. Every number below is read from those files; none is transcribed.
 
 This file is machine-generated and therefore never stale with respect to the runs. The hand-written `research_report.md` carries the narrative, the method and the limitations, and is the document to read for those.
 
 ## Verification state
 
-Record at commit `ff02092`, overall **0**.
+Record at commit `e97220b`, overall **0**.
 
 | check | exit |
 |---|---|
@@ -21,23 +21,97 @@ Record at commit `ff02092`, overall **0**.
 
 Exit codes, not output text. See `docs/verification.md` for the two failures of the verification process itself that this rule was adopted to fix.
 
+## Nominal solvability (a corrected figure)
+
+**The previously published claim of 66.7% is falsified.** It was an
+8/12 measurement taken before the IK-tolerance and object-spawn fixes,
+and it was written in the present tense as a standing property. It is
+now measured over many seeds, with an interval.
+
+| policy | success | rate | 95% Wilson CI | steps (mean) | steps (range) |
+|---|---|---|---|---|---|
+| `policy_v1` | 120/120 | 1.000 | [0.969, 1.000] | 76.4 | 76-78 |
+| `policy_v2` | 120/120 | 1.000 | [0.969, 1.000] | 76.4 | 76-78 |
+| `policy_v3` | 120/120 | 1.000 | [0.969, 1.000] | 81.4 | 81-83 |
+
+Over 120 seeds the baseline solves the nominal task **120/120** times, with a 95% lower bound of **96.9%**. The old 66.7% lies far below that interval, so it is falsified rather than imprecise.
+
+This matters beyond bookkeeping. The report had drawn a conclusion from
+the old number -- that a real 10% regression could hide inside a 33%
+failure floor. With a floor near zero that limitation does not exist,
+and the framework's sensitivity is not bounded by its benchmark.
+A stale number had propagated into a stated limitation.
+
+It also supplies the measurement the RQ2 design needed: the candidate spends 5.0 extra control ticks per episode, which is invisible against the default 300-step budget and decisive against a deadline near the real cost.
+
+## RQ2: the opposing-effect experiment
+
+Arms `policy_v1` (baseline) against `policy_v3` (candidate), over a 4 x 6 grid with 16 seeds per cell.
+
+The candidate averages pose samples before committing. Two axes, chosen so that its benefit and its cost cannot be separated by a one-dimensional sweep: **depth noise**, which its averaging suppresses, and the **step budget**, a deadline that its extra settling ticks must fit inside.
+
+Positive cells: **11**. Negative cells: **10**. Aggregate: **-0.102**.
+
+| depth noise | budget 78 | budget 80 | budget 82 | budget 84 | budget 120 | budget 300 |
+|---|---|---|---|---|---|---|
+| 0 mm | -1.00 | -1.00 | -0.06 | +0.00 | +0.00 | +0.00 |
+| 1 mm | -0.69 | -0.62 | +0.19 | +0.25 | +0.25 | +0.25 |
+| 2 mm | -0.50 | -0.38 | +0.38 | +0.44 | +0.44 | +0.44 |
+| 4 mm | -0.50 | -0.38 | -0.12 | +0.06 | +0.06 | +0.06 |
+
+**The sign flips inside every noise row**, at the same place: the candidate is destroyed at a budget of 80 and wins from 82 upward. That is not fitted. It is where the step measurement puts it: the candidate needs 81 steps at nominal and the baseline needs 76.
+
+![RQ2 grid](experiments/results/rq2_opposing_grid.png)
+
+The aggregate is **-0.102** while the grid contains a +0.44 cell and a -1.00 cell. The aggregate understates the worst condition by a factor of 10.
+
+**The asymmetry is the finding, and it is not a near-tie.** A realistic grid would want the two channels to cancel; these do not, and the reason is structural. The candidate's benefit is *graded* -- it recovers part of a success rate -- while its cost is *categorical*: miss the deadline and the episode scores zero regardless of how much noise was suppressed. Graded gains cannot average away a cliff.
+
+**And the aggregate is not a population estimate.** It is the mean over a designed grid that deliberately brackets the boundary, which places two of six budget levels below it. Averaging over a bracketing grid counts the same physical failure several times. That is the caution this exercise supports: an aggregate summarises the conditions someone chose to run, and RQ2's point is that those choices should be visible rather than implicit.
+
 ## The end-to-end demonstration
 
 One command, `experiments/run_end_to_end.py`, running the whole chain against fresh episodes rather than against the recorded artifacts. It reproduced every previously recorded finding independently, which is the check that matters: the earlier numbers were not produced by a process that only works once.
 
-Arms `policy_v3` (baseline) and `policy_v1` (candidate), differing in one subsystem (perception).
+Arms `policy_v1` (baseline) and `policy_v3` (candidate), differing in one subsystem (perception).
 
-| condition | baseline | candidate | delta | 95% CI (candidate) |
+The demo grid varies two axes because that is what the question needs: depth noise, which the candidate's averaging suppresses, and a step budget, which refuses the candidate's extra settling ticks. One command therefore has to demonstrate both the regression and the improvement, rather than asserting one from a previous artifact and the other from another.
+
+### Table 4a: the grid as run (eight separate condition cells)
+
+These are the counts the matrix stage recorded, before any detector grouping. Each row below is a different `scenario_id`: noise and budget are both part of the identity, so no row averages two kinds of episode.
+
+| depth noise | step budget | baseline | candidate | delta |
 |---|---|---|---|---|
-| nominal [depth_noise_mm=0.0] | 1.00 | 1.00 | +0.00 | [0.61, 1.00] |
-| nominal [depth_noise_mm=1.0] | 0.83 | 0.33 | -0.50 | [0.10, 0.70] |
-| nominal [depth_noise_mm=2.0] | 0.83 | 0.50 | -0.33 | [0.19, 0.81] |
-| nominal [depth_noise_mm=4.0] | 0.50 | 0.33 | -0.17 | [0.10, 0.70] |
-| nominal [depth_noise_mm=8.0] | 0.17 | 0.17 | +0.00 | [0.03, 0.56] |
+| 0 mm | 80 | 0.17 | 0.00 | -0.17 |
+| 0 mm | 300 | 1.00 | 1.00 | +0.00 |
+| 1 mm | 80 | 0.33 | 0.00 | -0.33 |
+| 1 mm | 300 | 0.83 | 1.00 | +0.17 |
+| 2 mm | 80 | 0.17 | 0.00 | -0.17 |
+| 2 mm | 300 | 0.50 | 1.00 | +0.50 |
+| 4 mm | 80 | 0.00 | 0.50 | +0.50 |
+| 4 mm | 300 | 0.00 | 0.00 | +0.00 |
 
-Aggregate **-0.200** against a worst cell of **-0.500**, with **3** blocking findings: `nominal [depth_noise_mm=1.0]` (-0.50), `nominal [depth_noise_mm=2.0]` (-0.33), `nominal [depth_noise_mm=4.0]` (-0.17)
+### Table 4b: what the unmodified framework detector reports
 
-The aggregate is a quarter of the worst condition it averages over. Reporting only the aggregate would have shown a modest, plausibly tolerable -0.20 change, and missed the -0.50 condition entirely.
+The detector groups episodes by the values in `EpisodeResult.conditions`. Because the eight grid cells use distinct `scenario_id` values, the shipped comparison keeps all eight separate without any code change: the detector's own grouping, labels, confidence intervals, and blocking findings below come from `compare_conditions`, not from a parallel implementation.
+
+| detector label | baseline | candidate | delta | 95% CI (candidate) |
+|---|---|---|---|---|
+| nominal__depth_noise_mm=0__max_steps=300 | 1.00 | 1.00 | +0.00 | [0.61, 1.00] |
+| nominal__depth_noise_mm=0__max_steps=80 | 0.17 | 0.00 | -0.17 | [0.00, 0.39] |
+| nominal__depth_noise_mm=1__max_steps=300 | 0.83 | 1.00 | +0.17 | [0.61, 1.00] |
+| nominal__depth_noise_mm=1__max_steps=80 | 0.33 | 0.00 | -0.33 | [0.00, 0.39] |
+| nominal__depth_noise_mm=2__max_steps=300 | 0.50 | 1.00 | +0.50 | [0.61, 1.00] |
+| nominal__depth_noise_mm=2__max_steps=80 | 0.17 | 0.00 | -0.17 | [0.00, 0.39] |
+| nominal__depth_noise_mm=4__max_steps=300 | 0.00 | 0.00 | +0.00 | [0.00, 0.39] |
+| nominal__depth_noise_mm=4__max_steps=80 | 0.00 | 0.50 | +0.50 | [0.19, 0.81] |
+
+Both tables agree because the condition actually varied is present in the scenario identity the detector already groups on. Earlier in this project the same detector, grouping only on the values present in `conditions`, pooled distinct cells into one label when an in-place sweep left `scenario_id` unchanged -- a conditional analysis that conditioned on nothing. Naming each grid cell here is the minimal setup that lets the shipped detector keep them apart.
+
+Aggregate **+0.062** against a worst cell of **-0.333**, with **3** blocking finding(s): `nominal__depth_noise_mm=1__max_steps=80` (-0.33), `nominal__depth_noise_mm=0__max_steps=80` (-0.17), `nominal__depth_noise_mm=2__max_steps=80` (-0.17)
+
+The aggregate is small because the candidate's favourable and adverse cells have opposite signs, not because the candidate changed little. Table 4a shows the cancellation explicitly: timeouts on one budget, noise suppression on the other.
 
 ## Aggregate and conditional metrics
 
@@ -144,12 +218,17 @@ The results above are the ones that worked. These are not, and they are the more
 
 * *Joint-encoder noise changes the sign of the effect along its axis* and *object friction is non-monotonic*. Both were artefacts of a loose 2 mm IK tolerance and both are flat after it was tightened. A measurement that changes when an unrelated constant changes was never a measurement of the policy.
 
+**Resolved since the previous revision:**
+
+* *Nominal solvability is 66.7%, so a real 10% regression could hide inside a 33% failure floor.* **Falsified by measurement.** It was an 8/12 sample from before the IK-tolerance and spawn fixes, written in the present tense. Over 120 seeds the baseline solves nominal 120/120, with a 95% lower bound of 96.9%. There is no 33% floor and the stated limitation does not exist. A stale number had propagated into a limitation on the framework's own sensitivity -- the same failure mode the framework exists to detect.
+* *The strong form of RQ2 is not demonstrated.* **Demonstrated, with a qualification.** The sign of the candidate's effect flips inside every row of a noise-by-deadline grid, and the aggregate understates the worst cell by an order of magnitude. It is not a near-tie, and the reason is structural: a graded benefit cannot average away a categorical cost.
+
 **Unresolved, and load-bearing:**
 
-* *Nominal solvability is 66.7%.* Roughly a third of episodes fail with the grasp not holding, and no lever in the policy moves it. Until that changes, the framework's sensitivity is bounded by its benchmark's: a real 10% regression can sit inside a 33% failure floor.
-* *The strong form of RQ2 is not demonstrated.* It needs a grid where favourable and adverse cells cancel. The candidate is adverse everywhere it differs here.
 * *RQ1 is one trial per strategy on one axis and one seed.*
-* *The pairwise ablation design is untested on the only case it exists for* — a regression with a genuine two-factor interaction. None has been constructed.
+* *The pairwise ablation design is untested on the only case it exists for*: a regression with a genuine two-factor interaction. None has been constructed.
+* *RQ2's adverse channel is a deadline, not the mechanism its own docstring predicted.* The prediction named latency; latency is inert, so a step budget had to substitute. Whether the same inversion appears under a *perceptual* adverse channel is untested, because none exists here: objects cannot move, and averaging only costs you when the averaged quantity changes.
+* *The RQ2 aggregate is a mean over a boundary-bracketing grid*, not a population estimate, and it is reported as such.
 
 ## Not verified here
 

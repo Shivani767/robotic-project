@@ -27,6 +27,7 @@ from __future__ import annotations
 import argparse
 import json
 import time
+from itertools import product
 from pathlib import Path
 from typing import Any
 
@@ -34,10 +35,29 @@ from robot_ci.experiments.runner import EpisodeResult
 
 RESULTS = Path("experiments/results")
 
-BASELINE = "policy_v3"
-CANDIDATE = "policy_v1"
+# One convention across the project: ``policy_v1`` is the reference arm and the
+# arm under evaluation is the change made to it. That is what the policy module
+# means by "baseline" (see ``_DEFAULT_V1``), and RQ2 in
+# ``rq2_opposing_effect.py`` uses the same pairing.
+#
+# ``policy_v2`` was the obvious candidate for this demo and is not usable: its
+# confidence gate is inert. Measured against v1 over a depth-noise grid it is
+# identical at every level (0.00 delta at 0, 1 and 2 mm), so there is no
+# regression in it to detect. That leaves ``policy_v3`` as the only arm whose
+# change is measurable at all.
+#
+# With v3 as the candidate, the depth-noise axis contains no regression -- it
+# contains the opposite, which is the RQ2 result. The regression this demo has
+# to detect is therefore on a second axis: the step budget, where the
+# candidate's settling ticks do not fit and it fails outright.
+BASELINE = "policy_v1"
+CANDIDATE = "policy_v3"
 SEEDS = (1, 3, 4, 6, 8, 9)
-LEVELS = (0.0, 1.0, 2.0, 4.0, 8.0)
+LEVELS = (0.0, 1.0, 2.0, 4.0)
+#: The second axis. 80 refuses the candidate and admits the reference; 300 is
+#: the unconstrained control. Measured, not guessed: see
+#: ``establish_nominal_solvability.py``.
+BUDGETS = (80, 300)
 GROUND_TRUTH_SUBSYSTEM = "perception"
 
 
@@ -72,8 +92,17 @@ def stage_matrix(backend: str) -> tuple[dict[str, Any], dict[str, list[EpisodeRe
     recorded: dict[str, list[EpisodeResult]] = {BASELINE: [], CANDIDATE: []}
     episodes = 0
     try:
-        for level in LEVELS:
+        for level, budget in product(LEVELS, BUDGETS):
             condition = set_by_path(base, "sensors.depth.sigma_mm", level)
+            condition = condition.model_copy(
+                update={
+                    "task": condition.task.model_copy(update={"max_steps": budget}),
+                    "scenario_id": (
+                        f"{base.scenario_id}__depth_noise_mm={level:g}"
+                        f"__max_steps={budget:g}"
+                    ),
+                }
+            )
             per_arm: dict[str, list[EpisodeResult]] = {BASELINE: [], CANDIDATE: []}
             for name in (BASELINE, CANDIDATE):
                 for seed in SEEDS:
@@ -94,6 +123,7 @@ def stage_matrix(backend: str) -> tuple[dict[str, Any], dict[str, list[EpisodeRe
             cells.append(
                 {
                     "depth_noise_mm": level,
+                    "max_steps": budget,
                     "baseline_success": b_hits / n,
                     "candidate_success": c_hits / n,
                     "delta": (c_hits - b_hits) / n,
@@ -101,7 +131,8 @@ def stage_matrix(backend: str) -> tuple[dict[str, Any], dict[str, list[EpisodeRe
                 }
             )
             print(
-                f"  {level:4.1f} mm  baseline={b_hits}/{n}  candidate={c_hits}/{n}"
+                f"  {level:4.1f} mm  budget {budget:>3d}  "
+                f"baseline={b_hits}/{n}  candidate={c_hits}/{n}"
                 f"  delta={(c_hits - b_hits) / n:+.2f}",
                 flush=True,
             )

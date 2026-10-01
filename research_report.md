@@ -17,6 +17,13 @@ not run, it says so.
 >
 > Re-running **withdrew two RQ5 findings** as tuning artefacts, recorded in place
 > rather than removed, and left RQ1, RQ3 and RQ4 standing.
+>
+> **Superseded numbers.** The 66.7% figure in the note above is itself now
+> falsified: it was an 8/12 sample from *before* the spawn fix. Re-measured over
+> 120 seeds by `experiments/establish_nominal_solvability.py`, nominal
+> solvability is **120/120 with a 95% lower bound of 96.9%** — see section 2a.
+> The old number had propagated into a stated limitation (a supposed 33%
+> failure floor); that limitation does not exist and is withdrawn.
 
 ---
 
@@ -38,15 +45,46 @@ delta of zero. The work here is about the conditions, not the average.
 * **Simulator.** MuJoCo, 7-DOF Panda with a parallel gripper, pick-and-place.
   CPU-only, on the development machine. `MockSimulator` and `SyntheticSimulator`
   exist for unit tests; neither is used for any number in this report.
-* **Arms.** Two of the three policies are `policy_v1` and `policy_v2`, which
-  differ by exactly one parameter. The comparisons that needed a known
-  regression use `policy_v3` against `policy_v1`; see section 3.
+* **Arms.** `policy_v1` is the reference implementation the policy module calls
+  the baseline; `policy_v2` (a confidence gate) and `policy_v3` (averaging) are
+  each a single documented change from it. v2 is inert — measured identical to
+  v1 at every noise level — so v3 is the only arm whose change is measurable,
+  and it is the candidate wherever one is named. **The older search artifacts
+  (RQ1, RQ2's first grid, RQ4, RQ5) record `policy_v3` as the "baseline"**
+  because those runs asked the counterexample search to find the direction
+  *worse than the positive control*, i.e. with v1 as the regressing arm. Each
+  table below is labelled with the convention its artifact used; delta signs
+  are relative to the labels printed on that table, not to one global
+  baseline.
 * **Baselines.** Where a method is compared, both sides share the scenario
   budget, the seeds, the simulator, the policies and the metric code. Only the
   method differs.
 * **Statistics.** Wilson intervals for rates, Cohen's h for effect size, and
   paired per-`(condition, seed)` comparison. Configurable thresholds
   (blocking at -0.10, warning at -0.05) with a minimum-sample gate.
+
+## 2a. Nominal solvability (established, not assumed)
+
+`experiments/establish_nominal_solvability.py` runs the uncorrupted condition
+over **120 seeds per policy**:
+
+| policy | success | rate | 95% Wilson CI | steps (mean) | steps (range) |
+|---|---|---|---|---|---|
+| `policy_v1` | 120/120 | 1.000 | [0.969, 1.000] | 76.4 | 76–78 |
+| `policy_v2` | 120/120 | 1.000 | [0.969, 1.000] | 76.4 | 76–78 |
+| `policy_v3` | 120/120 | 1.000 | [0.969, 1.000] | 81.4 | 81–83 |
+
+Two things follow, both load-bearing for RQ2 below:
+
+1. **The old 66.7% is falsified**, not imprecise: it lies far below the
+   confidence interval. There is no 33% failure floor; the framework's
+   sensitivity is not bounded by its benchmark's nominal noise. A stale number
+   had propagated into a stated limitation — the same failure mode this
+   project exists to detect.
+2. **The candidate's cost is measured:** `policy_v3` spends **5.0 extra
+   control ticks** per episode (81.4 vs 76.4). Invisible against the default
+   300-step budget; decisive against a deadline near the real cost. That
+   measurement is what the RQ2 design in section 3b is built on.
 
 ## 3. Establishing that the apparatus can detect a regression
 
@@ -66,9 +104,59 @@ That matters for everything else: without a positive control, "no regression
 found" and "the detector is blind" are indistinguishable. `policy_v3` was
 therefore built as one -- a policy that averages pose samples before committing
 to a plan, a real technique with a real cost (it spends control ticks holding
-position and plans from a stale estimate). It was then used as the baseline
-against which `policy_v1` is the regressing arm, which is the separation the
-searchers require.
+position and plans from a stale estimate). It is used as the **candidate**
+against the `policy_v1` baseline, which is the direction that matches the
+policy module's own definitions; section 3b is where its two-sided trade-off is
+tested.
+
+## 3b. RQ2 -- the opposing-effect experiment
+
+`experiments/rq2_opposing_effect.py` asks the question this report's framing
+poses at the top: can two policies trade a favourable condition for an adverse
+one? The design was fixed in the script's docstring *before* running.
+
+`policy_v3`'s own docstring predicts it should "help where depth noise
+dominates and hurt where latency does." Screening six one-dimensional sweeps
+first **falsified the latency half**: latency, clutter, depth bias and a
+one-dimensional budget sweep were all flat (0.00 delta). The reason is
+structural -- averaging suppresses *variance*, so it can only cost you when
+the quantity being averaged is changing, and every axis in this framework is
+static. The adverse channel has to be the one genuine cost of averaging: the
+5.0 measured settling ticks, spent against a **step budget**.
+
+The grid: 4 depth-noise levels x 6 step budgets x 16 seeds, paired:
+
+| depth noise | budget 78 | budget 80 | budget 82 | budget 84 | budget 120 | budget 300 |
+|---|---|---|---|---|---|---|
+| 0 mm | **-1.00** | **-1.00** | -0.06 | +0.00 | +0.00 | +0.00 |
+| 1 mm | -0.69 | -0.62 | +0.19 | +0.25 | +0.25 | +0.25 |
+| 2 mm | -0.50 | -0.38 | +0.38 | +0.44 | +0.44 | +0.44 |
+| 4 mm | -0.50 | -0.38 | -0.12 | +0.06 | +0.06 | +0.06 |
+
+Positive cells: **11**. Negative cells: **10**. Aggregate: **-0.102**.
+
+**The sign flips inside every noise row at the same place** -- the candidate
+is destroyed at budget 80 and wins from 82 upward. That is not fitted: it is
+where the section 2a measurement puts it (candidate needs 81 ticks, baseline
+needs 76), and a step-budget of 80 admits every baseline episode and refuses
+every candidate episode at nominal. The headline candidate effect is therefore
+adverse on one axis and favourable on another, which is RQ2's strong form.
+
+Two qualifications, reported because they are what the data says:
+
+* **The aggregate (-0.102) is not a near-tie.** The candidate's benefit is
+  *graded* (it recovers part of a success rate) while its cost is
+  *categorical* (miss the deadline and the episode scores zero). Graded gains
+  cannot average away a cliff, so cancellation is asymmetric. The aggregate
+  understates the worst cell by a factor of 10 -- which is the argument for
+  conditional reporting regardless of sign.
+* **The aggregate is a mean over a boundary-bracketing grid**, deliberately
+  placing two of six budgets below the flip. It is not a population estimate,
+  and is reported as such.
+
+The latency prediction remains falsified rather than withdrawn: it is a real,
+documented, two-sided prediction whose adverse half this framework cannot
+exercise, because nothing in it moves an object.
 
 ## 4. Results
 
@@ -89,7 +177,11 @@ reports only "found" is concealing half its result.**
 This is one trial per strategy on one axis and one seed. It shows the trade-off
 exists; it cannot show that any strategy is better in general.
 
-### RQ2 -- conditional vs aggregate
+### RQ2 (first grid) -- conditional vs aggregate
+
+*Arms as recorded in `rq2_conditional_vs_aggregate.json`: baseline
+`policy_v3`, candidate `policy_v1` — the older convention described in
+section 2.*
 
 | depth noise | baseline | candidate | delta |
 |---|---|---|---|
@@ -107,9 +199,11 @@ responsible. Three cells sit at exactly -0.38, which is a consistent gradient
 rather than three independent coincidences.
 
 The stronger form of the claim -- that aggregate metrics *hide* a regression
-entirely -- is **not demonstrated**. That requires favourable and adverse cells
-to cancel, and on this grid the candidate is adverse everywhere it differs, so
-nothing cancels.
+entirely -- is **not demonstrated on this one-dimensional grid**. That requires
+favourable and adverse cells to cancel, and on a depth-noise-only sweep the
+candidate is adverse everywhere it differs, so nothing cancels. **Section 3b
+demonstrates the strong form on a two-axis grid**, where the sign actually
+flips.
 
 Running this experiment exposed the most serious defect found in the project.
 The detector grouped conditional cells by `scenario_id`, which is correct only

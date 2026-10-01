@@ -110,6 +110,8 @@ macOS, Apple Silicon, Python 3.12, CPU only. Every line below was executed.
 | Failure taxonomy | 15 categories, multi-hypothesis output |
 | Ablation | scored against an injected cause; OFAT correct, correlation wrong |
 | Benchmark suite | 20 benchmarks, 0 mismatches, 8 measured expectations |
+| **Nominal solvability** | **120/120 per policy, 95% CI [0.969, 1.000]; the old 66.7% figure falsified** |
+| **RQ2 opposing effect** | **4x6 noise-by-budget grid, 16 seeds/cell; sign flips in every row, 11 positive vs 10 negative cells** |
 | CI gate | `robot-ci test` runs 3 gates and reports coverage |
 
 ## Unverified
@@ -125,7 +127,8 @@ macOS, Apple Silicon, Python 3.12, CPU only. Every line below was executed.
 | Cloud execution | **Not started** | No remote host has been used. |
 | `ruff format` compliance | **Known deviation** | 40 files would be reformatted; recorded, not gating. |
 | Cross-backend agreement | **Not measured** | MuJoCo and Isaac have never been run on the same scenarios. |
-| The strong form of RQ2 | **Not demonstrated** | Needs a policy pair whose trade-off inverts across two axes. |
+| RQ2 adverse channel under a *perceptual* axis | **Untested, structurally unreachable** | Requires a moving object; the schema has no motion field. Latency is inert by mechanism, not by luck. |
+| RQ2 aggregate as a population estimate | **Never claimed** | The grid brackets the boundary by design; the mean is reported as a property of that grid only. |
 
 ## The remote verification path
 

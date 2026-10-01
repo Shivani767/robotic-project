@@ -2,6 +2,15 @@
   "cells": [
     {
       "depth_noise_mm": 0.0,
+      "max_steps": 80,
+      "baseline_success": 0.16666666666666666,
+      "candidate_success": 0.0,
+      "delta": -0.16666666666666666,
+      "samples": 6
+    },
+    {
+      "depth_noise_mm": 0.0,
+      "max_steps": 300,
       "baseline_success": 1.0,
       "candidate_success": 1.0,
       "delta": 0.0,
@@ -9,34 +18,54 @@
     },
     {
       "depth_noise_mm": 1.0,
-      "baseline_success": 0.8333333333333334,
-      "candidate_success": 0.3333333333333333,
-      "delta": -0.5,
-      "samples": 6
-    },
-    {
-      "depth_noise_mm": 2.0,
-      "baseline_success": 0.8333333333333334,
-      "candidate_success": 0.5,
+      "max_steps": 80,
+      "baseline_success": 0.3333333333333333,
+      "candidate_success": 0.0,
       "delta": -0.3333333333333333,
       "samples": 6
     },
     {
-      "depth_noise_mm": 4.0,
-      "baseline_success": 0.5,
-      "candidate_success": 0.3333333333333333,
+      "depth_noise_mm": 1.0,
+      "max_steps": 300,
+      "baseline_success": 0.8333333333333334,
+      "candidate_success": 1.0,
+      "delta": 0.16666666666666666,
+      "samples": 6
+    },
+    {
+      "depth_noise_mm": 2.0,
+      "max_steps": 80,
+      "baseline_success": 0.16666666666666666,
+      "candidate_success": 0.0,
       "delta": -0.16666666666666666,
       "samples": 6
     },
     {
-      "depth_noise_mm": 8.0,
-      "baseline_success": 0.16666666666666666,
-      "candidate_success": 0.16666666666666666,
+      "depth_noise_mm": 2.0,
+      "max_steps": 300,
+      "baseline_success": 0.5,
+      "candidate_success": 1.0,
+      "delta": 0.5,
+      "samples": 6
+    },
+    {
+      "depth_noise_mm": 4.0,
+      "max_steps": 80,
+      "baseline_success": 0.0,
+      "candidate_success": 0.5,
+      "delta": 0.5,
+      "samples": 6
+    },
+    {
+      "depth_noise_mm": 4.0,
+      "max_steps": 300,
+      "baseline_success": 0.0,
+      "candidate_success": 0.0,
       "delta": 0.0,
       "samples": 6
     }
   ],
-  "episodes": 60,
+  "episodes": 96,
   "seeds": [
     1,
     3,

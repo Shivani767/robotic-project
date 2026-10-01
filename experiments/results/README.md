@@ -8,6 +8,12 @@
 > Two findings from the earlier RQ5 run were withdrawn on re-run: joint-encoder
 > noise changing sign along its axis, and object friction being non-monotonic.
 > Both were artefacts of the loose IK tolerance. See section 8.
+>
+> **The 66.7% figure is itself superseded.** It was an 8/12 sample taken before
+> the object-spawn fix. Re-measured over 120 seeds
+> (`establish_nominal_solvability.py`), nominal solvability is **120/120 with a
+> 95% lower bound of 96.9%**, and the "33% failure floor" conclusion drawn from
+> it is withdrawn. See section 1.
 
 Every number below came from a command in this repository. Nothing is projected,
 interpolated, or illustrative. Negative results are recorded as findings, and
@@ -18,11 +24,14 @@ that could later be mistaken for a measurement.
 
 ```bash
 .venv/bin/python -m robot_ci.cli.main validate
+.venv/bin/python experiments/establish_nominal_solvability.py    # writes nominal_solvability.json
 .venv/bin/python experiments/rq1_search_strategies.py     # writes rq1_*.json
 .venv/bin/python experiments/rq4_reproducibility.py        # writes rq4_*.json
 .venv/bin/python experiments/rq2_conditional_vs_aggregate.py  # writes rq2_*.json
+.venv/bin/python experiments/rq2_opposing_effect.py        # writes rq2_opposing_effect.json
 .venv/bin/python experiments/rq3_ablation_attribution.py     # writes rq3_*.json
 .venv/bin/python experiments/rq5_perturbation_boundaries.py  # writes rq5_*.json
+.venv/bin/python experiments/run_end_to_end.py            # writes end_to_end.json
 .venv/bin/python -m robot_ci.cli.main diagnose --backend mujoco \
     --axis depth_noise_mm:0:8:mm --seeds 4
 ```
@@ -34,6 +43,12 @@ that could later be mistaken for a measurement.
 | seeds | successes | rate |
 |---|---|---|
 | 1..24 | 12 | 50.0% |
+
+> **Superseded.** This is an early 12-of-24 sample, taken before the IK-tolerance
+> and object-spawn fixes. The current measurement is
+> `establish_nominal_solvability.py`: **120/120 per policy, 95% CI
+> [0.969, 1.000]**, with the baseline at 76.4 steps on average against the
+> candidate's 81.4. The table below is kept as the historical record.
 
 This was **0.000** before commit `3309762`. Four independent defects, each found
 by measurement, are documented in that commit.
@@ -186,14 +201,73 @@ averages over** (-0.25 against -0.38), and conditional evaluation names the
 three conditions responsible. Three cells sit at exactly -0.38, which is a
 consistent gradient rather than three independent coincidences.
 
-**The stronger form of the claim is not demonstrated here.** RQ2 as specified
-asks whether conditional evaluation finds regressions that aggregate metrics
-*hide* -- aggregate near zero, conditional strongly negative. That requires a
-grid where the candidate is better in some cells and worse in others, so the
-effects cancel. On this grid the candidate is adverse in every adverse cell and
-neutral at nominal, so nothing cancels and the aggregate is also adverse.
-Demonstrating the strong form needs a pair whose trade-off runs in opposite
-directions across two axes; no such pair has been constructed yet.
+**The stronger form of the claim is not demonstrated on this one-dimensional
+grid.** RQ2 as specified asks whether conditional evaluation finds regressions
+that aggregate metrics *hide* -- aggregate near zero, conditional strongly
+negative. That requires a grid where the candidate is better in some cells and
+worse in others, so the effects cancel. On a depth-noise-only sweep the
+candidate is adverse everywhere it differs and neutral at nominal, so nothing
+cancels and the aggregate is also adverse. The next subsection demonstrates the
+strong form on a two-axis grid, where the sign actually flips.
+
+## 6a. RQ2, strong form: the two-axis grid
+
+`experiments/rq2_opposing_effect.py`. Arms `baseline=policy_v1`,
+`candidate=policy_v3` -- the pairing the policy module calls baseline and
+candidate -- 4 depth-noise levels x 6 step budgets x 16 seeds, paired by seed.
+
+Six one-dimensional axes were screened first. Only depth noise had any
+behavioural signature (0.00 delta for latency, clutter, depth bias and a
+one-dimensional budget sweep), so a second axis had to be the candidate's one
+measured cost: the **5.0 extra control ticks** it spends settling, against a
+step budget.
+
+| depth noise | budget 78 | budget 80 | budget 82 | budget 84 | budget 120 | budget 300 |
+|---|---|---|---|---|---|---|
+| 0 mm | **-1.00** | **-1.00** | -0.06 | +0.00 | +0.00 | +0.00 |
+| 1 mm | -0.69 | -0.62 | +0.19 | +0.25 | +0.25 | +0.25 |
+| 2 mm | -0.50 | -0.38 | +0.38 | +0.44 | +0.44 | +0.44 |
+| 4 mm | -0.50 | -0.38 | -0.12 | +0.06 | +0.06 | +0.06 |
+
+| scoring | result |
+|---|---|
+| favourable cells (delta > +0.05) | **11** |
+| adverse cells (delta < -0.05) | **10** |
+| aggregate | **-0.102** |
+| best / worst cell | **+0.44** / **-1.00** |
+
+**The sign flips inside every noise row, at the same place.** At a budget of 80
+the candidate fails at exactly the cap while the reference finishes in 76-78
+ticks; from 82 upward it recovers more than it costs. The boundary is not fitted
+to the grid: it is where the 120-seed step measurement in section 1 puts it.
+
+Two qualifications, because they are what the data says:
+
+* **The aggregate is not a near-tie.** The candidate's benefit is *graded* (it
+  recovers part of a success rate) while its cost is *categorical* (miss the
+  deadline and the episode scores zero). Graded gains cannot average away a
+  cliff, so the -0.102 aggregate understates the worst cell by a factor of 10.
+  That asymmetry is itself the argument for conditional reporting.
+* **The aggregate is a mean over a boundary-bracketing grid**, not a population
+  estimate. The grid deliberately places two of six budgets below the flip, so
+  the same physical failure is counted more than once.
+
+The candidate's own docstring predicted the adverse channel would be *latency*.
+That half is **falsified, not withdrawn**: averaging suppresses variance, so it
+can only cost you when the averaged quantity is changing, and the schema has no
+motion field -- nothing in this framework moves an object. The adverse channel
+had to be the deadline instead.
+
+### Where the end-to-end run exercises both directions
+
+`experiments/run_end_to_end.py` runs the whole chain -- matrix, conditional
+detection, counterexample search, replay, boundaries, taxonomy, ablation --
+against fresh episodes with both axes present (4 noise levels x budgets 80 and
+300 x 6 seeds). It reproduces the regression and the improvement in one command:
+aggregate **+0.062** against a worst cell of **-0.333**, with 3 blocking findings
+at budget 80 and favourable cells at budget 300. The eight grid cells carry
+distinct `scenario_id` values, so the shipped detector keeps them apart without
+any change to `regression/detector.py`.
 
 ### This experiment found the project's worst bug
 
@@ -363,8 +437,10 @@ Planning time is wall-clock. Two guards now prevent that, both pinned by tests:
 
 No numbers exist for these and none are written anywhere in this repository.
 
-- The *strong* form of RQ2: a grid on which favourable and adverse cells cancel
-  in the aggregate. See section 6.
+- RQ2's adverse channel under a *perceptual* axis. The strong form of RQ2 **is**
+  demonstrated (section 6a), but on a deadline rather than the latency the
+  candidate's docstring predicted. A perceptual equivalent needs an object that
+  moves, and the schema has no motion field. See section 6a.
 - The *interaction* case for RQ3: no regression with a genuine two-factor
   interaction has been constructed, so the pairwise design is untested on the
   only situation it exists for. See section 7.

@@ -1,12 +1,21 @@
 {
-  "baseline_policy": "policy_v3",
-  "candidate_policy": "policy_v1",
+  "baseline_policy": "policy_v1",
+  "candidate_policy": "policy_v3",
   "backend": "mujoco",
   "ground_truth_subsystem": "perception",
   "matrix": {
     "cells": [
       {
         "depth_noise_mm": 0.0,
+        "max_steps": 80,
+        "baseline_success": 0.16666666666666666,
+        "candidate_success": 0.0,
+        "delta": -0.16666666666666666,
+        "samples": 6
+      },
+      {
+        "depth_noise_mm": 0.0,
+        "max_steps": 300,
         "baseline_success": 1.0,
         "candidate_success": 1.0,
         "delta": 0.0,
@@ -14,34 +23,54 @@
       },
       {
         "depth_noise_mm": 1.0,
-        "baseline_success": 0.8333333333333334,
-        "candidate_success": 0.3333333333333333,
-        "delta": -0.5,
-        "samples": 6
-      },
-      {
-        "depth_noise_mm": 2.0,
-        "baseline_success": 0.8333333333333334,
-        "candidate_success": 0.5,
+        "max_steps": 80,
+        "baseline_success": 0.3333333333333333,
+        "candidate_success": 0.0,
         "delta": -0.3333333333333333,
         "samples": 6
       },
       {
-        "depth_noise_mm": 4.0,
-        "baseline_success": 0.5,
-        "candidate_success": 0.3333333333333333,
+        "depth_noise_mm": 1.0,
+        "max_steps": 300,
+        "baseline_success": 0.8333333333333334,
+        "candidate_success": 1.0,
+        "delta": 0.16666666666666666,
+        "samples": 6
+      },
+      {
+        "depth_noise_mm": 2.0,
+        "max_steps": 80,
+        "baseline_success": 0.16666666666666666,
+        "candidate_success": 0.0,
         "delta": -0.16666666666666666,
         "samples": 6
       },
       {
-        "depth_noise_mm": 8.0,
-        "baseline_success": 0.16666666666666666,
-        "candidate_success": 0.16666666666666666,
+        "depth_noise_mm": 2.0,
+        "max_steps": 300,
+        "baseline_success": 0.5,
+        "candidate_success": 1.0,
+        "delta": 0.5,
+        "samples": 6
+      },
+      {
+        "depth_noise_mm": 4.0,
+        "max_steps": 80,
+        "baseline_success": 0.0,
+        "candidate_success": 0.5,
+        "delta": 0.5,
+        "samples": 6
+      },
+      {
+        "depth_noise_mm": 4.0,
+        "max_steps": 300,
+        "baseline_success": 0.0,
+        "candidate_success": 0.0,
         "delta": 0.0,
         "samples": 6
       }
     ],
-    "episodes": 60,
+    "episodes": 96,
     "seeds": [
       1,
       3,
@@ -52,32 +81,32 @@
     ]
   },
   "regression": {
-    "global_delta": -0.19999999999999996,
-    "baseline_rate": 0.6666666666666666,
-    "candidate_rate": 0.4666666666666667,
+    "global_delta": 0.0625,
+    "baseline_rate": 0.375,
+    "candidate_rate": 0.4375,
     "findings": [
       {
-        "condition": "nominal [depth_noise_mm=1.0]",
-        "delta": -0.5,
+        "condition": "nominal__depth_noise_mm=1__max_steps=80",
+        "delta": -0.3333333333333333,
         "severity": "blocking",
         "n": 6
       },
       {
-        "condition": "nominal [depth_noise_mm=2.0]",
-        "delta": -0.33333333333333337,
+        "condition": "nominal__depth_noise_mm=0__max_steps=80",
+        "delta": -0.16666666666666666,
         "severity": "blocking",
         "n": 6
       },
       {
-        "condition": "nominal [depth_noise_mm=4.0]",
-        "delta": -0.16666666666666669,
+        "condition": "nominal__depth_noise_mm=2__max_steps=80",
+        "delta": -0.16666666666666666,
         "severity": "blocking",
         "n": 6
       }
     ],
     "cells": [
       {
-        "condition": "nominal [depth_noise_mm=0.0]",
+        "condition": "nominal__depth_noise_mm=0__max_steps=300",
         "baseline": 1.0,
         "baseline_ci": [
           0.6096657120978346,
@@ -93,67 +122,115 @@
         "n": 6
       },
       {
-        "condition": "nominal [depth_noise_mm=2.0]",
+        "condition": "nominal__depth_noise_mm=0__max_steps=80",
+        "baseline": 0.16666666666666666,
+        "baseline_ci": [
+          0.030053369748306635,
+          0.5635028221864702
+        ],
+        "candidate": 0.0,
+        "candidate_ci": [
+          2.7755575615628914e-17,
+          0.3903342879021653
+        ],
+        "delta": -0.16666666666666666,
+        "effect_h": 0.8410686705679302,
+        "n": 6
+      },
+      {
+        "condition": "nominal__depth_noise_mm=1__max_steps=300",
         "baseline": 0.8333333333333334,
         "baseline_ci": [
           0.43649717781352987,
           0.9699466302516935
+        ],
+        "candidate": 1.0,
+        "candidate_ci": [
+          0.6096657120978346,
+          1.0
+        ],
+        "delta": 0.16666666666666663,
+        "effect_h": -0.84106867056793,
+        "n": 6
+      },
+      {
+        "condition": "nominal__depth_noise_mm=1__max_steps=80",
+        "baseline": 0.3333333333333333,
+        "baseline_ci": [
+          0.09677141110578041,
+          0.700006684861608
+        ],
+        "candidate": 0.0,
+        "candidate_ci": [
+          2.7755575615628914e-17,
+          0.3903342879021653
+        ],
+        "delta": -0.3333333333333333,
+        "effect_h": 1.2309594173407745,
+        "n": 6
+      },
+      {
+        "condition": "nominal__depth_noise_mm=2__max_steps=300",
+        "baseline": 0.5,
+        "baseline_ci": [
+          0.1876163064826506,
+          0.8123836935173494
+        ],
+        "candidate": 1.0,
+        "candidate_ci": [
+          0.6096657120978346,
+          1.0
+        ],
+        "delta": 0.5,
+        "effect_h": -1.5707963267948963,
+        "n": 6
+      },
+      {
+        "condition": "nominal__depth_noise_mm=2__max_steps=80",
+        "baseline": 0.16666666666666666,
+        "baseline_ci": [
+          0.030053369748306635,
+          0.5635028221864702
+        ],
+        "candidate": 0.0,
+        "candidate_ci": [
+          2.7755575615628914e-17,
+          0.3903342879021653
+        ],
+        "delta": -0.16666666666666666,
+        "effect_h": 0.8410686705679302,
+        "n": 6
+      },
+      {
+        "condition": "nominal__depth_noise_mm=4__max_steps=300",
+        "baseline": 0.0,
+        "baseline_ci": [
+          2.7755575615628914e-17,
+          0.3903342879021653
+        ],
+        "candidate": 0.0,
+        "candidate_ci": [
+          2.7755575615628914e-17,
+          0.3903342879021653
+        ],
+        "delta": 0.0,
+        "effect_h": 0.0,
+        "n": 6
+      },
+      {
+        "condition": "nominal__depth_noise_mm=4__max_steps=80",
+        "baseline": 0.0,
+        "baseline_ci": [
+          2.7755575615628914e-17,
+          0.3903342879021653
         ],
         "candidate": 0.5,
         "candidate_ci": [
           0.1876163064826506,
           0.8123836935173494
         ],
-        "delta": -0.33333333333333337,
-        "effect_h": 0.7297276562269663,
-        "n": 6
-      },
-      {
-        "condition": "nominal [depth_noise_mm=1.0]",
-        "baseline": 0.8333333333333334,
-        "baseline_ci": [
-          0.43649717781352987,
-          0.9699466302516935
-        ],
-        "candidate": 0.3333333333333333,
-        "candidate_ci": [
-          0.09677141110578041,
-          0.700006684861608
-        ],
-        "delta": -0.5,
-        "effect_h": 1.0695645656810886,
-        "n": 6
-      },
-      {
-        "condition": "nominal [depth_noise_mm=4.0]",
-        "baseline": 0.5,
-        "baseline_ci": [
-          0.1876163064826506,
-          0.8123836935173494
-        ],
-        "candidate": 0.3333333333333333,
-        "candidate_ci": [
-          0.09677141110578041,
-          0.700006684861608
-        ],
-        "delta": -0.16666666666666669,
-        "effect_h": 0.33983690945412226,
-        "n": 6
-      },
-      {
-        "condition": "nominal [depth_noise_mm=8.0]",
-        "baseline": 0.16666666666666666,
-        "baseline_ci": [
-          0.030053369748306635,
-          0.5635028221864702
-        ],
-        "candidate": 0.16666666666666666,
-        "candidate_ci": [
-          0.030053369748306635,
-          0.5635028221864702
-        ],
-        "delta": 0.0,
-        "effect_h": 0.0,
+        "delta": 0.5,
+        "effect_h": -1.5707963267948968,
         "n": 6
       }
     ]
@@ -1674,5 +1751,5 @@
     ],
     "conclusion": "OFAT and interaction-aware analysis both recover the injected cause; correlation-only analysis does not"
   },
-  "wall_clock_s": 62.3
+  "wall_clock_s": 156.1
 }
