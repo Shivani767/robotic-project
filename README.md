@@ -88,6 +88,53 @@ robot-ci scenario list
 robot-ci backend list
 ```
 
+## 5a. Watch the Panda run in Gazebo, live, in a browser
+
+One command, then one URL. No ROS 2, Gazebo or Python robotics install on
+macOS: everything simulation-side runs in Docker on Apple Silicon.
+
+```bash
+cd "/Users/shivanibhandari/Downloads/Robotic Project"
+docker compose up
+```
+
+When the container reports ready, open:
+
+```
+http://localhost:8000
+```
+
+The startup prints what it has actually observed, and refuses to say "ready"
+before the data is real:
+
+```
+[robot-ci] Gazebo 8.15.0
+[robot-ci] Gazebo ready; Panda loaded with 9 joint controllers
+[robot-ci] joint-state stream detected
+[robot-ci] camera stream detected
+[robot-ci] viewer ready -> http://localhost:8000
+```
+
+What the page shows, and where each thing comes from:
+
+| Panel | Source | Live? |
+|---|---|---|
+| 3D Panda | `/world/robot_ci_pick_place/model/panda/joint_state` | yes — angles are Gazebo's |
+| Joint state table (9 joints) | same topic | yes |
+| RGB camera | `.../sensor/robot_ci_camera/image` | yes — real frames |
+| Status | seed, depth noise, condition, sim time, health | yes |
+
+The 3D arm is built from the joint origins, axes and limits in
+`gazebo/models/panda/panda.urdf` (the same URDF Gazebo loads), then posed by
+whatever angles Gazebo publishes. If the simulation stops, the arm stops.
+
+**Known gap, stated plainly:** the RGB panel renders the real scene, but the
+Panda itself does not appear in the Gazebo camera image. The 3D panel does show
+it, moving, from live state. See `docs/gazebo.md` for what was ruled out.
+
+To stop: `Ctrl-C`, then `docker compose down`.
+
+
 ## 6. Status
 
 Each phase below is marked from evidence, not intent: what exists, what was run,
