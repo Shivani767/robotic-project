@@ -1,0 +1,41 @@
+Robot absent from Gazebo's camera image: characterisation
+=========================================================
+Gazebo Harmonic 8.15.0, arm64, headless, ogre2, swrast/EGL
+World: the generated robot_ci_pick_place SDF, one variable changed at a time.
+Metric: finite depth pixels in the rgbd_camera depth image. The table, the
+target object and the target zone contribute 2144 px; anything more is the robot.
+
+  joints?  plugins?  finite depth px   robot rendered?
+  -------  --------  --------------   ---------------
+  yes      no        3149              YES
+  no       yes       2144              (cube, n/a)
+  yes      yes       2144              NO
+
+  Sub-cases with the robot holding joints AND plugins, all NO:
+    0 plugins ...................................... renders (control row 1)
+    1 controller + 1 state publisher ............... 2144
+    9 controllers, no state publisher .............. 2144
+    9 controllers + 1 state publisher .............. 2144
+    10 plugins moved to the top of the model ....... 2144
+    9 controllers, poses flattened (no relative_to)  2144
+
+Conclusion: the Sensors rendering path in this build does not draw a model
+that has BOTH joints and plugins. Either one alone is fine -- the jointed
+robot renders when its plugins are removed, and the plugin-bearing cube
+renders unchanged. It is not a material, camera, pose, render-engine or
+joint-limit problem: all of those were fixed and verified independently.
+
+Consequence for this project: nine JointPositionController instances must
+live inside the robot model, so the robot cannot be drawn by the Gazebo
+camera while it remains commandable. Joint control is kept, because it is
+what the experiment needs and it is verified; the camera keeps the table,
+the object and the target zone. The browser 3D panel draws the robot from
+the live joint_state topic and does show it moving.
+
+Ruled out along the way, each with the measurement that ruled it out:
+  camera aimed at empty space ....... frame was exactly background 0.7->218
+  and depth all-inf; ray left the table
+  <ambient> without <diffuse> ....... table rendered pure black
+  ogre (v1) engine ................ "Unable to open display:", renders nothing
+  link poses via relative_to ....... verified numerically correct either way
+  joint4 "instability" ............. it was pinned on its own limit, not unstable

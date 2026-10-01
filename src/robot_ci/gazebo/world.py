@@ -231,17 +231,19 @@ def _flatten_link_poses(model: Any) -> int:
         <joint name='joint1'><pose relative_to='panda_link0'>0 0 0.333 ...</pose>
         <link  name='panda_link1'><pose relative_to='joint1'>0 0 0 ...</pose>
 
-    Physics resolves that -- the arm's joint state and link poses prove it does.
-    Gazebo's *rendering* path did not: the scene message carried the model, the
-    SDF validated, nine joint controllers attached, and yet no link of the robot
-    contributed a single pixel or a single finite depth value to the camera,
-    while the table, the object and the target zone all rendered normally. The
-    only structural difference was these references.
+    Flattening removes the indirection and leaves every link with one
+    unambiguous model-frame pose. The values are verified against the joint
+    definitions (advances of 0.333, 0.316 and 0.384 m, the Panda's real link
+    lengths) and physics is unchanged, because a joint's pose is still read
+    relative to its parent link.
 
-    Rewriting every link pose as a plain model-frame pose removes them. Every
-    joint frame stays where it was, because a joint's pose is still interpreted
-    relative to its parent link, so physics is unchanged -- only the ambiguity
-    the renderer had to resolve is gone.
+    It does **not** fix the robot's absence from rendered frames. That was the
+    original suspect, and the measurement said otherwise: with and without these
+    references the camera reports the same 2144 finite depth pixels. The cause is
+    recorded in ``experiments/results/gazebo/evidence_robot_not_rendered.txt``:
+    this build's Sensors path skips a model that has both joints and plugins.
+    The flattening is kept because it is a genuine simplification, not because
+    it rescues the render.
 
     Args:
         model: The ``<model>`` element of the converted robot.

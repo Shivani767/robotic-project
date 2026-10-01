@@ -57,9 +57,11 @@ Command: policy -> `Action` -> gz-transport -> Gazebo joints.
 | **Panda URDF** | `gazebo/models/panda/panda.urdf` | **VERIFIED LIVE** -- loads into Gazebo with 0 errors |
 | Joint command topic for `joint1` | via `JointPositionController` | **VERIFIED LIVE** -- `/model/panda/joint/joint1/0/cmd_pos` exists |
 | Simulation clock | Gazebo `/clock` | **VERIFIED LIVE** -- advances |
-| Command topics for the other 8 joints | -- | **NOT ESTABLISHED** |
-| Joint state feedback topic | -- | **NOT ESTABLISHED** |
-| Control -> motion measurement | -- | **NOT VERIFIED** |
+| Command topics for the other 8 joints | 9x `JointPositionController` | **VERIFIED LIVE** -- all nine exist and move the arm |
+| Joint state feedback topic | `JointStatePublisher` | **VERIFIED LIVE** -- `/world/.../model/panda/joint_state` |
+| Control -> motion measurement | `scripts/gazebo_motion_test.sh` | **VERIFIED LIVE** -- see `evidence_joint_motion.txt` |
+| Live browser viewer | `docker compose up` | **VERIFIED LIVE** -- `evidence_live_viewer.txt` |
+| Robot drawn by the Gazebo camera | -- | **NO** -- see section 6 |
 | `GazeboBackend(SimulatorBackend)` | -- | **NOT YET WRITTEN** |
 | Gazebo episodes / artifacts | -- | **NOT YET RUN** |
 | Cross-simulator comparison | -- | **NOT YET PRODUCED** |
@@ -131,17 +133,46 @@ docker run --rm -v /tmp:/gz robot-ci-ros2-gazebo:jazzy bash -lc \
    (timeout 15 gz sim -s -r /gz/world.sdf &); sleep 12; gz topic -l'
 ```
 
-## 6. Limitations and blockers
+## 6. The robot is not drawn by the Gazebo camera (VERIFIED LIVE)
 
-* **Only one of nine joints is commandable.** The
-  `JointPositionController` resolves a single `<joint_name>` from the URDF, so
-  `/model/panda/joint/joint1/0/cmd_pos` exists and `joint2`..`joint7` plus the
-  fingers do not. This is the immediate blocker: it is a controller
-  configuration question, not a physics one, and it must be resolved before any
-  episode can be commanded.
-* **No joint-state feedback topic observed.** The state topic the adapter would
-  read back has not been located, so joint positions are not yet proven to
-  return to ROBOT CI.
+**The Panda moves, and the browser's 3D panel shows it moving from live joint
+state, but the robot does not appear in Gazebo's own camera image.** The camera
+renders the table, the target object and the target zone.
+
+Characterised by changing one variable at a time and counting finite depth
+pixels (the table, object and zone contribute 2144; more than that means the
+robot):
+
+| joints | plugins | finite depth px | robot drawn? |
+|---|---|---|---|
+| yes | no | 3149 | **yes** |
+| no | yes | 2144 | cube still drawn |
+| yes | yes | 2144 | **no** |
+
+Five sub-cases with joints *and* plugins were all 2144, including nine
+controllers, one controller, and the plugins moved to the top of the model. The
+robot is drawn when its plugins are removed; the cube keeps being drawn when a
+plugin is added to it. So this build's Sensors path skips a model that has
+**both** joints and plugins, and nine `JointPositionController` instances must
+live inside the robot model.
+
+Joint control is kept: it is what an experiment needs, and it is verified. The
+consequence is stated in the README rather than hidden.
+
+Earlier false leads, each closed by measurement: the camera aimed at empty space
+(frame was exactly the background colour, depth all-inf); `<ambient>` without
+`<diffuse>` (table rendered black); the `ogre` v1 engine (cannot initialise
+headless at all); and `relative_to` link poses (flattening them is kept as a
+simplification, but it changed nothing in the image).
+
+Full transcript: `experiments/results/gazebo/evidence_robot_not_rendered.txt`.
+
+## 7. Limitations and blockers
+
+* **The robot is not drawn by the Gazebo camera** (section 6). A model with
+  both joints and plugins is skipped by this build's Sensors path, and nine
+  joint controllers must live inside the robot model. Control is kept, so the
+  camera shows the scene without the robot.
 * **Collision geometry differs from MuJoCo.** The URDF uses per-link primitive
   bounding volumes where the MuJoCo model uses meshes. Contact response is
   therefore *expected* to differ between the two simulators, which is a real
