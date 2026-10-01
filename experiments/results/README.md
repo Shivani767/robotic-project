@@ -32,6 +32,8 @@ that could later be mistaken for a measurement.
 .venv/bin/python experiments/rq3_ablation_attribution.py     # writes rq3_*.json
 .venv/bin/python experiments/rq5_perturbation_boundaries.py  # writes rq5_*.json
 .venv/bin/python experiments/run_end_to_end.py            # writes end_to_end.json
+.venv/bin/python experiments/render_episode.py --policy policy_v1 --seed 3
+.venv/bin/python experiments/make_episode_viewer.py       # writes episodes.html
 .venv/bin/python -m robot_ci.cli.main diagnose --backend mujoco \
     --axis depth_noise_mm:0:8:mm --seeds 4
 ```
@@ -432,6 +434,65 @@ Planning time is wall-clock. Two guards now prevent that, both pinned by tests:
   to reach the same place is a real behavioural cost)
 * a diagnosis with no success change reports no regression and names no
   subsystem
+
+## 10. Rendered episodes
+
+Every number above came out of an episode nobody could look at. Two scripts make
+the robot watchable without changing what was measured:
+
+* `experiments/render_episode.py` runs one episode through the same
+  `run_episode` loop that produced every result here, with a recording proxy
+  around the backend, and writes an animated GIF plus a filmstrip PNG and a
+  sidecar JSON naming the policy, seed, condition, status and step count.
+* `experiments/make_episode_viewer.py` collects the sidecars into
+  `experiments/results/episodes.html`, which plays them next to the condition
+  that produced each one.
+
+The camera is the scenario's own fixed `rgb_camera`, so the view is the
+simulator's rather than a chosen angle.
+
+**Two things the renderer must not do, both learned by getting them wrong.**
+
+`scenario_id` is not a label. The scene's object placement RNG is seeded from
+`(scenario.seed, "mujoco-scene", scenario.scenario_id)`, and the orchestrator
+derives each episode's seed from the cell's `scenario_id`. The first version of
+the renderer rewrote the identifier to describe the clip, which moved the target
+object: it filmed a failure at a seed whose recorded outcome is success in 76
+steps. The identifier is therefore left exactly as the project builds it.
+
+Rendering must not enlarge the episode either. `ScenarioConfig.resolution` is a
+derived property of `sensors.intrinsics.shape`, and the intrinsics set the
+camera's FOV and the depth sampling the policy reads, so rendering larger would
+change what is being filmed. Frames are rendered at the condition's own
+120x160 and upscaled for display; the sidecar records `native_resolution`,
+`display_scale` and `output_resolution` separately so the picture is never read
+as native pixels.
+
+The check that both hold is the `config_hash`: the rendered success run carries
+the same `config_hash` as the unrendered episode, and the two clips below differ
+only in the depth-noise condition.
+
+| clip | condition | status |
+|---|---|---|
+| `episode_v1_seed3.gif` | `policy_v1`, seed 3, 0 mm depth noise | solved, 76 steps |
+| `episode_v1_seed3_depth8mm.gif` | `policy_v1`, seed 3, 8 mm depth noise | failed, 85 steps |
+
+The pair is the same seed under the same placement with one sensor variable
+changed, which is the smallest visible form of the project's claim: the 8 mm
+condition is the blocking cell that stage 2 of the live demo reports
+(`experiments/results/demo_v1_vs_v3/regression.json`, delta -0.167, severity
+`blocking`). It is *not* a cell of `end_to_end.json`, whose matrix sweeps 0, 1,
+2 and 4 mm.
+
+The GIFs and `episodes.html` are not committed -- `experiments/results/*` keeps
+media out on size alone. The filmstrip PNGs and the sidecar JSONs are, so the
+evidence for each clip is in the repository and the clip itself is one command
+away:
+
+```bash
+python experiments/render_episode.py --policy policy_v1 --seed 3
+python experiments/make_episode_viewer.py
+```
 
 ## Not yet run
 

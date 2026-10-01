@@ -1,0 +1,29 @@
+{
+  "gif": "experiments/results/episode_v1_seed3.gif",
+  "filmstrip": "experiments/results/episode_v1_seed3_filmstrip.png",
+  "policy": "policy_v1",
+  "seed": 3,
+  "backend": "mujoco",
+  "scenario_id": "nominal",
+  "depth_noise_mm": 0.0,
+  "max_steps": 300,
+  "native_resolution": [
+    120,
+    160
+  ],
+  "display_scale": 3,
+  "output_resolution": [
+    360,
+    480
+  ],
+  "status": "success",
+  "success": true,
+  "steps": 76,
+  "config_hash": "sha256:1eb35c15c0391093b5bee9a3f34acc27265752a62bd30dac76bba4ca9692df3c",
+  "frames": 38,
+  "stride": 2,
+  "fps": 20,
+  "render_seconds": 0.778,
+  "episode_wall_s": 2.381,
+  "caption": "policy_v1  seed=3  depth_noise=0mm  SUCCESS  steps=76/300"
+}
