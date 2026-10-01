@@ -54,28 +54,51 @@ Command: policy -> `Action` -> gz-transport -> Gazebo joints.
 | Unreproducible-condition reporting | `unsupported_conditions` | **VERIFIED LIVE** (unit tested) |
 | Unit tests | `tests/unit/test_gazebo_world.py` | **VERIFIED LIVE** (14 passed) |
 | ROS 2 Jazzy + Gazebo Harmonic image | `docker/ros2_gazebo.Dockerfile` | **VERIFIED LIVE** (builds; gz 8.15.0) |
+| **Panda URDF** | `gazebo/models/panda/panda.urdf` | **VERIFIED LIVE** -- loads into Gazebo with 0 errors |
+| Joint command topic for `joint1` | via `JointPositionController` | **VERIFIED LIVE** -- `/model/panda/joint/joint1/0/cmd_pos` exists |
+| Simulation clock | Gazebo `/clock` | **VERIFIED LIVE** -- advances |
+| Command topics for the other 8 joints | -- | **NOT ESTABLISHED** |
+| Joint state feedback topic | -- | **NOT ESTABLISHED** |
+| Control -> motion measurement | -- | **NOT VERIFIED** |
 | `GazeboBackend(SimulatorBackend)` | -- | **NOT YET WRITTEN** |
-| Panda URDF | -- | **NOT YET SUPPLIED** |
-| rosbag / launch / artifact scripts | -- | **NOT YET WRITTEN** |
+| Gazebo episodes / artifacts | -- | **NOT YET RUN** |
+| Cross-simulator comparison | -- | **NOT YET PRODUCED** |
+| Gazebo launch file | -- | **NOT YET WRITTEN** |
 
-### Evidence (VERIFIED LIVE)
+## 3a. The Panda model (VERIFIED LIVE)
 
-`experiments/results/gazebo/evidence_world_load.txt` records a real run. The
-generator's SDF loaded in headless Gazebo and published:
+`gazebo/models/panda/panda.urdf` is a Franka Emika Panda whose kinematics are
+taken from the MuJoCo model this project already validates
+(`mujoco/models/franka_emika_panda/panda.xml`), so Gazebo's robot has the same
+morphology as the reference rather than an approximation. Joint names are
+ROBOT CI's own (`joint1`..`joint7`, `left_finger`, `right_finger`), so the
+control path needs no name translation.
 
-```
-/world/robot_ci_pick_place/model/camera_rig/link/link/sensor/robot_ci_camera/camera_info
-/world/robot_ci_pick_place/model/camera_rig/link/link/sensor/robot_ci_camera/depth_image
-/world/robot_ci_pick_place/model/camera_rig/link/link/sensor/robot_ci_camera/image
-/world/robot_ci_pick_place/model/camera_rig/link/link/sensor/robot_ci_camera/points
-/clock
-```
+Geometry is primitive boxes and cylinders, not the MJCF's STL/OBJ meshes. That
+is a recorded trade: the meshes are large binary assets, Gazebo and MuJoCo
+collision meshes differ subtly anyway, and a per-link bounding volume is
+reproducible and reviewable. It is also a genuine difference between the two
+robots and is listed under limitations rather than presented as equivalent.
 
-with **0** SDF validation errors.
+Three real bugs were found by running Gazebo rather than by reading about it:
 
-That run substituted a placeholder for the robot, because no Panda URDF exists
-in this environment. The *world* is the generator's output and is verified; the
-robot is not.
+1. **Inertia tensors were invalid.** MuJoCo's `fullinertia` ordering is
+   `(ixx, iyy, izz, ixy, ixz, iyz)` and the first draft swapped `ixz` with
+   `iyz`. Gazebo refused four links with "has invalid inertia". The values are
+   now derived from the MJCF programmatically rather than transcribed.
+2. **`<include><uri>` is not a filesystem path.** Gazebo resolves it through
+   its resource path and answers `Unable to find uri[...]`; it needs a `file://`
+   URI, valid *inside the runtime* (which is why a macOS host path fails inside
+   the container).
+3. **The joint controller must attach to a model, and takes repeated
+   `<joint_name>` elements.** In the world it refuses to initialise; inside the
+   URDF, `<scoped_joints>` and a `<joint_names>` wrapper both fail with
+   "Failed to get any `<joint_name>`".
+
+## 3b. Evidence
+
+`experiments/results/gazebo/evidence_panda_load.txt` and
+`evidence_world_load.txt` record the real runs.
 
 ## 4. Determinism
 
@@ -110,14 +133,22 @@ docker run --rm -v /tmp:/gz robot-ci-ros2-gazebo:jazzy bash -lc \
 
 ## 6. Limitations and blockers
 
-* **No Panda URDF is available.** The repository ships the Franka model as
-  MuJoCo XML only (`mujoco/models/franka_emika_panda/`), and the container's apt
-  sources carry no `franka`/`panda` description package. Gazebo needs a URDF.
-  The placeholder used for the evidence run is not a robot and is not presented
-  as one.
+* **Only one of nine joints is commandable.** The
+  `JointPositionController` resolves a single `<joint_name>` from the URDF, so
+  `/model/panda/joint/joint1/0/cmd_pos` exists and `joint2`..`joint7` plus the
+  fingers do not. This is the immediate blocker: it is a controller
+  configuration question, not a physics one, and it must be resolved before any
+  episode can be commanded.
+* **No joint-state feedback topic observed.** The state topic the adapter would
+  read back has not been located, so joint positions are not yet proven to
+  return to ROBOT CI.
+* **Collision geometry differs from MuJoCo.** The URDF uses per-link primitive
+  bounding volumes where the MuJoCo model uses meshes. Contact response is
+  therefore *expected* to differ between the two simulators, which is a real
+  source of cross-simulator disagreement rather than a defect.
 * **`GazeboBackend` is not written.** No claim of a working Gazebo backend is
-  made. The world generator is finished and verified; the control and
-  observation adapter between it and `SimulatorBackend` is not.
+  made. The world generator and the robot model are finished and verified; the
+  control and observation adapter between them and `SimulatorBackend` is not.
 * **No episode has been run in Gazebo.** There is therefore **no** Gazebo result
   for either condition, and no cross-simulator comparison table. The MuJoCo
   reference it would be compared against is committed: 0 mm -> success (76
@@ -130,12 +161,14 @@ docker run --rm -v /tmp:/gz robot-ci-ros2-gazebo:jazzy bash -lc \
 
 ## 7. What would make this runtime-verified
 
-1. Add a Panda URDF (Franka description, or one authored to match the MuJoCo
-   model's morphology) and confirm it loads.
-2. Implement `GazeboBackend(SimulatorBackend)` over `gz.transport13`: joint
+1. Get all nine joints commandable -- most likely by scoping the controller
+   from the world against the included model, or by driving the joints through
+   `JointController` `cmd_pos` topics directly.
+2. Locate the joint-state feedback topic and confirm positions come back.
+3. Implement `GazeboBackend(SimulatorBackend)` over `gz.transport13`: joint
    commands on `/model/panda/joint/<joint>/cmd`, state from
    `/world/.../dynamic_pose/info`, images from the camera topics, `/clock` as
    the authoritative simulation clock.
-3. Run seed 3 at 0 mm and at 8 mm; record both artifacts.
-4. Compare against the MuJoCo reference **without adjusting anything to make
+4. Run seed 3 at 0 mm and at 8 mm; record both artifacts.
+5. Compare against the MuJoCo reference **without adjusting anything to make
    them agree**. A disagreement is the finding, not a defect to tune away.

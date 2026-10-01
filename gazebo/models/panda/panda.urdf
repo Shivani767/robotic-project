@@ -1,0 +1,351 @@
+<?xml version="1.0"?>
+<!--
+  Franka Emika Panda, for Gazebo Harmonic.
+
+  Provenance and intent
+  ~~~~~~~~~~~~~~~~~~~~
+  The kinematics here are taken from the MuJoCo model this project already
+  validates, `mujoco/models/franka_emika_panda/panda.xml`, so the Gazebo robot
+  has the same morphology as the reference robot rather than an approximation of
+  it. The MJCF's body offsets and orientations map onto URDF as:
+
+      MJCF body pos/quat        ->  URDF joint origin xyz/rpy
+      link0  ""                 ->  panda_link0 (base)
+      link1  0 0 0.333          ->  joint1
+      link2  quat 1 -1 0 0       ->  joint2   (rotation of -90 deg about X)
+      link3  0 -0.316 0         ->  joint3
+      link4  0.0825 0 0         ->  joint4
+      link5  -0.0825 0.384 0    ->  joint5
+      link6  ""                 ->  joint6
+      link7  0.088 0 0          ->  joint7
+      hand   0 0 0.107          ->  hand_joint  (rpy 0 0 -pi/4)
+
+  Geometry is primitive boxes and cylinders rather than the STL/OBJ meshes the
+  MuJoCo model references. That is a deliberate, recorded trade: the meshes are
+  large binary assets, Gazebo collision meshes and MuJoCo collision meshes
+  differ subtly anyway, and a primitive box per link is both reproducible and
+  reviewable. Every collision envelope below is a bounding volume for its link,
+  not the link's exact hull, a difference that is called out rather than
+  hidden, because collision response is one of the things a cross-simulator
+  comparison can legitimately disagree about.
+
+  Joint limits and inertias are copied from the MJCF so the two robots respond
+  comparably under the same commands.
+-->
+<robot name="panda">
+
+  <material name="off_white"><color rgba="0.90 0.92 0.93 1"/></material>
+  <material name="white"><color rgba="1 1 1 1"/></material>
+  <material name="black"><color rgba="0.25 0.25 0.25 1"/></material>
+
+  <!-- ============================ base ============================ -->
+  <link name="panda_link0">
+    <inertial>
+      <origin xyz="-0.041018 -0.00014 0.049974" rpy="0 0 0"/>
+            <mass value="0.629769"/>
+      <inertia ixx="0.00315" ixy="8.2904e-07" ixz="0.00015"
+               iyy="0.00388" iyz="8.2299e-06" izz="0.004285"/>
+</inertial>
+    <collision>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.07" length="0.14"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.07" length="0.14"/></geometry>
+      <material name="off_white"/>
+    </visual>
+  </link>
+
+  <!-- =========================== joint 1 ========================== -->
+  <joint name="joint1" type="revolute">
+    <parent link="panda_link0"/>
+    <child link="panda_link1"/>
+    <origin xyz="0 0 0.333" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.8973" upper="2.8973" effort="87" velocity="2.175"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="panda_link1">
+    <inertial>
+      <origin xyz="0.003875 0.002081 -0.04762" rpy="0 0 0"/>
+            <mass value="4.970684"/>
+      <inertia ixx="0.70337" ixy="-0.000139" ixz="0.006772"
+               iyy="0.70661" iyz="0.019169" izz="0.009117"/>
+</inertial>
+    <collision>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.06" length="0.24"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 -0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.06" length="0.24"/></geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <!-- =========================== joint 2 ========================== -->
+  <joint name="joint2" type="revolute">
+    <parent link="panda_link1"/>
+    <child link="panda_link2"/>
+    <origin xyz="0 0 0" rpy="-1.5707963 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-1.7628" upper="1.7628" effort="87" velocity="2.175"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="panda_link2">
+    <inertial>
+      <origin xyz="-0.003141 -0.02872 0.003495" rpy="0 0 0"/>
+            <mass value="0.646926"/>
+      <inertia ixx="0.007962" ixy="-0.003925" ixz="0.010254"
+               iyy="0.02811" iyz="0.000704" izz="0.025995"/>
+</inertial>
+    <collision>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.06" length="0.24"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0.1" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.06" length="0.24"/></geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <!-- =========================== joint 3 ========================== -->
+  <joint name="joint3" type="revolute">
+    <parent link="panda_link2"/>
+    <child link="panda_link3"/>
+    <origin xyz="0 -0.316 0" rpy="1.5707963 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.8973" upper="2.8973" effort="87" velocity="2.175"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="panda_link3">
+    <inertial>
+      <origin xyz="0.027518 0.039252 -0.066502" rpy="0 0 0"/>
+            <mass value="3.228604"/>
+      <inertia ixx="0.037242" ixy="-0.004761" ixz="-0.011396"
+               iyy="0.036155" iyz="-0.012805" izz="0.01083"/>
+</inertial>
+    <collision>
+      <origin xyz="0.05 0 0.05" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.06" length="0.2"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.05 0 0.05" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.06" length="0.2"/></geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <!-- =========================== joint 4 ========================== -->
+  <joint name="joint4" type="revolute">
+    <parent link="panda_link3"/>
+    <child link="panda_link4"/>
+    <origin xyz="0.0825 0 0" rpy="1.5707963 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-3.0718" upper="-0.0698" effort="87" velocity="2.175"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="panda_link4">
+    <inertial>
+      <origin xyz="-0.05317 0.104419 0.027454" rpy="0 0 0"/>
+            <mass value="3.587895"/>
+      <inertia ixx="0.025853" ixy="0.007796" ixz="-0.001332"
+               iyy="0.019552" iyz="0.008641" izz="0.028323"/>
+</inertial>
+    <collision>
+      <origin xyz="-0.02 0 0.06" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.06" length="0.19"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="-0.02 0 0.06" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.06" length="0.19"/></geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <!-- =========================== joint 5 ========================== -->
+  <joint name="joint5" type="revolute">
+    <parent link="panda_link4"/>
+    <child link="panda_link5"/>
+    <origin xyz="-0.0825 0.384 0" rpy="-1.5707963 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.8973" upper="2.8973" effort="12" velocity="2.61"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="panda_link5">
+    <inertial>
+      <origin xyz="-0.011953 0.041065 -0.038437" rpy="0 0 0"/>
+            <mass value="1.225946"/>
+      <inertia ixx="0.035549" ixy="-0.002117" ixz="-0.004037"
+               iyy="0.029474" iyz="0.000229" izz="0.008627"/>
+</inertial>
+    <collision>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.055" length="0.15"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0.05" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.055" length="0.15"/></geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <!-- =========================== joint 6 ========================== -->
+  <joint name="joint6" type="revolute">
+    <parent link="panda_link5"/>
+    <child link="panda_link6"/>
+    <origin xyz="0 0 0" rpy="1.5707963 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-0.0175" upper="3.7525" effort="12" velocity="2.61"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="panda_link6">
+    <inertial>
+      <origin xyz="0.060149 -0.014117 -0.010517" rpy="0 0 0"/>
+            <mass value="1.666555"/>
+      <inertia ixx="0.001964" ixy="0.000109" ixz="-0.001158"
+               iyy="0.004354" iyz="0.000341" izz="0.005433"/>
+</inertial>
+    <collision>
+      <origin xyz="0.03 0 0.03" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.13"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0.03 0 0.03" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.05" length="0.13"/></geometry>
+      <material name="white"/>
+    </visual>
+  </link>
+
+  <!-- =========================== joint 7 ========================== -->
+  <joint name="joint7" type="revolute">
+    <parent link="panda_link6"/>
+    <child link="panda_link7"/>
+    <origin xyz="0.088 0 0" rpy="1.5707963 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="-2.8973" upper="2.8973" effort="12" velocity="2.61"/>
+    <dynamics damping="1.0" friction="0.0"/>
+  </joint>
+  <link name="panda_link7">
+    <inertial>
+      <origin xyz="0.010517 -0.004252 0.061597" rpy="0 0 0"/>
+            <mass value="0.735522"/>
+      <inertia ixx="0.012516" ixy="-0.000428" ixz="-0.001196"
+               iyy="0.010027" iyz="-0.000741" izz="0.004815"/>
+</inertial>
+    <collision>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.045" length="0.1"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry><cylinder radius="0.045" length="0.1"/></geometry>
+      <material name="black"/>
+    </visual>
+  </link>
+
+  <!-- ============================= hand ============================ -->
+  <joint name="hand_joint" type="fixed">
+    <parent link="panda_link7"/>
+    <child link="panda_hand"/>
+    <origin xyz="0 0 0.107" rpy="0 0 -0.7853982"/>
+  </joint>
+  <link name="panda_hand">
+    <inertial>
+      <origin xyz="-0.01 0 0.03" rpy="0 0 0"/>
+            <mass value="0.73"/>
+      <inertia ixx="0.001" ixy="0" ixz="0"
+               iyy="0.0025" iyz="0" izz="0.0017"/>
+</inertial>
+    <collision>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry><box size="0.05 0.1 0.06"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0 0.04" rpy="0 0 0"/>
+      <geometry><box size="0.05 0.1 0.06"/></geometry>
+      <material name="off_white"/>
+    </visual>
+  </link>
+
+  <!-- Parallel jaw: two prismatic fingers, mirroring the MJCF's slide joints
+       with range 0..0.04 along +Y. -->
+  <joint name="left_finger" type="prismatic">
+    <parent link="panda_hand"/>
+    <child link="panda_left_finger"/>
+    <origin xyz="0 0 0.0584" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
+    <dynamics damping="1.0"/>
+  </joint>
+  <link name="panda_left_finger">
+    <inertial>
+      <origin xyz="0 0.01 0.02" rpy="0 0 0"/>
+            <mass value="0.015"/>
+      <inertia ixx="2.375e-06" ixy="0" ixz="0"
+               iyy="2.375e-06" iyz="0" izz="7.5e-07"/>
+</inertial>
+    <collision>
+      <origin xyz="0 0.01 0.025" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.015 0.05"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 0.01 0.025" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.015 0.05"/></geometry>
+      <material name="black"/>
+    </visual>
+  </link>
+
+  <joint name="right_finger" type="prismatic">
+    <parent link="panda_hand"/>
+    <child link="panda_right_finger"/>
+    <origin xyz="0 -0.01 0.0584" rpy="0 0 0"/>
+    <axis xyz="0 -1 0"/>
+    <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
+    <dynamics damping="1.0"/>
+  </joint>
+  <link name="panda_right_finger">
+    <inertial>
+      <origin xyz="0 -0.01 0.02" rpy="0 0 0"/>
+            <mass value="0.015"/>
+      <inertia ixx="2.375e-06" ixy="0" ixz="0"
+               iyy="2.375e-06" iyz="0" izz="7.5e-07"/>
+</inertial>
+    <collision>
+      <origin xyz="0 -0.01 0.025" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.015 0.05"/></geometry>
+    </collision>
+    <visual>
+      <origin xyz="0 -0.01 0.025" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.015 0.05"/></geometry>
+      <material name="black"/>
+    </visual>
+  </link>
+
+  <!--
+    Gazebo systems. The position controller must be attached to a *model*
+    entity: placed in the world it refuses to initialise with "should be
+    attached to a model entity". Attaching it here is also what makes the
+    controller travel with the robot if the world ever includes it by name.
+
+    Joint names are ROBOT CI's own (joint1..joint7), so the control path needs
+    no name translation.
+  -->
+  <gazebo>
+    <plugin filename="gz-sim-joint-position-controller-system"
+            name="gz::sim::systems::JointPositionController">
+      <joint_name>joint1</joint_name>
+      <joint_name>joint2</joint_name>
+      <joint_name>joint3</joint_name>
+      <joint_name>joint4</joint_name>
+      <joint_name>joint5</joint_name>
+      <joint_name>joint6</joint_name>
+      <joint_name>joint7</joint_name>
+      <joint_name>left_finger</joint_name>
+      <joint_name>right_finger</joint_name>
+    </plugin>
+  </gazebo>
+
+</robot>
