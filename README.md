@@ -90,20 +90,27 @@ robot-ci backend list
 
 ## 6. Status
 
+Each phase below is marked from evidence, not intent: what exists, what was run,
+and what was never run. `docs/verification.md` holds the full split.
+
 | Phase | Scope | State |
 |---|---|---|
-| 0 | Environment probe and report | **done** - see `ENVIRONMENT_REPORT.md` |
+| 0 | Environment probe and report | **done** — `ENVIRONMENT_REPORT.md`, observed on this machine |
 | 1 | Schemas, config, CLI, backend interface, Mock/Synthetic/MuJoCo backends, scenarios | **done** |
-| 2 | Robot, table, objects, cameras, tasks | planned |
-| 3 | Policies | planned |
-| 4 | Metrics | planned |
-| 5 | Sensor corruption | planned |
-| 6 | Regression detection | planned |
-| 7 | Counterexamples | planned |
-| 8 | Boundary mapping | planned |
-| 9 | Diagnosis and ablation | planned |
-| 12-14 | Research report, benchmark suite, end-to-end demo | done |
-| 15 | Linux CI verification path | written, never run |
+| 2 | Robot, table, objects, cameras, tasks | **done** — programmatic MJCF; 120/120 nominal |
+| 3 | Policies | **done** — `policy_v1` (reference), `policy_v2` (confidence gate, measured inert), `policy_v3` (averaging) |
+| 4 | Metrics suite + SQLite store | **done** |
+| 5 | Sensor corruption engine | **done** — axes swept in RQ5; four faults recorded as *not effective* rather than approximated |
+| 6 | Conditional regression detection | **done** — per-cell rates with intervals; found the project's worst bug |
+| 7 | Counterexample search + minimisation | **done** — RQ1 strategies, RQ4 reproduction rate |
+| 8 | Behavioural boundary mapping | **done** — RQ5: 1 boundary of 7 axes swept |
+| 9 | Failure taxonomy, evidence, ablation, diagnosis | **done** — RQ3, scored against injected ground truth |
+| 10 | ROS 2 interfaces (**remote only**) | **not started** — `ros2_ws/` holds no files |
+| 11 | MoveIt 2 planner (**remote only**) | **not started** |
+| 12 | Dashboard | **not started** — `dashboard/` holds no files; `robot-ci dashboard` exists as a stub |
+| 13 | Colab/Kaggle runners, export/import | **not started** — `notebooks/` is empty |
+| 14 | Benchmark suite + RQ1–RQ5 | **done** — 20 benchmarks, 0 expectation mismatches; RQ2's strong form demonstrated |
+| 15 | Verification path | **`verify.sh` verified locally; the Linux workflow has never run** — `.github/workflows/verify.yml` |
 
 ## 5b. Reproducing this
 

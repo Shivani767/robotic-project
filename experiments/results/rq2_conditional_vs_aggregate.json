@@ -70,12 +70,6 @@
     "detector_global_delta": -0.25,
     "detail": [
       {
-        "condition": "nominal [depth_noise_mm=4.0]",
-        "severity": "blocking",
-        "delta": -0.375,
-        "n": 8
-      },
-      {
         "condition": "nominal [depth_noise_mm=1.0]",
         "severity": "blocking",
         "delta": -0.375,
@@ -83,6 +77,12 @@
       },
       {
         "condition": "nominal [depth_noise_mm=2.0]",
+        "severity": "blocking",
+        "delta": -0.375,
+        "n": 8
+      },
+      {
+        "condition": "nominal [depth_noise_mm=4.0]",
         "severity": "blocking",
         "delta": -0.375,
         "n": 8

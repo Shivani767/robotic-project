@@ -1,10 +1,12 @@
-{"commit": "20d8d91", "date": "2026-10-01T10:21:09Z", "overall": 0, "checks": [
+{"commit": "caa4e96", "date": "2026-10-01T10:57:28Z", "overall": 0, "checks": [
     {"name": "ruff (src, tests, experiments)", "exit": 0, "detail": "All checks passed! "},
     {"name": "ruff format --check", "exit": 1, "detail": "advisory: 40 files would be reformatted, 37 files already formatted "},
     {"name": "mypy (src/robot_ci)", "exit": 0, "detail": "pyproject.toml: note: unused section(s): module = ['isaacsim.*', 'moveit.*', 'omni.*', 'pxr.*', 'rclpy.*', 'torch.*'] Success: no issues found in 77 source file"},
-    {"name": "unit", "exit": 0, "detail": "...........................                                              [100%] 315 passed in 1.79s "},
-    {"name": "integration", "exit": 0, "detail": "..................................................                       [100%] 50 passed in 3.08s "},
-    {"name": "end to end", "exit": 0, "detail": ".................................                                        [100%] 33 passed in 1.51s "},
+    {"name": "unit", "exit": 0, "detail": "...........................                                              [100%] 315 passed in 2.06s "},
+    {"name": "integration", "exit": 0, "detail": "..................................................                       [100%] 50 passed in 3.50s "},
+    {"name": "end to end", "exit": 0, "detail": ".................................                                        [100%] 33 passed in 1.50s "},
     {"name": "robot-ci validate", "exit": 0, "detail": "──────────────────────────────────────────────────────────────────────────────── validate: PASSED "},
-    {"name": "package imports without mujoco", "exit": 0, "detail": "..............................                                           [100%] 30 passed in 0.03s "}
+    {"name": "package imports without mujoco", "exit": 0, "detail": "..............................                                           [100%] 30 passed in 0.04s "},
+    {"name": "benchmark suite", "exit": 0, "detail": "20 benchmarks, 0 expectation mismatches, 8 with a measured expectation wrote experiments/results/benchmark_suite.json "},
+    {"name": "regression grid", "exit": 0, "detail": "  blocking nominal [depth_noise_mm=8.0] delta=-0.12 wrote experiments/results/rq2_conditional_vs_aggregate.json "}
   ]}

@@ -112,6 +112,7 @@ macOS, Apple Silicon, Python 3.12, CPU only. Every line below was executed.
 | Benchmark suite | 20 benchmarks, 0 mismatches, 8 measured expectations |
 | **Nominal solvability** | **120/120 per policy, 95% CI [0.969, 1.000]; the old 66.7% figure falsified** |
 | **RQ2 opposing effect** | **4x6 noise-by-budget grid, 16 seeds/cell; sign flips in every row, 11 positive vs 10 negative cells** |
+| **Live end-to-end demo** | **9 stages, 18 min 23 s: regression found in a cell the aggregate (-0.033) hides; counterexample minimised to 1.17 mm and reproduced 1/3; ablation attributes to perception where association says planner; `end_to_end.json` re-derived from fresh episodes identical except `wall_clock_s`** |
 | CI gate | `robot-ci test` runs 3 gates and reports coverage |
 
 ## Unverified
