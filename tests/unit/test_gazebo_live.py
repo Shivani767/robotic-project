@@ -70,6 +70,9 @@ def test_joint_reader_parses_gazebo_json_and_tracks_sim_time():
     assert positions["left_finger"] == pytest.approx(0.02)
     assert sim_time == pytest.approx(12.5)
     assert health.joint_stream is True
+    # A joint-state message is itself the evidence that Gazebo is running, so
+    # the report must not keep claiming otherwise.
+    assert health.gazebo_started is True
     assert health.joint_messages == 1
 
 

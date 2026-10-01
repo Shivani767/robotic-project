@@ -186,6 +186,10 @@ class JointStateReader:
                     self._sim_time = float(stamp["sec"]) + float(stamp.get("nsec", 0)) / 1e9
                 self._health.joint_messages += 1
                 self._health.joint_stream = True
+                # Receiving a joint-state message is the proof that Gazebo is
+                # up, so report it as such rather than leaving a flag that reads
+                # false while a simulation is plainly running.
+                self._health.gazebo_started = True
             return
         with self._lock:
             for name, position in zip(
