@@ -1,12 +1,12 @@
 # Robot CI: research report (generated)
 
-Generated 2026-10-01 10:08 UTC by `experiments/make_research_report.py` from the artifacts in `experiments/results/`. Every number below is read from those files; none is transcribed.
+Generated 2026-10-01 10:21 UTC by `experiments/make_research_report.py` from the artifacts in `experiments/results/`. Every number below is read from those files; none is transcribed.
 
 This file is machine-generated and therefore never stale with respect to the runs. The hand-written `research_report.md` carries the narrative, the method and the limitations, and is the document to read for those.
 
 ## Verification state
 
-Record at commit `e97220b`, overall **0**.
+Record at commit `20d8d91`, overall **0**.
 
 | check | exit |
 |---|---|
