@@ -25,6 +25,7 @@ What Gazebo cannot reproduce is recorded rather than papered over: see
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 from xml.sax.saxutils import escape
 
@@ -117,6 +118,108 @@ def unsupported_conditions(scenario: ScenarioConfig) -> list[str]:
     return gaps
 
 
+def _joint_controller_plugin() -> str:
+    """The joint controller, to be placed *inside* the robot model.
+
+    Where this goes is not a style choice. Three placements were tried against
+    Gazebo Harmonic and only this one works:
+
+    * in the **world**, the plugin refuses with "should be attached to a model
+      entity";
+    * inside the URDF's ``<gazebo>`` block, which *is* a model, it attaches but
+      cannot resolve any joint -- "Failed to get any <joint_name>" -- for every
+      configuration form tried (``<scoped_joints>``, repeated ``<joint_name>``,
+      and a ``<joint_names>`` wrapper).
+
+    Embedding the robot as a converted SDF model with the plugin inside it is
+    the arrangement that produces command topics. The joint names are ROBOT
+    CI's own, so nothing in the control path needs translating.
+    """
+    names = [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7",
+        "left_finger",
+        "right_finger",
+    ]
+    # The `name` attribute is the class Gazebo loads, not a free-text instance
+    # label: suffixing it makes the loader fail with "library does not contain
+    # requested plugin". Nine instances therefore share one name, which is how
+    # Gazebo worlds configure several controllers of the same type.
+    blocks = []
+    for name in names:
+        blocks.append(
+            "    <plugin filename=\"gz-sim-joint-position-controller-system\"\n"
+            "            name=\"gz::sim::systems::JointPositionController\">\n"
+            f"      <joint_name>{name}</joint_name>\n"
+            "      <p_gain>1000.0</p_gain>\n"
+            "      <i_gain>0.0</i_gain>\n"
+            "      <d_gain>50.0</d_gain>\n"
+            "    </plugin>"
+        )
+    # State feedback. The position controller consumes commands but publishes no
+    # state, so a separate system broadcasts every joint's position to
+    # /world/<world>/model/<model>/joint_state. That topic is what carries
+    # Gazebo's physics back to ROBOT CI and to the live viewer.
+    state_publisher = (
+        "    <plugin filename=\"gz-sim-joint-state-publisher-system\"\n"
+        "            name=\"gz::sim::systems::JointStatePublisher\">\n"
+        "    </plugin>"
+    )
+    return "\n".join([*blocks, state_publisher])
+
+
+def robot_model_sdf(urdf_path: str | Path) -> str:
+    """Convert the robot's URDF into an SDF ``<model>`` block, with control.
+
+    Gazebo cannot resolve joints through an ``<include>``d URDF, so the robot is
+    converted and embedded instead. The conversion is Gazebo's own
+    (``gz sdf -p``), not a hand-rolled one, so the geometry, inertias and joint
+    frames are whatever Gazebo itself would have built.
+
+    Args:
+        urdf_path: Path to the robot URDF, valid inside the runtime.
+
+    Returns:
+        The ``<model>`` element as text, ready to embed in a world.
+
+    Raises:
+        RuntimeError: If Gazebo's converter is unavailable or rejects the URDF.
+    """
+    import subprocess
+
+    path = Path(urdf_path)
+    try:
+        completed = subprocess.run(
+            ["gz", "sdf", "-p", str(path)],
+            capture_output=True,
+            text=True,
+            timeout=60,
+            check=False,
+        )
+    except (OSError, subprocess.SubprocessError) as exc:  # pragma: no cover - no gz
+        raise RuntimeError(
+            f"could not run Gazebo's SDF converter (gz sdf -p {path}): {exc}"
+        ) from exc
+    if completed.returncode != 0 or "<model" not in completed.stdout:
+        raise RuntimeError(
+            f"Gazebo rejected {path}: {completed.stderr.strip()[:400]}"
+        )
+
+    text = completed.stdout
+    start = text.index("<model")
+    end = text.rindex("</model>") + len("</model>")
+    model = text[start:end]
+
+    # Place the controller inside the model, before its closing tag.
+    closing = model.rindex("</model>")
+    return f"{model[:closing]}{_joint_controller_plugin()}\n  {model[closing:]}"
+
+
 def _camera_sensor_xml(scenario: ScenarioConfig) -> str:
     """Emit the depth+RGB camera, with Gazebo's FOV derived from the intrinsics.
 
@@ -171,20 +274,39 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
     Returns:
         An SDF document as text.
     """
-    from pathlib import Path
-
     cx, cy = (
         float(scenario.environment.workspace_center[0]),
         float(scenario.environment.workspace_center[1]),
     )
     table_z = float(scenario.environment.table_height_m)
     ox, oy, oz = object_pose_from_scenario(scenario)
-    # Gazebo resolves <uri> through its resource path, so a plain filesystem
-    # path is refused with "Unable to find uri[...]". file:// makes it an
-    # absolute URI, which is what the include actually needs.
-    robot_uri = (
-        f"file://{escape(str(Path(robot_urdf).resolve()))}" if robot_urdf else GAZEBO_ROBOT_NAME
-    )
+    # The robot is embedded as a converted SDF model rather than <include>d.
+    # An include loads fine, but leaves the joint controller unable to resolve
+    # any joint, so the arm cannot be commanded -- which is the entire point of
+    # the backend. Conversion is Gazebo's own, so geometry, inertias and joint
+    # frames are exactly what Gazebo would have built itself.
+    if robot_urdf:
+        robot_block = (
+            robot_model_sdf(robot_urdf)
+            .replace(
+                "<model name='panda'>",
+                f"<model name='{GAZEBO_ROBOT_NAME}'>",
+                1,
+            )
+            .replace(
+                f"<model name='{GAZEBO_ROBOT_NAME}'>",
+                f"<model name='{GAZEBO_ROBOT_NAME}'>\n      <pose>0 0 {table_z} 0 0 0</pose>",
+                1,
+            )
+        )
+    else:
+        robot_block = (
+            "    <include>\n"
+            f"      <uri>{GAZEBO_ROBOT_NAME}</uri>\n"
+            f"      <name>{GAZEBO_ROBOT_NAME}</name>\n"
+            f"      <pose>0 0 {table_z} 0 0 0</pose>\n"
+            "    </include>"
+        )
 
     return f"""<?xml version="1.0"?>
 <!-- Generated by robot_ci.gazebo.world from scenario_id={escape(scenario.scenario_id)}
@@ -203,7 +325,6 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       <render_engine>ogre2</render_engine>
     </plugin>
 
-
     <light type="directional" name="sun">
       <cast_shadows>true</cast_shadows>
       <pose>0 0 10 0 0 0</pose>
@@ -221,11 +342,7 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       </link>
     </model>
 
-    <include>
-      <uri>{robot_uri}</uri>
-      <name>{GAZEBO_ROBOT_NAME}</name>
-      <pose>0 0 {table_z} 0 0 0</pose>
-    </include>
+    {robot_block}
 
     <model name="target_cube">
       <static>false</static>

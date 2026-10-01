@@ -1,0 +1,230 @@
+Panda live motion evidence
+world=robot_ci_pick_place
+state_topic=/world/robot_ci_pick_place/model/panda/joint_state
+date=2026-10-01T15:42:16Z
+
+=== baseline joint state (settled under gravity) ===
+      "joint1"       -0.001053
+      "joint2"       -0.000250
+      "joint3"        0.000009
+      "joint4"       -0.069800
+      "joint5"        0.037016
+      "joint6"        0.001782
+      "joint7"        0.032841
+      "left_finger"   0.000141
+      "right_finger"  0.000337
+    link7 position: 0.11447280726093823 0.0032275229548659468 1.0318671551553962
+
+--- command joint1 -> 0.6 rad ---
+    measured:
+      "joint1"        0.504586
+      "joint2"       -0.001219
+      "joint3"        0.025231
+      "joint4"       -0.069800
+      "joint5"        0.038120
+      "joint6"        0.002394
+      "joint7"        0.031976
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+    link7 position: 0.0964936149150617 0.060328124802708771 1.032059246685435
+--- command joint1 -> 0.0 rad ---
+    measured:
+      "joint1"        0.095369
+      "joint2"       -0.000713
+      "joint3"       -0.023507
+      "joint4"       -0.069800
+      "joint5"        0.036978
+      "joint6"        0.001485
+      "joint7"        0.030627
+      "left_finger"   0.000141
+      "right_finger"  0.000337
+    link7 position: 0.11373634621419626 0.011523202730131743 1.0318827381695428
+--- command joint2 -> 0.6 rad ---
+    measured:
+      "joint1"        0.086499
+      "joint2"        0.598427
+      "joint3"        0.000255
+      "joint4"       -0.069800
+      "joint5"        0.031559
+      "joint6"        0.001714
+      "joint7"       -0.040638
+      "left_finger"   0.000141
+      "right_finger"  0.000337
+    link7 position: 0.48569525477449815 0.044944927633991938 0.84642867179763925
+--- command joint2 -> 0.0 rad ---
+    measured:
+      "joint1"        0.088674
+      "joint2"        0.001490
+      "joint3"       -0.014089
+      "joint4"       -0.069800
+      "joint5"        0.037750
+      "joint6"        0.004668
+      "joint7"        0.014334
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+    link7 position: 0.11514355235203766 0.011857763914122188 1.0319470407789595
+--- command joint3 -> 0.6 rad ---
+    measured:
+      "joint1"        0.088684
+      "joint2"        0.001684
+      "joint3"        0.563483
+      "joint4"       -0.069800
+      "joint5"        0.025864
+      "joint6"        0.003720
+      "joint7"       -0.033448
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+    link7 position: 0.091314928584779409 0.07135600908145534 1.0317694282539378
+--- command joint3 -> 0.0 rad ---
+    measured:
+      "joint1"        0.085214
+      "joint2"        0.002942
+      "joint3"        0.033288
+      "joint4"       -0.069800
+      "joint5"        0.013236
+      "joint6"        0.002582
+      "joint7"       -0.010938
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+    link7 position: 0.11616357980801695 0.015881881122822961 1.0315216077610785
+--- command joint4 -> 0.6 rad ---
+    measured:
+      "joint1"        0.085214
+      "joint2"        0.003555
+      "joint3"        0.033110
+      "joint4"       -0.069800
+      "joint5"        0.037524
+      "joint6"        0.005801
+      "joint7"        0.031848
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+    link7 position: 0.11512913128581204 0.016887326903088251 1.032012112913435
+--- command joint4 -> 0.0 rad ---
+    measured:
+      "joint1"        0.083039
+      "joint2"       -0.001938
+      "joint3"        0.035117
+      "joint4"       -0.069800
+      "joint5"        0.036939
+      "joint6"        0.009133
+      "joint7"        0.019129
+      "left_finger"   0.000141
+      "right_finger"  0.000337
+    link7 position: 0.1121676262746405 0.016525345051377371 1.0327253486420886
+--- command joint5 -> 0.6 rad ---
+    measured:
+      "joint1"        0.085214
+      "joint2"       -0.002909
+      "joint3"        0.022364
+      "joint4"       -0.069800
+      "joint5"        0.659950
+      "joint6"        0.011706
+      "joint7"        0.044486
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+    link7 position: 0.087654642255003523 0.063689748783872346 1.0343178671664646
+--- command joint5 -> 0.0 rad ---
+    measured:
+      "joint1"        0.085214
+      "joint2"       -0.002294
+      "joint3"        0.021245
+      "joint4"       -0.069800
+      "joint5"        0.058440
+      "joint6"        0.026922
+      "joint7"        0.030440
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+      "joint1"        0.083039
+      "joint2"       -0.002385
+      "joint3"        0.023420
+      "joint4"       -0.069800
+      "joint5"        0.057079
+      "joint6"        0.027365
+      "joint7"        0.029133
+      "left_finger"   0.000141
+      "right_finger"  0.000337
+    link7 position: 0.11059876604440433 0.017031035666150274 1.0367327615294926
+--- command joint6 -> 0.6 rad ---
+    measured:
+      "joint1"        0.083039
+      "joint2"       -0.006329
+      "joint3"        0.023420
+      "joint4"       -0.069800
+      "joint5"       -0.033518
+      "joint6"        0.892698
+      "joint7"        0.028545
+      "left_finger"   0.000141
+      "right_finger"  0.000337
+    link7 position: 0.0801220856483269 0.00637083329820598 1.1040541300953919
+--- command joint6 -> 0.0 rad ---
+    measured:
+      "joint1"        0.085214
+      "joint2"       -0.004929
+      "joint3"        0.021245
+      "joint4"       -0.069800
+      "joint5"       -0.049290
+      "joint6"        0.825818
+      "joint7"        0.002389
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+    link7 position: 0.08921437150456768 0.0065366962999178213 1.0965540171716839
+--- command joint7 -> 0.6 rad ---
+    measured:
+      "joint1"        0.083039
+      "joint2"       -0.001072
+      "joint3"        0.023420
+      "joint4"       -0.069800
+      "joint5"       -0.035070
+      "joint6"        0.827450
+      "joint7"        0.608491
+      "left_finger"   0.000141
+      "right_finger"  0.000337
+    link7 position: 0.090082015231018886 0.0077573539383593015 1.0980834670990589
+--- command joint7 -> 0.0 rad ---
+    measured:
+      "joint1"        0.085214
+      "joint2"       -0.003899
+      "joint3"        0.021245
+      "joint4"       -0.069800
+      "joint5"       -0.040812
+      "joint6"        0.881552
+      "joint7"       -0.015102
+      "left_finger"   0.000341
+      "right_finger"  0.000137
+    link7 position: 0.085175754273222992 0.0068372562386684876 1.1012671946764385
+--- command left_finger -> 0.04 rad ---
+    measured:
+      "joint1"        0.083039
+      "joint2"       -0.001214
+      "joint3"        0.023420
+      "joint4"       -0.069800
+      "joint5"       -0.041430
+      "joint6"        0.889877
+      "joint7"       -0.025237
+      "left_finger"   0.036068
+      "right_finger"  0.000337
+    link7 position: 0.08590197819921741 0.0069434578454092843 1.1021304068217432
+--- command right_finger -> 0.04 rad ---
+    measured:
+      "joint1"        0.083039
+      "joint2"       -0.003179
+      "joint3"        0.023420
+      "joint4"       -0.069800
+      "joint5"       -0.041943
+      "joint6"        0.900603
+      "joint7"       -0.028346
+      "left_finger"   0.036128
+      "right_finger"  0.035488
+    link7 position: 0.084364176214876352 0.0067414747845759848 1.1025515968758555
+
+=== final joint state ===
+      "joint1"        0.085214
+      "joint2"       -0.002535
+      "joint3"        0.021245
+      "joint4"       -0.069800
+      "joint5"       -0.040767
+      "joint6"        0.886226
+      "joint7"       -0.029995
+      "left_finger"   0.036325
+      "right_finger"  0.035288
+    link7 position: 0.085398234157764819 0.0068215179621802235 1.1019721610227862

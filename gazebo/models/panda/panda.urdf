@@ -333,19 +333,6 @@
     Joint names are ROBOT CI's own (joint1..joint7), so the control path needs
     no name translation.
   -->
-  <gazebo>
-    <plugin filename="gz-sim-joint-position-controller-system"
-            name="gz::sim::systems::JointPositionController">
-      <joint_name>joint1</joint_name>
-      <joint_name>joint2</joint_name>
-      <joint_name>joint3</joint_name>
-      <joint_name>joint4</joint_name>
-      <joint_name>joint5</joint_name>
-      <joint_name>joint6</joint_name>
-      <joint_name>joint7</joint_name>
-      <joint_name>left_finger</joint_name>
-      <joint_name>right_finger</joint_name>
-    </plugin>
-  </gazebo>
+
 
 </robot>

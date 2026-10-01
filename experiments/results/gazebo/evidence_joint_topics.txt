@@ -1,0 +1,9 @@
+/model/panda/joint/joint1/0/cmd_pos
+/model/panda/joint/joint2/0/cmd_pos
+/model/panda/joint/joint3/0/cmd_pos
+/model/panda/joint/joint4/0/cmd_pos
+/model/panda/joint/joint5/0/cmd_pos
+/model/panda/joint/joint6/0/cmd_pos
+/model/panda/joint/joint7/0/cmd_pos
+/model/panda/joint/left_finger/0/cmd_pos
+/model/panda/joint/right_finger/0/cmd_pos
