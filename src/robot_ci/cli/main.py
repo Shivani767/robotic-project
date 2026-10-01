@@ -382,7 +382,14 @@ def backend_list() -> None:
 def backend_probe(
     name: Annotated[str, typer.Argument(help="Backend name to probe.")],
 ) -> None:
-    """Construct one backend and report its capabilities."""
+    """Construct one backend and report its capabilities.
+
+    Construction is what is checked, and that is deliberate: ``probe`` answers
+    "does this backend exist here and what does it support". Whether it can also
+    *run* here is separate, reported by ``backend list`` as "constructible,
+    unusable here" -- a backend that loads but needs a runtime this machine
+    lacks is more useful to know about than to hide.
+    """
     result = probe_backend(name)
     if not result["available"]:
         fail(f"backend {name!r} is unavailable: {result['reason']}", code=4)

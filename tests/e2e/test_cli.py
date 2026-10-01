@@ -470,10 +470,44 @@ def test_test_command_runs_a_real_gate_on_the_mock_backend() -> None:
 
 
 def test_unavailable_backend_exit_code() -> None:
-    """A missing backend must be distinguishable from a config error."""
+    """A missing backend must be distinguishable from a config error.
+
+    ``probe`` fails on ``available``, not on ``usable``: the command answers
+    "does this backend exist here", and a backend that is registered and
+    constructible but cannot run on this machine is still constructible. The
+    runnable half is reported separately by ``backend list``.
+
+    An unknown name is the case that must fail, and ``gazebo`` used to be the
+    subject of this test only because it was the one registered name with no
+    implementation. It now has an implementation, so the test follows the thing
+    it is actually about rather than whatever happens to be missing today.
+    """
     assert EXIT_BACKEND_UNAVAILABLE != EXIT_CONFIG_ERROR
-    result = invoke("backend", "probe", "gazebo")
+    result = invoke("backend", "probe", "no_such_backend")
     assert result.exit_code == EXIT_BACKEND_UNAVAILABLE
+    assert "no_such_backend" in result.output
+
+
+def test_constructible_but_unrunnable_backend_probes_successfully() -> None:
+    """Constructible is not the same as runnable, and the CLI must not conflate them.
+
+    ``GazeboBackend`` registers and constructs on any machine, but needs a live
+    Gazebo runtime to run. ``probe`` therefore exits 0 while ``is_operational``
+    is False. Collapsing the two would tell a user on a Mac that the Gazebo
+    backend works, and the failure would only surface on the first episode.
+    """
+    from robot_ci.simulation.gazebo import GazeboBackend
+
+    backend = GazeboBackend()
+    try:
+        operational, reason = backend.is_operational()
+    finally:
+        backend.close_all()
+    if operational:  # running where Gazebo exists
+        assert reason == ""
+    else:
+        assert "Gazebo" in reason
+    assert invoke("backend", "probe", "gazebo").exit_code == EXIT_OK
 
 
 def test_condition_value_reduces_a_cell_label_to_the_swept_axis() -> None:
