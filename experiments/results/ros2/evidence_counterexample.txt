@@ -70,3 +70,7 @@ average rate: 5.085
 	min: 0.192s max: 0.236s std dev: 0.00769s window: 30
 average rate: 5.087
 	min: 0.192s max: 0.236s std dev: 0.00706s window: 36
+
+--- episode artifact ---
+experiments/results/ros2/depth_noise_8mm_seed3_policy_v1_failure.json
+experiments/results/ros2/nominal_seed3_policy_v1_success.json

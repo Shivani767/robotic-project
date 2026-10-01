@@ -80,5 +80,12 @@ cmake-build-*/
 !experiments/results/ros2/*.json
 !experiments/results/ros2/*.txt
 experiments/results/ros2/bag_*/
+
+# Gazebo execution records, same discipline.
+!experiments/results/gazebo/
+!experiments/results/gazebo/*.json
+!experiments/results/gazebo/*.txt
+!experiments/results/gazebo/*.sdf
+
 *.mcap
 *.db3

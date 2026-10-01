@@ -1,0 +1,24 @@
+=== gz sim --versions ===
+8.15.0
+
+=== gz topic -l (world loaded headless) ===
+/clock
+/gazebo/resource_paths
+/sensors/marker
+/stats
+/world/robot_ci_pick_place/clock
+/world/robot_ci_pick_place/dynamic_pose/info
+/world/robot_ci_pick_place/model/camera_rig/link/link/sensor/robot_ci_camera/camera_info
+/world/robot_ci_pick_place/model/camera_rig/link/link/sensor/robot_ci_camera/depth_image
+/world/robot_ci_pick_place/model/camera_rig/link/link/sensor/robot_ci_camera/image
+/world/robot_ci_pick_place/model/camera_rig/link/link/sensor/robot_ci_camera/points
+/world/robot_ci_pick_place/pose/info
+/world/robot_ci_pick_place/scene/deletion
+/world/robot_ci_pick_place/scene/info
+/world/robot_ci_pick_place/state
+/world/robot_ci_pick_place/stats
+/world/robot_ci_pick_place/light_config
+/world/robot_ci_pick_place/material_color
+
+=== sdf validation errors ===
+0
