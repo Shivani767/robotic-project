@@ -1,0 +1,530 @@
+{
+  "execution": {
+    "backend": "mujoco+ros2",
+    "config_hash": "sha256:1eb35c15c0391093b5bee9a3f34acc27265752a62bd30dac76bba4ca9692df3c",
+    "git_commit": "b46c9ba8008fb3b85e18d0c58c27a2a2aa230cb3",
+    "mujoco_version": "3.14.0",
+    "policy": "policy_v1",
+    "python_version": "3.12.3",
+    "recorded_utc": "2026-10-01T14:00:48Z",
+    "ros2": {
+      "machine": "aarch64",
+      "missing_modules": [],
+      "platform": "Linux-6.12.76-linuxkit-aarch64-with-glibc2.39",
+      "python_version": "3.12.3",
+      "rclpy_version": "present",
+      "ros2_available": true,
+      "ros2_reason": "",
+      "ros_distro": "jazzy",
+      "ros_prefix": "/workspace/ros2_ws/install/robot_ci_bringup:/workspace/ros2_ws/install/robot_ci_adapters:/opt/ros/jazzy"
+    },
+    "ros_packages": {},
+    "scenario_id": "nominal",
+    "seed": 3
+  },
+  "graph": {
+    "commands_applied": 76,
+    "commands_received": 76,
+    "lock_step": true,
+    "messages_published": {
+      "clock": 76,
+      "command": 76,
+      "depth": 76,
+      "ee_pose": 76,
+      "joint_states": 76,
+      "observation": 76,
+      "rgb": 76,
+      "tf": 76
+    },
+    "node_name": "robot_ci_simulation",
+    "surplus_commands": 0
+  },
+  "result": {
+    "backend": "mujoco+ros2",
+    "conditions": {
+      "camera_latency_ms": 0.0,
+      "clutter_count": 0,
+      "depth_bias_mm": 0.0,
+      "depth_dropout_percent": 0.0,
+      "depth_noise_mm": 0.0,
+      "family": "nominal",
+      "joint_noise_std_rad": 0.0,
+      "joint_offset_rad": 0.0,
+      "lighting_lux": 500.0,
+      "object_friction": 0.6,
+      "obstacle_count": 0,
+      "rgb_blur_px": 0.0,
+      "rgb_brightness_percent": 100.0,
+      "rgb_occlusion_percent": 0.0,
+      "scenario_id": "nominal",
+      "seed": 42,
+      "task": "pick_and_place"
+    },
+    "config_hash": "sha256:1eb35c15c0391093b5bee9a3f34acc27265752a62bd30dac76bba4ca9692df3c",
+    "duration_wall_s": 17.3645,
+    "experiment_id": "ros2",
+    "git_commit": "b46c9ba8008fb3b85e18d0c58c27a2a2aa230cb3",
+    "metrics": {
+      "collision": 0.0,
+      "collision_count": 0.0,
+      "completion_time_s": 3.7999999999999945,
+      "final_distance_m": 0.012297707387378565,
+      "grasp_error_m": 0.001778432451637871,
+      "grasp_success": 1.0,
+      "ik_converged": 1.0,
+      "object_lift_m": 0.051927294546882684,
+      "orientation_error_rad": 0.5388751261203069,
+      "perception_confidence": 1.0,
+      "placement_error_m": 0.012297707387378565,
+      "placement_success": 1.0,
+      "planning_time_ms": 957.5677190014176,
+      "pose_sigma_m": 0.0020000000000000005,
+      "position_error_m": 0.012297707387378565,
+      "recovery_count": 0.0,
+      "safety_violation": 0.0,
+      "sensor_consistency": 0.8333333333333334,
+      "steps": 76.0,
+      "task_success": 1.0,
+      "timeout": 0.0,
+      "trajectory_length_m": 0.7889827088416612
+    },
+    "policy": "policy_v1",
+    "run_id": "nominal__policy_v1__s3",
+    "scenario_id": "nominal",
+    "seed": 3,
+    "status": "success",
+    "steps": 76,
+    "success": true
+  },
+  "scenario": {
+    "camera_look_at": {
+      "schema_version": "1.0.0",
+      "x": 0.0,
+      "y": 0.05,
+      "z": 0.04
+    },
+    "camera_position": {
+      "schema_version": "1.0.0",
+      "x": 0.55,
+      "y": -0.15,
+      "z": 0.5
+    },
+    "description": "Uncorrupted control condition.",
+    "environment": {
+      "background": "gray",
+      "clutter_count": 0,
+      "clutter_separation_m": 0.12,
+      "gravity_mps2": 9.81,
+      "lighting_lux": 500.0,
+      "lighting_uniformity": 1.0,
+      "object_friction": 0.6,
+      "object_spawn_radius_m": [
+        0.05,
+        0.13
+      ],
+      "obstacle_count": 0,
+      "obstacle_height_m": 0.12,
+      "schema_version": "1.0.0",
+      "table_extent_m": [
+        0.5,
+        0.35
+      ],
+      "table_height_m": 0.0,
+      "workspace_center": [
+        0.0,
+        0.1
+      ]
+    },
+    "family": "nominal",
+    "objects": [
+      {
+        "category": "cube",
+        "color_rgb": [
+          0.85,
+          0.15,
+          0.15
+        ],
+        "friction": null,
+        "id": "target_cube",
+        "is_clutter": false,
+        "is_target": true,
+        "orientation": {
+          "schema_version": "1.0.0",
+          "w": 1.0,
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "position": null,
+        "schema_version": "1.0.0",
+        "size_m": 0.008
+      }
+    ],
+    "render_depth": true,
+    "render_rgb": true,
+    "render_segmentation": false,
+    "robot": {
+      "arm_max_joint_step_rad": 0.0,
+      "base_position": {
+        "schema_version": "1.0.0",
+        "x": 0.0,
+        "y": -0.3,
+        "z": 0.0
+      },
+      "control_hz": 20.0,
+      "controller": "position",
+      "dh_parameters": [
+        [
+          0.0,
+          0.333,
+          0.0
+        ],
+        [
+          0.0,
+          0.0,
+          -1.5707963267948966
+        ],
+        [
+          0.0,
+          0.316,
+          1.5707963267948966
+        ],
+        [
+          0.0825,
+          0.0,
+          1.5707963267948966
+        ],
+        [
+          -0.0825,
+          0.384,
+          -1.5707963267948966
+        ],
+        [
+          0.0,
+          0.0,
+          1.5707963267948966
+        ],
+        [
+          0.088,
+          0.0,
+          1.5707963267948966
+        ],
+        [
+          0.0,
+          0.107,
+          0.0
+        ]
+      ],
+      "dof": 7,
+      "gripper_closed_separation_m": 0.011,
+      "gripper_closure_ramp_enabled": false,
+      "gripper_control_mode": "position",
+      "gripper_max_closure_speed_m_s": 0.05,
+      "gripper_target_contact_force_n": 1.0,
+      "has_force_torque": true,
+      "home_position": [
+        0.9239,
+        0.3503,
+        1.3375,
+        -2.1517,
+        -0.8058,
+        1.4429,
+        -0.8909
+      ],
+      "limits": {
+        "lower": [
+          -2.8973,
+          -1.7628,
+          -2.8973,
+          -3.0718,
+          -2.8973,
+          -0.0175,
+          -2.8973
+        ],
+        "max_effort": [
+          87.0,
+          87.0,
+          87.0,
+          87.0,
+          12.0,
+          12.0,
+          12.0
+        ],
+        "max_velocity": [
+          2.175,
+          2.175,
+          2.175,
+          2.175,
+          2.61,
+          2.61,
+          2.61
+        ],
+        "schema_version": "1.0.0",
+        "upper": [
+          2.8973,
+          1.7628,
+          2.8973,
+          -0.0698,
+          2.8973,
+          3.7525,
+          2.8973
+        ]
+      },
+      "links": [
+        {
+          "length": 0.14,
+          "name": "link0",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.0
+          },
+          "parent": -1,
+          "radius": 0.08,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.12,
+          "name": "link1",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.07
+          },
+          "parent": 0,
+          "radius": 0.06,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.13,
+          "name": "link2",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.15
+          },
+          "parent": 1,
+          "radius": 0.06,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.12,
+          "name": "link3",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.15
+          },
+          "parent": 2,
+          "radius": 0.055,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.1,
+          "name": "link4",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.1
+          },
+          "parent": 3,
+          "radius": 0.05,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.09,
+          "name": "link5",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.1
+          },
+          "parent": 4,
+          "radius": 0.045,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.06,
+          "name": "link6",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.08
+          },
+          "parent": 5,
+          "radius": 0.04,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.05,
+          "name": "hand",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.0,
+            "z": 0.06
+          },
+          "parent": 6,
+          "radius": 0.035,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.03,
+          "name": "left_finger",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": 0.02,
+            "z": 0.045
+          },
+          "parent": 7,
+          "radius": 0.012,
+          "schema_version": "1.0.0"
+        },
+        {
+          "length": 0.03,
+          "name": "right_finger",
+          "offset": {
+            "schema_version": "1.0.0",
+            "x": 0.0,
+            "y": -0.02,
+            "z": 0.045
+          },
+          "parent": 7,
+          "radius": 0.012,
+          "schema_version": "1.0.0"
+        }
+      ],
+      "max_gripper_force_n": 20.0,
+      "max_gripper_width_m": 0.08,
+      "model": "panda",
+      "pad_half_height_m": 0.0085,
+      "pad_offset_from_tcp_m": 0.0005,
+      "schema_version": "1.0.0"
+    },
+    "scenario_id": "nominal",
+    "schema_version": "1.0.0",
+    "seed": 42,
+    "sensors": {
+      "camera": {
+        "enabled": false,
+        "extrinsic_mode": "none",
+        "extrinsic_rotation_deg": 0.0,
+        "extrinsic_translation_m": 0.0,
+        "focal_scale": 1.0,
+        "latency": {
+          "delay_ms": 0.0,
+          "dropped_frame_probability": 0.0,
+          "enabled": false,
+          "jitter_ms": 0.0,
+          "schema_version": "1.0.0"
+        },
+        "principal_point_shift_px": 0.0,
+        "schema_version": "1.0.0"
+      },
+      "control_hz": 20.0,
+      "depth": {
+        "bias_mm": 0.0,
+        "dropout_percent": 0.0,
+        "enabled": false,
+        "max_range_m": 6.0,
+        "min_range_m": 0.05,
+        "quantization_mm": 0.0,
+        "schema_version": "1.0.0",
+        "sigma_mm": 0.0,
+        "temporal_lag_frames": 0
+      },
+      "force_torque": {
+        "bias_n": 0.0,
+        "dropout_percent": 0.0,
+        "enabled": false,
+        "noise_std_n": 0.0,
+        "schema_version": "1.0.0",
+        "torque_bias_nm": 0.0
+      },
+      "intrinsics": {
+        "cx": 80.0,
+        "cy": 60.0,
+        "fx": 140.0,
+        "fy": 140.0,
+        "height_px": 120,
+        "schema_version": "1.0.0",
+        "width_px": 160
+      },
+      "rgb": {
+        "blur_kernel_px": 0,
+        "brightness_scale": 1.0,
+        "color_shift_rgb": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "contrast_scale": 1.0,
+        "enabled": false,
+        "gaussian_noise_mean": 0.0,
+        "gaussian_noise_std": 0.0,
+        "motion_blur_px": 0.0,
+        "occlusion_percent": 0.0,
+        "schema_version": "1.0.0"
+      },
+      "robot_state": {
+        "enabled": false,
+        "encoder_delay_frames": 0,
+        "gripper_force_scale": 1.0,
+        "gripper_stuck": false,
+        "joint_noise_std_rad": 0.0,
+        "joint_offset_rad": 0.0,
+        "offset_joint_indices": [],
+        "schema_version": "1.0.0"
+      },
+      "schema_version": "1.0.0",
+      "seed": 0
+    },
+    "task": {
+      "approach_height_m": 0.1,
+      "grasp": {
+        "hold_steps": 5,
+        "schema_version": "1.0.0",
+        "success_orientation_tolerance_rad": 0.5,
+        "success_position_tolerance_m": 0.02
+      },
+      "grasp_height_m": 0.012,
+      "max_steps": 300,
+      "name": "pick_and_place",
+      "pick_and_place": {
+        "hold_steps": 5,
+        "min_lift_height_m": 0.05,
+        "place_orientation_tolerance_rad": 0.6,
+        "place_position_tolerance_m": 0.05,
+        "require_release": true,
+        "schema_version": "1.0.0"
+      },
+      "schema_version": "1.0.0",
+      "target_pose": {
+        "orientation": {
+          "schema_version": "1.0.0",
+          "w": 1.0,
+          "x": 0.0,
+          "y": 0.0,
+          "z": 0.0
+        },
+        "position": {
+          "schema_version": "1.0.0",
+          "x": 0.2,
+          "y": 0.15,
+          "z": 0.008
+        },
+        "schema_version": "1.0.0"
+      },
+      "timeout_s": 30.0
+    }
+  },
+  "wall_clock_s": 17.479
+}

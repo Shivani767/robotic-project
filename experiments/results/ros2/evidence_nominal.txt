@@ -1,0 +1,75 @@
+--- ros2 node list ---
+/rosbag2_recorder
+
+--- ros2 topic list ---
+/clock
+/events/write_split
+/parameter_events
+/robot_ci/camera/depth
+/robot_ci/camera/rgb
+/robot_ci/command
+/robot_ci/contact_state
+/robot_ci/ee_pose
+/robot_ci/episode_result
+/robot_ci/joint_states
+/robot_ci/observation
+/robot_ci/tf
+/rosout
+
+--- ros2 topic info ---
+$ ros2 topic info /clock
+Type: rosgraph_msgs/msg/Clock
+Publisher count: 1
+Subscription count: 8
+$ ros2 topic info /robot_ci/joint_states
+Type: sensor_msgs/msg/JointState
+Publisher count: 1
+Subscription count: 4
+$ ros2 topic info /robot_ci/ee_pose
+Type: geometry_msgs/msg/PoseStamped
+Publisher count: 1
+Subscription count: 4
+$ ros2 topic info /robot_ci/tf
+Type: geometry_msgs/msg/TransformStamped
+Publisher count: 1
+Subscription count: 4
+$ ros2 topic info /robot_ci/camera/rgb
+Type: sensor_msgs/msg/Image
+Publisher count: 1
+Subscription count: 4
+$ ros2 topic info /robot_ci/camera/depth
+Type: sensor_msgs/msg/Image
+Publisher count: 1
+Subscription count: 4
+$ ros2 topic info /robot_ci/contact_state
+Type: std_msgs/msg/Bool
+Publisher count: 1
+Subscription count: 4
+$ ros2 topic info /robot_ci/observation
+Type: std_msgs/msg/String
+Publisher count: 1
+Subscription count: 7
+$ ros2 topic info /robot_ci/command
+Type: std_msgs/msg/String
+Publisher count: 3
+Subscription count: 5
+$ ros2 topic info /robot_ci/episode_result
+Type: std_msgs/msg/String
+Publisher count: 1
+Subscription count: 4
+
+--- ros2 topic hz /robot_ci/joint_states (8s sample) ---
+average rate: 4.147
+	min: 0.190s max: 0.542s std dev: 0.12287s window: 7
+average rate: 4.584
+	min: 0.189s max: 0.542s std dev: 0.09352s window: 13
+average rate: 4.799
+	min: 0.184s max: 0.542s std dev: 0.07870s window: 19
+average rate: 4.427
+	min: 0.184s max: 0.720s std dev: 0.12484s window: 24
+average rate: 4.599
+	min: 0.182s max: 0.720s std dev: 0.11294s window: 30
+
+--- episode artifact ---
+experiments/results/ros2/nominal_seed3_policy_v1_success.json
+scripts/ros2_evidence.sh: line 95: python: command not found

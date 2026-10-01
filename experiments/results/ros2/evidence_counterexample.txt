@@ -1,0 +1,72 @@
+--- ros2 node list ---
+
+--- ros2 topic list ---
+/clock
+/events/write_split
+/parameter_events
+/robot_ci/camera/depth
+/robot_ci/camera/rgb
+/robot_ci/command
+/robot_ci/contact_state
+/robot_ci/ee_pose
+/robot_ci/episode_result
+/robot_ci/joint_states
+/robot_ci/observation
+/robot_ci/tf
+/rosout
+
+--- ros2 topic info ---
+$ ros2 topic info /clock
+Type: rosgraph_msgs/msg/Clock
+Publisher count: 1
+Subscription count: 3
+$ ros2 topic info /robot_ci/joint_states
+Type: sensor_msgs/msg/JointState
+Publisher count: 1
+Subscription count: 1
+$ ros2 topic info /robot_ci/ee_pose
+Type: geometry_msgs/msg/PoseStamped
+Publisher count: 1
+Subscription count: 1
+$ ros2 topic info /robot_ci/tf
+Type: geometry_msgs/msg/TransformStamped
+Publisher count: 1
+Subscription count: 1
+$ ros2 topic info /robot_ci/camera/rgb
+Type: sensor_msgs/msg/Image
+Publisher count: 1
+Subscription count: 1
+$ ros2 topic info /robot_ci/camera/depth
+Type: sensor_msgs/msg/Image
+Publisher count: 1
+Subscription count: 1
+$ ros2 topic info /robot_ci/contact_state
+Type: std_msgs/msg/Bool
+Publisher count: 1
+Subscription count: 1
+$ ros2 topic info /robot_ci/observation
+Type: std_msgs/msg/String
+Publisher count: 1
+Subscription count: 2
+$ ros2 topic info /robot_ci/command
+Type: std_msgs/msg/String
+Publisher count: 1
+Subscription count: 2
+$ ros2 topic info /robot_ci/episode_result
+Type: std_msgs/msg/String
+Publisher count: 1
+Subscription count: 1
+
+--- ros2 topic hz /robot_ci/joint_states (8s sample) ---
+average rate: 5.138
+	min: 0.194s max: 0.195s std dev: 0.00039s window: 7
+average rate: 5.053
+	min: 0.193s max: 0.236s std dev: 0.01154s window: 12
+average rate: 5.065
+	min: 0.193s max: 0.236s std dev: 0.00960s window: 18
+average rate: 5.085
+	min: 0.192s max: 0.236s std dev: 0.00845s window: 24
+average rate: 5.085
+	min: 0.192s max: 0.236s std dev: 0.00769s window: 30
+average rate: 5.087
+	min: 0.192s max: 0.236s std dev: 0.00706s window: 36

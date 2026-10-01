@@ -1,0 +1,50 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>robot_ci_adapters</name>
+  <version>0.1.0</version>
+  <description>
+    ROS 2 nodes that expose the ROBOT CI MuJoCo experiment as a live process
+    graph: a simulation node that owns MuJoCo and publishes state, and a policy
+    node that runs the project's own policy and publishes commands.
+  </description>
+  <maintainer email="noreply@example.com">Robotics CI contributors</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <!--
+    The node implementations live in the `robot-ci` Python package so they are
+    versioned, linted and unit-tested with everything else, and so there is
+    exactly one copy of the observation/command conversion. This package is the
+    ROS 2 packaging wrapper that registers them as executables: it holds no
+    logic.
+
+    `robot_ci_interfaces` is deliberately absent. Every message on the graph is
+    a standard ROS 2 type (sensor_msgs/JointState, sensor_msgs/Image,
+    geometry_msgs/PoseStamped, geometry_msgs/TransformStamped,
+    rosgraph_msgs/Clock, std_msgs/String). The two ROBOT CI models with no
+    standard equivalent, Observation and Action, travel as canonical JSON in
+    std_msgs/String, which keeps the graph inspectable with plain
+    `ros2 topic echo` and avoids a custom message package that would need its
+    own versioning.
+  -->
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>ros2launch</exec_depend>
+  <exec_depend>rosgraph_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

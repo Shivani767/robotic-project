@@ -1,0 +1,16 @@
+# Keep the image build fast and hermetic: only source is needed, and the
+# bind-mounted workspace is what actually runs.
+.venv/
+.git/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+**/__pycache__/
+*.pyc
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+experiments/results/
+*.bag
+*.db3
+*.mcap

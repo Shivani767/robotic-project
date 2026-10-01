@@ -66,3 +66,19 @@ cmake-build-*/
 .idea/
 .vscode/
 *.swp
+
+# ROS 2 execution records.
+#
+# Same discipline as the results directory above: the artifacts and the evidence
+# transcripts are claims and are kept, the recordings are not. A 76-tick episode
+# writes a few megabytes of mcap, and `ros2 bag record` reproduces it on demand.
+#
+# Order matters. `experiments/results/*` ignores the `ros2` directory itself, so
+# the exceptions have to re-include the directory before its contents can be
+# considered, and the bag patterns come last so they win.
+!experiments/results/ros2/
+!experiments/results/ros2/*.json
+!experiments/results/ros2/*.txt
+experiments/results/ros2/bag_*/
+*.mcap
+*.db3

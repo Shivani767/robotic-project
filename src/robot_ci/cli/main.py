@@ -17,6 +17,7 @@ from rich.panel import Panel
 from rich.table import Table
 
 from robot_ci.cli.common import (
+    EXIT_BACKEND_UNAVAILABLE,
     EXIT_OK,
     EXIT_REGRESSION,
     console,
@@ -42,10 +43,107 @@ scenario_app = typer.Typer(help="Inspect and generate scenarios.", no_args_is_he
 experiment_app = typer.Typer(help="Run and compare experiments.", no_args_is_help=True)
 backend_app = typer.Typer(help="Inspect simulator backends.", no_args_is_help=True)
 counterexample_app = typer.Typer(help="Search, minimize and reproduce counterexamples.", no_args_is_help=True)
+ros2_app = typer.Typer(help="Run the experiment through a live ROS 2 process graph.", no_args_is_help=True)
 app.add_typer(scenario_app, name="scenario")
 app.add_typer(experiment_app, name="experiment")
 app.add_typer(backend_app, name="backend")
 app.add_typer(counterexample_app, name="counterexample")
+app.add_typer(ros2_app, name="ros2")
+
+
+# ------------------------------------------------------------------ ros2 info
+@ros2_app.command("info")
+@handle_errors
+def ros2_info() -> None:
+    """Report whether this machine can run a ROS 2 process graph.
+
+    Exits non-zero when ROS 2 is unusable, so a CI job or a preflight can gate
+    on it. It never falls back to a simulated transport.
+    """
+    from robot_ci.ros2.dependencies import detect, install_hint
+
+    environment = detect()
+    table = Table(title="ROS 2 availability", show_header=True, header_style="bold")
+    table.add_column("property")
+    table.add_column("value")
+    table.add_row("ros2 available", "yes" if environment.available else "no")
+    table.add_row("ROS_DISTRO", environment.distro or "unset")
+    table.add_row("rclpy", environment.rclpy_version or "absent")
+    table.add_row("python", environment.python_version)
+    if environment.missing:
+        table.add_row("missing modules", ", ".join(environment.missing))
+    console.print(table)
+
+    if not environment.available:
+        error_console.print(f"[bold yellow]{environment.reason}[/]")
+        error_console.print(install_hint(environment.distro or "jazzy"))
+        raise typer.Exit(EXIT_BACKEND_UNAVAILABLE)
+
+
+# ------------------------------------------------------------------- ros2 run
+@ros2_app.command("run")
+@handle_errors
+def ros2_run(
+    policy: Annotated[str, typer.Option("--policy", help="Policy arm to evaluate.")] = "policy_v1",
+    seed: Annotated[int, typer.Option("--seed", help="Episode seed.")] = 3,
+    depth_noise_mm: Annotated[
+        float | None,
+        typer.Option("--depth-noise-mm", help="Depth camera sigma in mm; 8.0 is the known counterexample."),
+    ] = None,
+    backend: Annotated[str, typer.Option("--backend", help="Simulator backend.")] = "mujoco",
+    images: Annotated[bool, typer.Option("--images/--no-images", help="Publish camera frames.")] = True,
+    image_stride: Annotated[int, typer.Option("--image-stride", help="Publish every Nth tick.")] = 1,
+    timeout: Annotated[float, typer.Option("--timeout", help="Seconds to wait for a command.")] = 30.0,
+    output: Annotated[Path | None, typer.Option("--output", "-o", help="Artifact directory.")] = None,
+) -> None:
+    """Run one episode with the policy in a separate ROS 2 node.
+
+    The policy must be reachable: start `robot_ci_policy_node` first (or use
+    `ros2 launch robot_ci_bringup panda_pick_place.launch.py`, which starts
+    both). This command owns MuJoCo and applies only the commands that arrive on
+    /robot_ci/command.
+    """
+    from robot_ci.core.errors import BackendUnavailableError
+    from robot_ci.ros2.dependencies import detect, install_hint
+    from robot_ci.ros2.execution import ROS2_RESULTS, ros2_artifact, run_episode_over_ros
+
+    environment = detect()
+    if not environment.available:
+        error_console.print(f"[bold yellow]{environment.reason}[/]")
+        error_console.print(install_hint(environment.distro or "jazzy"))
+        raise typer.Exit(EXIT_BACKEND_UNAVAILABLE)
+
+    try:
+        record = run_episode_over_ros(
+            policy_name=policy,
+            seed=seed,
+            depth_noise_mm=depth_noise_mm,
+            backend_name=backend,
+            publish_images=images,
+            image_stride=image_stride,
+            command_timeout_s=timeout,
+        )
+    except BackendUnavailableError as exc:
+        error_console.print(f"[bold red]{exc.message}[/]")
+        raise typer.Exit(EXIT_BACKEND_UNAVAILABLE) from exc
+
+    written = ros2_artifact(record, output or ROS2_RESULTS)
+    result = record["result"]
+    execution = record["execution"]
+
+    table = Table(title="ROS 2 episode", show_header=True, header_style="bold")
+    table.add_column("property")
+    table.add_column("value")
+    table.add_row("status", str(result["status"]))
+    table.add_row("success", str(result["success"]))
+    table.add_row("steps", str(result["steps"]))
+    table.add_row("config_hash", execution["config_hash"])
+    table.add_row("ros distro", execution["ros2"].get("ros_distro") or "unset")
+    table.add_row("commands over ROS", str(record["graph"]["commands_applied"]))
+    console.print(table)
+    console.print(f"artifact: {written}")
+
+    raise typer.Exit(EXIT_OK if result["success"] else EXIT_REGRESSION)
 
 
 # ---------------------------------------------------------------- version
