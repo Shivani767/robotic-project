@@ -27,6 +27,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
+from xml.etree import ElementTree
 from xml.sax.saxutils import escape
 
 from robot_ci.models.scenario import ScenarioConfig
@@ -153,8 +154,8 @@ def _joint_controller_plugin() -> str:
     blocks = []
     for name in names:
         blocks.append(
-            "    <plugin filename=\"gz-sim-joint-position-controller-system\"\n"
-            "            name=\"gz::sim::systems::JointPositionController\">\n"
+            '    <plugin filename="gz-sim-joint-position-controller-system"\n'
+            '            name="gz::sim::systems::JointPositionController">\n'
             f"      <joint_name>{name}</joint_name>\n"
             "      <p_gain>1000.0</p_gain>\n"
             "      <i_gain>0.0</i_gain>\n"
@@ -166,11 +167,146 @@ def _joint_controller_plugin() -> str:
     # /world/<world>/model/<model>/joint_state. That topic is what carries
     # Gazebo's physics back to ROBOT CI and to the live viewer.
     state_publisher = (
-        "    <plugin filename=\"gz-sim-joint-state-publisher-system\"\n"
-        "            name=\"gz::sim::systems::JointStatePublisher\">\n"
+        '    <plugin filename="gz-sim-joint-state-publisher-system"\n'
+        '            name="gz::sim::systems::JointStatePublisher">\n'
         "    </plugin>"
     )
     return "\n".join([*blocks, state_publisher])
+
+
+def _rpy_to_matrix(rpy: tuple[float, float, float]) -> Any:
+    """Rotation matrix for SDF's roll-pitch-yaw (Rz * Ry * Rx)."""
+    import numpy as np
+
+    roll, pitch, yaw = rpy
+    cr, sr = np.cos(roll), np.sin(roll)
+    cp, sp = np.cos(pitch), np.sin(pitch)
+    cy, sy = np.cos(yaw), np.sin(yaw)
+    rx = np.array([[1, 0, 0], [0, cr, -sr], [0, sr, cr]], dtype=float)
+    ry = np.array([[cp, 0, sp], [0, 1, 0], [-sp, 0, cp]], dtype=float)
+    rz = np.array([[cy, -sy, 0], [sy, cy, 0], [0, 0, 1]], dtype=float)
+    return rz @ ry @ rx
+
+
+def _compose(
+    parent: tuple[tuple[float, float, float], tuple[float, float, float]],
+    child: tuple[tuple[float, float, float], tuple[float, float, float]],
+) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    """Return the pose of ``child`` expressed in the frame ``parent`` sits in."""
+    import numpy as np
+
+    parent_pos, parent_rpy = parent
+    child_pos, child_rpy = child
+    rotation = _rpy_to_matrix(parent_rpy)
+    position = np.asarray(parent_pos) + rotation @ np.asarray(child_pos)
+    matrix = rotation @ _rpy_to_matrix(child_rpy)
+    # Recover roll-pitch-yaw from the product without pulling in a transform
+    # library: with pitch in the middle column, the usual identities apply.
+    pitch = float(np.arcsin(np.clip(-matrix[2, 0], -1.0, 1.0)))
+    if abs(matrix[2, 0]) < 1 - 1e-9:
+        roll = float(np.arctan2(matrix[2, 1], matrix[2, 2]))
+        yaw = float(np.arctan2(matrix[1, 0], matrix[0, 0]))
+    else:  # gimbal lock: pitch is +/- pi/2, so roll and yaw are degenerate
+        roll = 0.0
+        yaw = float(np.arctan2(-matrix[0, 1], matrix[1, 1]))
+    return (float(position[0]), float(position[1]), float(position[2])), (roll, pitch, yaw)
+
+
+def _read_pose(element: Any) -> tuple[tuple[float, float, float], tuple[float, float, float]]:
+    """Read an element's ``<pose>`` as (position, rpy), defaulting to identity."""
+    pose = element.find("pose")
+    if pose is None or not pose.text:
+        return (0.0, 0.0, 0.0), (0.0, 0.0, 0.0)
+    values = [float(v) for v in pose.text.split()]
+    while len(values) < 6:
+        values.append(0.0)
+    return (values[0], values[1], values[2]), (values[3], values[4], values[5])
+
+
+def _flatten_link_poses(model: Any) -> int:
+    """Resolve ``relative_to`` link poses into plain model-frame poses.
+
+    ``gz sdf -p`` expresses the chain through frame references::
+
+        <joint name='joint1'><pose relative_to='panda_link0'>0 0 0.333 ...</pose>
+        <link  name='panda_link1'><pose relative_to='joint1'>0 0 0 ...</pose>
+
+    Physics resolves that -- the arm's joint state and link poses prove it does.
+    Gazebo's *rendering* path did not: the scene message carried the model, the
+    SDF validated, nine joint controllers attached, and yet no link of the robot
+    contributed a single pixel or a single finite depth value to the camera,
+    while the table, the object and the target zone all rendered normally. The
+    only structural difference was these references.
+
+    Rewriting every link pose as a plain model-frame pose removes them. Every
+    joint frame stays where it was, because a joint's pose is still interpreted
+    relative to its parent link, so physics is unchanged -- only the ambiguity
+    the renderer had to resolve is gone.
+
+    Args:
+        model: The ``<model>`` element of the converted robot.
+
+    Returns:
+        How many link poses were rewritten.
+    """
+    identity = ((0.0, 0.0, 0.0), (0.0, 0.0, 0.0))
+    parents: dict[str, str] = {}
+    frames: dict[str, Any] = {}
+    for element in model:
+        if element.tag not in {"link", "joint", "frame"}:
+            continue
+        name = element.get("name")
+        if name:
+            frames[name] = element
+        if element.tag == "joint":
+            child = element.find("child")
+            if child is not None and child.text:
+                parents[child.text.strip()] = name or ""
+
+    resolved: dict[str, Any] = {}
+
+    def resolve(name: str, seen: frozenset[str] = frozenset()) -> Any:
+        if name in resolved:
+            return resolved[name]
+        if name in seen:  # a cycle: fall back to identity rather than recursing
+            return identity
+        element = frames.get(name)
+        if element is None:
+            return identity
+        own = _read_pose(element)
+        pose_element = element.find("pose")
+        reference = pose_element.get("relative_to") if pose_element is not None else None
+        if reference and reference in frames:
+            base = resolve(reference, seen | {name})
+        elif element.tag == "joint":
+            parent = element.find("parent")
+            base = resolve(parent.text.strip(), seen | {name}) if parent is not None else identity
+        else:
+            base = identity
+        resolved[name] = _compose(base, own)
+        return resolved[name]
+
+    rewritten = 0
+    for element in model:
+        if element.tag != "link":
+            continue
+        name = element.get("name")
+        if not name:
+            continue
+        pose_element = element.find("pose")
+        if pose_element is None:
+            continue
+        if pose_element.get("relative_to") is None:
+            continue
+        absolute = resolve(name)
+        position, rpy = absolute
+        pose_element.text = (
+            f"{position[0]:.9f} {position[1]:.9f} {position[2]:.9f} "
+            f"{rpy[0]:.9f} {rpy[1]:.9f} {rpy[2]:.9f}"
+        )
+        del pose_element.attrib["relative_to"]
+        rewritten += 1
+    return rewritten
 
 
 def robot_model_sdf(urdf_path: str | Path) -> str:
@@ -206,14 +342,21 @@ def robot_model_sdf(urdf_path: str | Path) -> str:
             f"could not run Gazebo's SDF converter (gz sdf -p {path}): {exc}"
         ) from exc
     if completed.returncode != 0 or "<model" not in completed.stdout:
-        raise RuntimeError(
-            f"Gazebo rejected {path}: {completed.stderr.strip()[:400]}"
-        )
+        raise RuntimeError(f"Gazebo rejected {path}: {completed.stderr.strip()[:400]}")
 
     text = completed.stdout
     start = text.index("<model")
     end = text.rindex("</model>") + len("</model>")
     model = text[start:end]
+
+    # The converter expresses the chain through frame references; flatten them
+    # so the renderer gets one unambiguous pose per link. See
+    # :func:`_flatten_link_poses` for what this fixes and how it was found.
+    element = ElementTree.fromstring(model)
+    _flatten_link_poses(element)
+    model = ElementTree.tostring(element, encoding="unicode")
+    if model.startswith("<?xml"):
+        model = model.split("?>", 1)[1]
 
     # Place the controller inside the model, before its closing tag.
     closing = model.rindex("</model>")
@@ -256,6 +399,52 @@ def _camera_sensor_xml(scenario: ScenarioConfig) -> str:
         </depth_camera>
       </camera>
     </sensor>"""
+
+
+def _camera_pose(scenario: ScenarioConfig) -> str:
+    """Pose the camera with an explicit look-at, from the workspace centre.
+
+    The first version hard-coded ``0 {cy - 0.35} {table_z + 0.45} 0 0.5 0`` --
+    pitched down but with no yaw, from ``(0, -0.25, 0.45)``. That ray travels
+    along ``y = -0.25`` for ever and crosses ``z = 0`` at ``x = 0.824``, while
+    the table spans ``x in [-0.3, 0.3]`` and ``y in [-0.2, 0.4]``. The camera
+    was aimed at empty space, and that is exactly what was observed: every RGB
+    frame equal to the scene background colour (0.7 -> 218) and every depth
+    pixel ``inf``.
+
+    A Gazebo camera looks along **+X** of its frame, with **+Z** up, and the SDF
+    pose applies ``Rz(yaw) * Ry(pitch) * Rx(roll)``. Solving ``R * +X = d`` for
+    ``d`` the unit direction from eye to target gives
+    ``yaw = atan2(dy, dx)`` and ``pitch = asin(-dz)``.
+
+    Args:
+        scenario: The condition whose workspace is to be viewed.
+
+    Returns:
+        ``x y z roll pitch yaw`` as text, ready for an ``<pose>`` element.
+    """
+    import math
+
+    cx = float(scenario.environment.workspace_center[0])
+    cy = float(scenario.environment.workspace_center[1])
+    table_z = float(scenario.environment.table_height_m)
+
+    # Back, above and outside the table, aiming at a point above the workspace
+    # rather than at the tabletop. Aiming at the tabletop put the arm -- which
+    # reaches ~0.9 m up -- outside the frustum of a camera pitched down at it;
+    # aiming higher keeps the object, the gripper and the full arm in frame.
+    # The offsets are relative to the workspace centre, so any scenario's
+    # workspace is framed the same way.
+    eye = (cx + 0.9, cy - 0.9, table_z + 0.9)
+    target = (cx, cy, table_z + 0.35)
+
+    dx = target[0] - eye[0]
+    dy = target[1] - eye[1]
+    dz = target[2] - eye[2]
+    norm = math.sqrt(dx * dx + dy * dy + dz * dz)
+    yaw = math.atan2(dy, dx)
+    pitch = math.asin(-dz / norm)
+    return f"{eye[0]:.6f} {eye[1]:.6f} {eye[2]:.6f} 0.0 {pitch:.6f} {yaw:.6f}"
 
 
 def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str:
@@ -322,6 +511,12 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
     <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
     <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
     <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
+      <!-- ogre2, the render engine Gazebo defaults to. ogre (v1) was tried and
+           cannot initialise headlessly at all (it reports "Unable to open
+           display:" and renders nothing), so ogre2 is the only engine that
+           produces frames here. The frame content was checked separately: the
+           earlier flat-grey, all-inf frames were caused by the camera pose
+           aiming past the table, not by the renderer. See docs/gazebo.md. -->
       <render_engine>ogre2</render_engine>
     </plugin>
 
@@ -338,7 +533,14 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       <link name="link">
         <collision name="collision"><geometry><box><size>0.6 0.6 0.04</size></box></geometry></collision>
         <visual name="visual"><geometry><box><size>0.6 0.6 0.04</size></box></geometry>
-          <material><ambient>0.7 0.7 0.7 1</ambient></material></visual>
+          <!-- <ambient> alone leaves <diffuse> at its SDF default of 0 0 0 1,
+               and diffuse is what the lights multiply. The first rendered frame
+               of the table came back pure black for exactly this reason. -->
+          <material>
+            <ambient>0.7 0.7 0.7 1</ambient>
+            <diffuse>0.7 0.7 0.7 1</diffuse>
+            <specular>0.15 0.15 0.15 1</specular>
+          </material></visual>
       </link>
     </model>
 
@@ -354,7 +556,11 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
         </inertial>
         <collision name="collision"><geometry><box><size>0.04 0.04 0.04</size></box></geometry></collision>
         <visual name="visual"><geometry><box><size>0.04 0.04 0.04</size></box></geometry>
-          <material><ambient>0.9 0.2 0.2 1</ambient></material></visual>
+          <material>
+            <ambient>0.9 0.2 0.2 1</ambient>
+            <diffuse>0.9 0.2 0.2 1</diffuse>
+            <specular>0.3 0.1 0.1 1</specular>
+          </material></visual>
       </link>
     </model>
 
@@ -363,13 +569,16 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       <pose>{cx + 0.18:.6f} {cy - 0.12:.6f} {table_z + 0.001:.6f} 0 0 0</pose>
       <link name="link">
         <visual name="visual"><geometry><cylinder><radius>0.06</radius><length>0.002</length></cylinder></geometry>
-          <material><ambient>0.1 0.9 0.3 0.35</ambient></material></visual>
+          <material>
+            <ambient>0.1 0.9 0.3 0.35</ambient>
+            <diffuse>0.1 0.9 0.3 0.35</diffuse>
+          </material></visual>
       </link>
     </model>
 
     <model name="camera_rig">
       <static>true</static>
-      <pose>{cx:.6f} {cy - 0.35:.6f} {table_z + 0.45:.6f} 0 0.5 0</pose>
+      <pose>{_camera_pose(scenario)}</pose>
       <link name="link">
 {_camera_sensor_xml(scenario)}
       </link>

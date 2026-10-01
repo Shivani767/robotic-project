@@ -1,0 +1,20 @@
+healthz        ready=True {'gazebo_started': False, 'panda_loaded': True, 'joint_stream': True, 'camera_stream': True, 'viewer_served': True, 'joint_messages': 59191, 'camera_frames': 1185, 'errors': [], 'ready': True}
+robot.json     10 joints: joint1, joint2, joint3, joint4, joint5, joint6, joint7, hand_joint, left_finger, right_finger
+               actuated: joint1, joint2, joint3, joint4, joint5, joint6, joint7, left_finger, right_finger
+scene          table z=0.0 object=[-0.1047, 0.2295, 0.02]
+state stream   60 messages, sim time 66.17 -> 69.05 s
+joint travel over the sample window:
+    joint1         -0.0924 ..  0.5170  travel 0.6095  moving
+    joint2         -0.6542 .. -0.1516  travel 0.5026  moving
+    joint3         -0.1236 ..  0.4486  travel 0.5723  moving
+    joint4         -1.6719 .. -1.1579  travel 0.5140  moving
+    joint5         -0.5578 .. -0.0267  travel 0.5311  moving
+    joint6          0.3039 ..  0.5760  travel 0.2721  moving
+    joint7         -0.5872 ..  0.2840  travel 0.8712  moving
+    hand_joint      0.0000 ..  0.0000  travel 0.0000  fixed
+    left_finger     0.0030 ..  0.0363  travel 0.0333  moving
+    right_finger    0.0046 ..  0.0363  travel 0.0317  moving
+camera stream  10 JPEG frames, mean 1424 bytes
+              160x120, 553 distinct colours
+
+PASS: live joint state, live camera and scene geometry all confirmed

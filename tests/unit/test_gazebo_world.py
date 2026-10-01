@@ -20,6 +20,7 @@ from robot_ci.gazebo.world import (
     unsupported_conditions,
     world_sdf,
 )
+from robot_ci.models.scenario import ScenarioConfig
 from robot_ci.scenarios import default_scenario, set_by_path
 
 
@@ -151,3 +152,92 @@ def test_the_two_conditions_generate_different_sensor_noise() -> None:
     nominal = world_sdf(default_scenario())
     counterexample = world_sdf(set_by_path(default_scenario(), "sensors.depth.sigma_mm", 8.0))
     assert nominal != counterexample
+
+
+# -- camera aiming -----------------------------------------------------------
+def _camera_ray(scenario: ScenarioConfig) -> tuple[tuple[float, ...], tuple[float, ...]]:
+    """Return the camera eye and forward vector as derived from the SDF pose."""
+    import math
+    from xml.etree import ElementTree as ET
+
+    root = ET.fromstring(world_sdf(scenario))
+    pose = next(model for model in root.iter("model") if model.get("name") == "camera_rig").find(
+        "pose"
+    )
+    assert pose is not None and pose.text is not None
+    x, y, z, _roll, pitch, yaw = (float(v) for v in pose.text.split())
+    # Gazebo cameras look along +X with +Z up; SDF applies Rz(yaw)Ry(pitch)Rx(roll).
+    forward = (
+        math.cos(pitch) * math.cos(yaw),
+        math.cos(pitch) * math.sin(yaw),
+        -math.sin(pitch),
+    )
+    return (x, y, z), forward
+
+
+def test_camera_aims_at_the_workspace_not_past_it() -> None:
+    """The camera must see the table it exists to observe.
+
+    Regression guard for a real failure: the pose was once hard-coded with pitch
+    only and no yaw, so the ray travelled along y = -0.25 -- outside the table's
+    y range -- and crossed z = 0 at x = 0.824, well beyond the table's x edge.
+    Every frame came back exactly the background colour with all-inf depth, which
+    reads as a renderer fault but was an unwatched camera.
+    """
+    import math
+
+    scenario = default_scenario()
+    eye, forward = _camera_ray(scenario)
+    cx = float(scenario.environment.workspace_center[0])
+    cy = float(scenario.environment.workspace_center[1])
+    table_z = float(scenario.environment.table_height_m)
+
+    assert forward[2] < 0, "the camera must be pitched down, not level"
+
+    # Horizontal field of view from the scenario's own intrinsics, so the
+    # frustum test uses the same numbers the sensor is configured with.
+    width, _height, fx, _fy, _cx, _cy = camera_intrinsics_from_scenario(scenario)
+    half_fov = 2.0 * math.atan(width / (2.0 * fx)) / 2.0
+    cos_limit = math.cos(half_fov)
+
+    def in_frustum(point: tuple[float, ...]) -> bool:
+        dx, dy, dz = (point[i] - eye[i] for i in range(3))
+        length = math.sqrt(dx * dx + dy * dy + dz * dz)
+        dot = forward[0] * dx + forward[1] * dy + forward[2] * dz
+        return dot / length > cos_limit
+
+    # Three things the camera exists to show. The arm point is 0.5 m above the
+    # mount because the Panda reaches ~0.9 m up; framing only the tabletop put
+    # the arm outside the frustum even though the camera "worked".
+    object_pose = tuple(float(v) for v in object_pose_from_scenario(scenario))
+    required = {
+        "table": (cx, cy, table_z),
+        "object": object_pose,
+        "arm": (0.0, 0.0, table_z + 0.5),
+    }
+    for label, point in required.items():
+        assert in_frustum(point), (
+            f"{label} at {point} is outside the camera frustum "
+            f"(eye={eye}, forward={forward}, half_fov={half_fov:.3f} rad)"
+        )
+
+
+def test_every_material_sets_diffuse_so_surfaces_are_not_black() -> None:
+    """A material with only <ambient> renders black under Gazebo's lights.
+
+    Regression guard for the first rendered frame, in which the table came back
+    pure black against the background. SDF defaults ``<diffuse>`` to
+    ``0 0 0 1`` and diffuse is the term the scene lights multiply, so naming a
+    colour as ambient only is enough to load and enough to see nothing.
+    """
+    root = ET.fromstring(world_sdf(default_scenario()))
+    checked = 0
+    for material in root.iter("material"):
+        if material.find("ambient") is None:
+            continue
+        assert material.find("diffuse") is not None, (
+            "material declares <ambient> but no <diffuse>; it will render black"
+        )
+        checked += 1
+    # The three world visuals (table, object, zone) plus the Panda's own.
+    assert checked >= 3, f"expected the world's own materials to be checked, saw {checked}"

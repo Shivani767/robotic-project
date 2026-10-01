@@ -1,0 +1,43 @@
+# The live Gazebo demo, as one command on the Mac.
+#
+#   docker compose up
+#
+# then open http://localhost:8000
+#
+# Gazebo, the joint driver and the browser bridge all run in this one container,
+# because the demo is a single pipeline: Gazebo publishes, the bridge reads the
+# same gz-transport bus, and the browser reads the bridge. Splitting them across
+# containers would only add a network hop that could hide a real failure.
+#
+# Only the viewer port is published. Nothing here needs a GPU, CUDA or Isaac
+# Sim; Gazebo's sensors render on the CPU with Ogre2.
+services:
+  gazebo-demo:
+    build:
+      context: .
+      dockerfile: docker/gazebo_demo.Dockerfile
+    image: robot-ci-gazebo-demo:latest
+    # Gazebo's transport bus is local to the container, so host networking is not
+    # required and is deliberately not used: it would let this demo's ROS graph
+    # leak onto the host and mix with other runs.
+    ports:
+      - "8000:8000"   # viewer (HTTP + WebSocket on 8001)
+      - "8001:8001"
+    volumes:
+      - .:/workspace/robot-ci
+    environment:
+      ROBOT_CI_ROOT: /workspace/robot-ci
+      ROBOT_CI_WORLD: robot_ci_pick_place
+      ROBOT_CI_PORT: "8000"
+      ROBOT_CI_SEED: "3"
+      ROBOT_CI_DEPTH_NOISE_MM: "0"
+      ROS_DISTRO: jazzy
+    command: ["bash", "/workspace/robot-ci/scripts/gazebo_demo.sh"]
+    healthcheck:
+      # The healthcheck queries the bridge, which only reports ready once it has
+      # seen joint-state messages and decoded camera frames from the simulation.
+      test: ["CMD-SHELL", "python3 -c \"import urllib.request,sys; sys.exit(0 if b'\\\"ready\\\": true' in urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=5).read() else 1)\""]
+      interval: 10s
+      timeout: 8s
+      retries: 12
+      start_period: 40s
