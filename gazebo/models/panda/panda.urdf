@@ -281,10 +281,25 @@
        the true pad separation with no hidden asymmetry. The pads themselves sit
        0.0584 along the finger bodies to land their centres at hand-frame
        z = 0.0445 + 0.0584 = 0.1029, which is 0.5 mm behind the injected "tcp"
-       site at 0.1034, and each collision box is 0.02 x 0.015 x 0.017, giving a
-       pad half-height of 8.5 mm and a closed separation of 2 * 0.0055 = 0.011 m.
-       Both values are the ones RobotConfig derives its grasp geometry from
-       (pad_half_height_m and gripper_closed_separation_m).
+       site at 0.1034, and each collision box is 0.02 x 0.015 x 0.015, giving a
+       closed separation of 2 * 0.0055 = 0.011 m, the value RobotConfig derives
+       from gripper_closed_separation_m.
+
+       The pad half-height is 7.5 mm here, NOT RobotConfig's measured 8.5 mm,
+       and that is a deliberate, measured Gazebo-only difference. The task aims
+       the tool centre point at the object's centre, so the pads' lower edge
+       lands at object_centre + 0.0005 - pad_half_height. With an 8 mm half-object
+       resting on the table, an 8.5 mm pad puts the lower edge 0.5 mm *below* the
+       tabletop, and the live trace measured the arm settling 0.4 mm low on top
+       of that, so the lowest the pads ever reached was +0.03 mm. Thirty
+       microns of clearance is inside ODE's contact margin: the pads graze the
+       table, the fingers jam against it (measured: 3.2 mm of residual with about
+       7 N commanded and no motion at all), and the lift rakes the cube out of
+       the jaws instead of carrying it. MuJoCo's solver tolerates the same
+       overlap, which is why the shared task allows it: its own feasibility test
+       is pad_bottom >= table_z - 0.001.
+       At 7.5 mm the pads clear the table by 1.03 mm and still span 15 mm of a
+       16 mm cube's height, so the grip loses only the top millimetre.
 
        The previous geometry put the pad centre at z = 0.0834 with a 50 mm tall
        box and made the two jaws asymmetric (inner faces at y = +0.0025 and
@@ -309,11 +324,11 @@
 </inertial>
     <collision>
       <origin xyz="0 0.0075 0.0584" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.017"/></geometry>
+      <geometry><box size="0.02 0.015 0.015"/></geometry>
     </collision>
     <visual>
       <origin xyz="0 0.0075 0.0584" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.017"/></geometry>
+      <geometry><box size="0.02 0.015 0.015"/></geometry>
       <material name="black"/>
     </visual>
   </link>
@@ -335,11 +350,11 @@
 </inertial>
     <collision>
       <origin xyz="0 -0.0075 0.0584" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.017"/></geometry>
+      <geometry><box size="0.02 0.015 0.015"/></geometry>
     </collision>
     <visual>
       <origin xyz="0 -0.0075 0.0584" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.017"/></geometry>
+      <geometry><box size="0.02 0.015 0.015"/></geometry>
       <material name="black"/>
     </visual>
   </link>

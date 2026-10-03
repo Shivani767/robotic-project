@@ -746,6 +746,7 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       <real_time_factor>1.0</real_time_factor>
     </physics>
     <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics"/>
+    <plugin filename="gz-sim-contact-system" name="gz::sim::systems::Contact"/>
     <plugin filename="gz-sim-user-commands-system" name="gz::sim::systems::UserCommands"/>
     <plugin filename="gz-sim-scene-broadcaster-system" name="gz::sim::systems::SceneBroadcaster"/>
     <plugin filename="gz-sim-sensors-system" name="gz::sim::systems::Sensors">
@@ -769,6 +770,13 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       <static>true</static>
       <pose>{cx} {cy} {table_z - 0.02} 0 0 0</pose>
       <link name="link">
+        <!-- Whether anything is dragging on the tabletop. The grasp aim leaves
+             the pads only millimetres above this surface, so a pad grazing it is
+             a real and previously invisible failure mode. -->
+        <sensor name="table_contacts" type="contact">
+          <contact><collision>collision</collision></contact>
+          <update_rate>100</update_rate>
+        </sensor>
         <collision name="collision">
           <geometry><box><size>{table_size_x} {table_size_y} 0.04</size></box></geometry>
           <surface><friction><ode><mu>{friction}</mu><mu2>{friction}</mu2></ode></friction></surface>
@@ -791,6 +799,15 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       <static>false</static>
       <pose>{ox:.6f} {oy:.6f} {oz:.6f} 0 0 0</pose>
       <link name="link">
+        <!-- Which bodies is this object actually touching, and how hard. The
+             episode trace showed a gripper closing on this cube and then losing
+             it without anything saying what the pads were in contact with; this
+             sensor is how that question is answered with evidence instead of
+             inference. -->
+        <sensor name="object_contacts" type="contact">
+          <contact><collision>collision</collision></contact>
+          <update_rate>100</update_rate>
+        </sensor>
         <!-- Size, mass and inertia are the scenario's own numbers: a 16 mm cube
              at 50 g with a 40 mm bounding box would have been a different body
              from the one the policy, the task and the detector reason about. -->

@@ -37,7 +37,31 @@ def test_world_contains_the_pick_and_place_parts() -> None:
     root = ET.fromstring(world_sdf(default_scenario()))
     names = {m.get("name") for m in root.iter("model")}
     assert {"table", "target_cube", "target_zone", "camera_rig"} <= names
-    assert root.find(".//sensor").get("name") == "robot_ci_camera"
+    # Every sensor in the world, not just the first: asserting on the first
+    # element silently passed while the table and the object gained contact
+    # sensors of their own.
+    sensors = {s.get("name") for s in root.iter("sensor")}
+    assert sensors == {"robot_ci_camera", "table_contacts", "object_contacts"}
+
+
+def test_contact_sensors_exist_so_a_grip_can_be_attributed_to_a_pair() -> None:
+    """Contact sensors, and the system that publishes them, must both be present.
+
+    Without the ``Contact`` system a contact sensor publishes nothing at all, so
+    the sensor alone would look configured while reporting no evidence. The
+    question "which bodies is the cube touching, and how hard" cannot be answered
+    by inference from the object's velocity.
+    """
+    root = ET.fromstring(world_sdf(default_scenario()))
+    plugins = {p.get("filename") for p in root.iter("plugin")}
+    assert "gz-sim-contact-system" in plugins, (
+        "the Contact system is what fills ContactSensorData; without it the "
+        "sensors below would publish nothing"
+    )
+    for name in ("table_contacts", "object_contacts"):
+        sensor = next(s for s in root.iter("sensor") if s.get("name") == name)
+        assert sensor.get("type") == "contact"
+        assert sensor.find("contact/collision").text == "collision"
 
 
 def test_physics_timestep_matches_the_control_rate() -> None:

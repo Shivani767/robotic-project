@@ -259,6 +259,52 @@ class _PoseStream:
         return None if pose is None else pose[0]
 
 
+class _ContactStream:
+    """Latest contact pairs touching a given collision, from Gazebo itself.
+
+    This is the answer to "what is the gripper actually touching, and how
+    hard". Every attempt to infer it from the object's velocity -- how fast it
+    left the jaws, how far it was carried -- describes the consequence and not
+    the cause, and the two gave different stories while the question was open.
+    """
+
+    def __init__(self, world: str, entity: str) -> None:
+        from gz.msgs10.contacts_pb2 import Contacts
+        from gz.transport13 import Node
+
+        self._lock = threading.Lock()
+        self._pairs: dict[str, dict[str, float]] = {}
+        node = Node()
+        node.subscribe(
+            Contacts,
+            f"/world/{world}/model/{entity}/link/link/sensor/"
+            f"{entity}_contacts/contact",
+            self._on_contacts,
+        )
+        self._node = node
+
+    def _on_contacts(self, msg: Any) -> None:
+        snapshot: dict[str, dict[str, float]] = {}
+        for contact in msg.contact:
+            for entry, normal in ((contact.collisions[0], 1.0), (contact.collisions[1], -1.0)):
+                others = [
+                    f"{normal * force.normal.x:+.3f},{normal * force.normal.y:+.3f},"
+                    f"{normal * force.normal.z:+.3f}"
+                    for force in entry.wrenches
+                ]
+                snapshot[f"{entry.name} -> {others}"] = {
+                    "separation_m": float(entry.separation),
+                    "depth_m": float(contact.depth),
+                }
+        with self._lock:
+            self._pairs = snapshot
+
+    def pairs(self) -> dict[str, dict[str, float]]:
+        """Return the contact pairs seen in the most recent message."""
+        with self._lock:
+            return dict(self._pairs)
+
+
 class _DepthStream:
     """Latest depth image plus its intrinsics, used for perception.
 
@@ -468,6 +514,8 @@ class GazeboBackend(SimulatorBackend):
                 scenario, period=1.0 / float(scenario.sensors.control_hz or 50.0)
             ),
             "poses": _PoseStream(self._world_name),
+            "object_contacts": _ContactStream(self._world_name, OBJECT_MODEL),
+            "table_contacts": _ContactStream(self._world_name, "table"),
             "depth": _DepthStream(self._world_name),
             "publishers": self._make_publishers(),
             "sdf": sdf,
@@ -648,7 +696,16 @@ class GazeboBackend(SimulatorBackend):
             ground_truth=truth,
             terminated=False,
             truncation=False,
-            info={"simulator": "gazebo", "sim_time_s": handle.sim_time_s},
+            info={
+                "simulator": "gazebo",
+                "sim_time_s": handle.sim_time_s,
+                # Contact pairs the simulator itself reports, for the object and
+                # for the support surface. Published on the transition rather
+                # than the observation because they are simulator facts, and the
+                # observation is what the policy is allowed to see.
+                "object_contacts": state["object_contacts"].pairs(),
+                "table_contacts": state["table_contacts"].pairs(),
+            },
         )
 
     def _base_transform(self, handle: EpisodeHandle) -> tuple[np.ndarray, np.ndarray]:

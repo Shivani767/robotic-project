@@ -412,7 +412,8 @@ def test_urdf_gripper_geometry_matches_the_robot_config() -> None:
     """
     from robot_ci.gazebo.kinematics import TCP_SITE_IN_HAND_M
 
-    robot = default_scenario().robot
+    scenario = default_scenario()
+    robot = scenario.robot
     root = ElementTree.parse(URDF).getroot()
     links = {link.get("name"): link for link in root.findall("link")}
     joints = {joint.get("name"): joint for joint in root.findall("joint")}
@@ -459,8 +460,30 @@ def test_urdf_gripper_geometry_matches_the_robot_config() -> None:
         for link_name in ("panda_left_finger", "panda_right_finger")
     }
 
-    # Pad half-height, measured from the URDF's own collision boxes.
-    assert half_height == pytest.approx(float(robot.pad_half_height_m), abs=1e-6)
+    # What matters about the pad's height is not that it matches the MJCF's 8.5
+    # mm -- it is that the pads clear the support surface when the gripper
+    # grasps an object resting on it. The shared task aims the tool centre
+    # point at the object's centre, so the lower pad edge lands at
+    # ``object_centre + pad_offset_from_tcp - pad_half_height``; against the
+    # scenario's own object that must be above the table. Measured on a live
+    # episode, an 8.5 mm pad put the lowest the pads ever reached at +0.03 mm,
+    # which is inside ODE's contact margin: the pads grazed the table, the
+    # fingers jammed (3.2 mm of residual with ~7 N commanded and no motion), and
+    # the lift raked the cube out instead of carrying it. See the URDF.
+    pad_lower_edge_z = (
+        float(scenario.target.size_m)
+        + float(robot.pad_offset_from_tcp_m)
+        - half_height
+        - float(scenario.environment.table_height_m)
+    )
+    assert half_height <= float(robot.pad_half_height_m), (
+        "the Gazebo pads may be shorter than the MJCF's, never taller: a taller "
+        "pad drives them further into the support surface"
+    )
+    assert pad_lower_edge_z >= 0.0005, (
+        f"the pads clear the tabletop by only {pad_lower_edge_z * 1000:.2f} mm; "
+        "they must clear it by at least 0.5 mm or the jaw grazes the table"
+    )
     # Closed separation: the inner faces at q = 0. The pads' hand-frame y
     # origins place the pad centres at y = +/-0.013 (measured), and each pad
     # extends thickness/2 inboard, so the faces sit at +/-0.0055 and the

@@ -98,6 +98,16 @@ class _FakePoses:
         return None if entry is None else entry[0]
 
 
+class _FakeContacts:
+    """Stands in for a contact sensor; reports whatever a test puts in it."""
+
+    def __init__(self, _world: str, _entity: str) -> None:
+        self.data: dict[str, dict[str, float]] = {}
+
+    def pairs(self) -> dict[str, dict[str, float]]:
+        return dict(self.data)
+
+
 class _FakeDepth:
     def __init__(self, _world: str) -> None:
         pass
@@ -158,6 +168,7 @@ def fake_gazebo(monkeypatch: pytest.MonkeyPatch) -> Any:
     )
     monkeypatch.setattr(gazebo_module, "_PoseStream", _FakePoses)
     monkeypatch.setattr(gazebo_module, "_DepthStream", _FakeDepth)
+    monkeypatch.setattr(gazebo_module, "_ContactStream", _FakeContacts)
     monkeypatch.setattr(gazebo_module, "time", _FakeClock())
 
     # ``_publish`` imports Gazebo's protobuf at call time. The binding only

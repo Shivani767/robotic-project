@@ -268,6 +268,8 @@ stated as: the measurement, the cause, the change. Evidence lives in
 | 7 | the world drew a **40 mm** cube for a **16 mm** condition, a table 20% too small, the target marker 0.27 m from where the task scores placement, and no friction at all | `world_sdf` hard-coded the scene instead of reading the scenario. | Object size, mass, inertia, resting height, target zone, table extent, spawn annulus and friction are all derived from the `ScenarioConfig`. Pinned by `test_world_states_the_scenario_object_size_and_target_zone`. |
 | 9 | the arm trailed a ramped command by a constant **84-100 ms**, and one finger intermittently stalled 31.6 mm short of its command | A PD position controller's bandwidth goes as `sqrt(p / I)`; at `p_gain = 1000, d_gain = 50` the lag on a 1.3 rad/s ramp was 0.1087 rad on joints 1-4 and 0.1305 on joints 5-7 -- exactly `max_velocity * control_period`. | `p_gain = 4000, d_gain = 100` on the seven arm joints (d scales as `sqrt(p)`, so the damping ratio is preserved) while `cmd_max` stays at each joint's real effort limit. Stage 3's tool-error bound went 9.31 mm -> **4.16 mm** and stage 5's worst finger residual 31.6 mm -> **0.4 mm**; all five stages now pass. |
 | 10 | the Gazebo path wrote the policy's requested aperture straight to the fingers, while MuJoCo routed it through `control.gripper.py` | Two backends resolving the same gripper question differently is exactly how a cross-simulator comparison stops meaning anything. | Both now use `GripperController`, with the stiffness handed in as the one the generated world actually configures (`p_gain` is newtons per metre of position error). In the default POSITION mode it is a pass-through and changes nothing numerically. |
+| 11 | the world loaded **no contact system at all**, so nothing could be attributed to a contact pair | The world loaded Physics, UserCommands, SceneBroadcaster and Sensors. In gz-sim8 the `Collisions` system no longer exists; collision pairs and contact-sensor data come from `gz::sim::systems::Contact`, which was absent. | `gz-sim-contact-system` is now loaded, and contact sensors sit on the object and the table. The backend publishes both pair sets on the `Transition.info` -- simulator facts, deliberately kept out of the `Observation` the policy reads. **Adding them changed the outcome**: the same episode that had never completed a carry placed the object 29 mm from the target, inside the 50 mm tolerance. |
+| 12 | the pads grazed the tabletop: the lowest they ever reached was **+0.03 mm** | The shared task aims the tool centre point at the object's centre, so the pad lower edge lands at `object_centre + pad_offset - pad_half_height`. With an 8 mm half-object and an 8.5 mm pad that is *below* the surface, and the arm settles ~0.4 mm low on top of it. MuJoCo's solver tolerates the overlap (the task's own feasibility test allows 1 mm); ODE does not. | The Gazebo pads are 7.5 mm half-height, 1 mm shorter than the MJCF's. They clear the table by 1.03 mm and still span 15 mm of a 16 mm cube. Pinned by a test that asserts the *clearance*, not the raw height. |
 | 8 | the grasp was a **kinematic latch** reporting the object at the end effector | `_update_grasp` attached the object whenever the aperture closed within 50 mm, and `ground_truth` then returned a reconstructed pose. No physics. | Deleted. Ground truth is Gazebo's own pose and orientation; `grasped` is derived from three measurements. Pinned by `test_ground_truth_is_the_simulators_own_pose_not_a_reconstruction`. |
 
 1. **Why the grasp does not latch and complete.** The end effector reaches
@@ -279,7 +281,23 @@ stated as: the measurement, the cause, the change. Evidence lives in
 3. **A Gazebo launch file**, which would remove the ad-hoc process management
    from the backend's startup path.
 
-### What the episode now does, measured
+### Where the pipeline now reaches
+
+With the contact system loaded and the pads clearing the table, one episode ran
+the task end to end: the jaws enclosed the object to **1.25 mm**, held it for
+**26 ticks**, lifted it **59.7 mm**, carried it across the workspace and set it
+down **29.3 mm from the target zone -- inside the 50 mm tolerance**. Every
+criterion passed except one: `orientation_error_rad = 1.597` against a 0.6 rad
+tolerance. For a cube the resting height cannot distinguish a yaw from a tumble,
+which is why the evidence records the object's quaternion.
+
+**That run is not reproducible.** Repeating the identical configuration four
+times, one completed the carry and three lost the object early (lifts of 14.6,
+0.0 and 0.0 mm). The pipeline *can* now execute a real pick and place; it does
+not yet do so reliably, and a single passing run must not be reported as a
+result. The artifacts on disk are from a failing repeat, deliberately.
+
+### What the episode does, measured
 
 Seed 3, 0 mm, `policy_v1`, 150 control ticks, through `run_episode`. Three
 repeats, because the grasp turned out not to be reproducible and a single run
@@ -360,6 +378,6 @@ Artifacts: `stage_check.json`, `stage_check.txt`,
 
 | Condition | Status | What was measured |
 |---|---|---|
-| PickAndPlace, seed 3, 0 mm | **FAIL** | Three repeats: reach 0.89 / 0.52 / 0.68 mm, lift 44.9 / 10.5 / 27.8 mm, placement error 0.198 / 0.181 / 0.161 m. The approach is deterministic; the grasp is not. |
-| PickAndPlace, seed 3, 8 mm | **NOT_SUPPORTED** | The camera noise *is* generated (the world's `<stddev>` reads 0.008 m) and the depth frame is delivered, but the object belief the policy receives is the simulator's pose, so noise cannot reach the policy. The run differs only because `scenario_id` participates in object placement, which moved the cube from (0.023, 0.226) to (-0.003, 0.189); at that placement the arm reaches 84 mm and never closes. It is **not** evidence that 8 mm breaks grasping, and it is not evidence about noise at all. |
+| PickAndPlace, seed 3, 0 mm | **FAIL** | Four repeats of one configuration: one completed the carry (grasp 26 ticks, lift 59.7 mm, placement 29.3 mm, failing only the 0.6 rad orientation criterion at 1.597 rad) and three lost the object early. The approach is deterministic and sub-millimetre; the grasp retention is not. |
+| PickAndPlace, seed 3, 8 mm | **NOT_SUPPORTED** | The camera noise *is* generated (the world's `<stddev>` reads 0.008 m) and the depth frame is delivered, but the object belief the policy receives is the simulator's pose, so noise cannot reach the policy. The run differs only because `scenario_id` participates in object placement, which moved the cube from (0.023, 0.226) to (-0.003, 0.189); at that placement the arm reaches 79 mm and never closes. It is **not** evidence that 8 mm breaks grasping, and it is not evidence about noise at all. |
 | Paired baseline/candidate | **NOT_IMPLEMENTED** | Both policies must genuinely execute through Gazebo. Placement does not yet succeed, so a paired comparison would compare two failing arms. |

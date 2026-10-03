@@ -102,6 +102,11 @@ def run(seed: int, noise_mm: float, policy_name: str, max_steps: int | None) -> 
             "phase": str(record.outcome.phase),
             "tcp": [round(v, 5) for v in (ee.x, ee.y, ee.z)],
             "aperture_m": round(record.observation.robot.gripper.width_m, 5),
+            # What the simulator says is in contact, straight off the contact
+            # sensors on the object and the table. This is the measurement that
+            # replaces inference from the object's velocity.
+            "object_contacts": record.transition.info.get("object_contacts", {}),
+            "table_contacts": record.transition.info.get("table_contacts", {}),
             # What was *commanded*, so a limit cycle in the controller can be
             # told apart from one in the plan: if the command is steady and the
             # joint state oscillates, the controller is the cause.
@@ -114,6 +119,14 @@ def run(seed: int, noise_mm: float, policy_name: str, max_steps: int | None) -> 
         if objects:
             obj = objects[0]
             row["object"] = [round(v, 5) for v in obj.pose.position.array]
+            # The object's orientation is what the task's orientation criterion
+            # is scored on, and for a cube it is invisible in the resting height:
+            # every 90-degree rotation leaves the half-extent the same. Recording
+            # the quaternion is the only way to tell a harmless yaw from a tumble.
+            row["object_quat"] = [
+                round(float(getattr(obj.pose.orientation, k)), 4)
+                for k in ("w", "x", "y", "z")
+            ]
             row["grasped"] = bool(obj.grasped)
             row["object_to_tcp_m"] = round(
                 _dist((ee.x, ee.y, ee.z), obj.pose.position.array), 5
