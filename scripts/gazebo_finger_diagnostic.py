@@ -382,6 +382,8 @@ def hold_trace(
     step_settle_s: float = 2.0,
     rate_hz: float = 20.0,
     finger_velocity_limit: float | None = None,
+    ramp_m_s: float | None = None,
+    no_finger_collision: bool = False,
 ) -> dict[str, Any]:
     """Command one aperture and watch the fingers for a long time.
 
@@ -398,7 +400,7 @@ def hold_trace(
         world_sdf(default_scenario(seed=3), robot_urdf=URDF),
         no_object=no_object,
         no_table=no_table,
-        no_finger_collision=False,
+        no_finger_collision=no_finger_collision,
         finger_velocity_limit=finger_velocity_limit,
     )
     world_file = Path(f"/tmp/finger_hold_{label}.sdf")
@@ -433,14 +435,48 @@ def hold_trace(
                 publisher.publish(message)
             time.sleep(step_settle_s)
         step_time = time.monotonic()
+        # With --ramp the command comes from the production GripperController
+        # rather than being stepped, so what is measured here is the exact
+        # command sequence the backend would send, not a re-implementation of
+        # it. Comparing the two runs is the before/after the diagnosis calls for.
+        controller = None
+        if ramp_m_s is not None:
+            from robot_ci.control.gripper import GripperController
+            from robot_ci.models.robot import GripperControlMode
+
+            robot = default_scenario(seed=3).robot
+            controller = GripperController(
+                mode=GripperControlMode.POSITION,
+                stiffness_n_per_m=1000.0,
+                control_dt_s=1.0 / rate_hz,
+                open_width_m=float(robot.max_gripper_width_m),
+                closed_width_m=float(robot.gripper_closed_separation_m),
+                max_closure_speed_m_s=float(ramp_m_s),
+                closure_ramp_enabled=True,
+            )
+            controller.command_open()
+        commanded_aperture = aperture
+        if controller is not None:
+            commanded_aperture = controller.step(requested_width_m=aperture)
         for publisher in publishers.values():
             message = Double()
-            message.data = float(aperture / 2.0)
+            message.data = float(commanded_aperture / 2.0)
             publisher.publish(message)
         deadline = time.monotonic() + seconds
         period = 1.0 / rate_hz
         while time.monotonic() < deadline:
-            time.sleep(min(1.0, period)) if rate_hz <= 1.0 else time.sleep(period)
+            time.sleep(period)
+            if controller is not None:
+                sensed, _ = reader.latest()
+                commanded_aperture = controller.step(
+                    requested_width_m=aperture,
+                    measured_width_m=float(sensed.get("left_finger", 0.0))
+                    + float(sensed.get("right_finger", 0.0)),
+                )
+                for publisher in publishers.values():
+                    message = Double()
+                    message.data = float(commanded_aperture / 2.0)
+                    publisher.publish(message)
             positions, sim_time = reader.latest()
             left = positions.get("left_finger")
             right = positions.get("right_finger")
@@ -448,6 +484,7 @@ def hold_trace(
                 {
                     "t_s": round(time.monotonic() - step_time, 3),
                     "sim_time_s": round(sim_time, 2),
+                    "commanded_aperture_m": round(commanded_aperture, 5),
                     "left_m": None if left is None else round(left, 5),
                     "right_m": None if right is None else round(right, 5),
                     "pad_separation_m": None
@@ -460,12 +497,14 @@ def hold_trace(
             "commanded_aperture_m": aperture,
             "commanded_per_finger_m": round(aperture / 2.0, 5),
             "stepped_from_aperture_m": step_from,
+            "ramp_m_s": ramp_m_s,
             "rate_hz": rate_hz,
             "hold_s": seconds,
             "ablation": {
                 "no_object": no_object,
                 "no_table": no_table,
                 "finger_velocity_limit": finger_velocity_limit,
+                "no_finger_collision": no_finger_collision,
             },
             "samples": samples,
             "reader": {"messages": health.joint_messages, "errors": list(health.errors)},
@@ -492,9 +531,10 @@ def main() -> int:
     parser.add_argument("--seconds", type=float, default=30.0)
     parser.add_argument("--step-from", type=float, default=None)
     parser.add_argument("--finger-velocity-limit", type=float, default=None)
+    parser.add_argument("--ramp-mps", type=float, default=None)
+    parser.add_argument("--no-finger-collision", action="store_true")
     parser.add_argument("--no-object", action="store_true")
     parser.add_argument("--no-table", action="store_true")
-    parser.add_argument("--no-finger-collision", action="store_true")
     parser.add_argument("--only", choices=("left_finger", "right_finger"), default=None)
     args = parser.parse_args()
 
@@ -516,6 +556,10 @@ def main() -> int:
         label = "no_object" if args.no_object else "baseline"
     if args.finger_velocity_limit is not None:
         label = f"{label}_vel{args.finger_velocity_limit:g}"
+    if args.ramp_mps is not None:
+        label = f"{label}_ramp{args.ramp_mps:g}"
+    if args.no_finger_collision:
+        label = f"{label}_nocoll"
         result = hold_trace(
             label=label,
             aperture=args.aperture,
@@ -524,6 +568,8 @@ def main() -> int:
             no_table=args.no_table,
             step_from=args.step_from,
             finger_velocity_limit=args.finger_velocity_limit,
+            ramp_m_s=args.ramp_mps,
+            no_finger_collision=args.no_finger_collision,
         )
         if "error" in result:
             print(f"hold: ERROR {result['error']}")
@@ -548,6 +594,10 @@ def main() -> int:
         label = f"only_{args.only}"
     if args.finger_velocity_limit is not None:
         label = f"{label}_vel{args.finger_velocity_limit:g}"
+    if args.ramp_mps is not None:
+        label = f"{label}_ramp{args.ramp_mps:g}"
+    if args.no_finger_collision:
+        label = f"{label}_nocoll"
     result = sweep(
         label=label,
         no_object=args.no_object,

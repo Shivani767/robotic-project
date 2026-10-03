@@ -384,13 +384,25 @@ creeps at ~0.5 mm/s, ending at 20.6 mm after 2 s. Raising the finger velocity
 limit tenfold moves the stall to a limit cycle between 15 and 19 mm rather than
 removing it.
 
-That shape -- fast approach, then a stall holding a large error against a ~5 N
-command, then slow creep, with and without the velocity limit -- is the engine's
-joint velocity limiter acting against a position controller: the limiter scales
-the applied force down to hold the velocity under its cap, so the proportional
-term loses authority exactly when the error is largest. **This is a diagnosis,
-not a confirmed fix**, because it has not been verified by changing one thing and
-re-measuring.
+**That first diagnosis was wrong, and the ablations falsified it.** Neither
+ramping the command through the production `GripperController` (0.05 m/s), nor
+raising the finger velocity limit tenfold, nor deleting the pad collision
+geometry outright changes where the jaw ends up: all three give the same ~21 mm.
+The velocity limiter is not the cause.
+
+What the runs do support: **this is not a stall, it is a long approach.** The
+jaw leaves open at exactly its 0.2 m/s limit, reaches ~22 mm, then closes at
+~0.6 mm/s with several millimetres of error still present. Something holds it
+there with a force of the same order as the controller's command, and the
+ablations say it is not the object, the table, the pad collisions, the velocity
+limit, or the command rate.
+
+For the grasp that is decisive whatever the reaction turns out to be. The policy
+advances past the grasp on `close_dwell >= 6` ticks -- 0.3 s at 20 Hz -- and the
+measured aperture at that moment is ~0.021 m against a 0.016 m object. **The
+jaws are still 5 mm too wide to enclose the cube when the lift starts**, which is
+exactly what the contact sensors show: cube-to-finger contact on zero ticks of a
+149-tick episode.
 
 The change it implies is a commanded closure *rate* rather than a step, and the
 project already owns that: `control/gripper.GripperController` has

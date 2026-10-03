@@ -50,30 +50,72 @@ between 15.0 and 19.0 mm:
     t=0.15 s   19.0 mm
     t=0.40 s   15.0 mm   ... repeating
 
-## Diagnosis
+## What the measurement actually shows
 
-Fast approach, then a stall that holds a large position error against a ~5 N
-command, then slow creep -- with and without the velocity limit. That shape is
-the engine's joint velocity limiter acting against a position controller: the
-limiter scales the applied force down to enforce `velocity`, so the proportional
-term loses authority exactly when the error is largest. Raising the limit tenfold
-moves the stall rather than removing it, which is what that mechanism predicts
-and what a hard geometric block would not do.
+Three runs, all with the cube deleted, all stepping from 0.08 open to the
+0.0002 grasp aperture and sampling at 20 Hz:
 
-**This is a diagnosis, not a confirmed fix.** It has not been verified by
-changing one thing and re-measuring.
+| Run | Command | Result |
+|---|---|---|
+| `finger_hold_no_object.json` | step | 22.5 mm at t=0.20 s, creeping to 20.6 mm at t=2 s |
+| `finger_hold_no_object_ramp0.05.json` | ramped at 0.05 m/s via the production `GripperController` | identical: 22.4 mm then 20.6 mm |
+| `finger_hold_no_object_vel2.json` | joint velocity limit raised 10x | limit cycle between 15.0 and 19.0 mm |
 
-## The fix this implies, and why it has not been applied
+And with the finger collision geometry deleted entirely
+(`finger_hold_no_object_nocoll.json`): 22.5 mm then 21.1 mm. **No change.**
 
-The command asks the fingers to cross 40 mm in a single control tick. A real
-gripper is commanded with a closure *rate*. The project already owns that
-abstraction: `control/gripper.GripperController` has `closure_ramp_enabled` and
-`max_closure_speed_m_s` for exactly this, and the Gazebo backend now constructs
-one. Enabling the ramp on the Gazebo path, at a rate at or below the fingers'
-declared 0.2 m/s, is the change the evidence points at.
+Separately, `finger_sweep_no_object.json` walks the aperture down and reads the
+fingers after 4 s at each step:
 
-It is **not applied**, because the policy advances past the grasp on
-`close_dwell >= 6` ticks (0.3 s at 20 Hz), and a ramp that respects the
-velocity limit needs ~0.2 s for the travel alone. Applying the ramp without
-also checking that the policy waits would convert a slow grip into no grip at
-all, and that must be measured rather than assumed.
+    commanded per finger   measured
+    0.010                  0.01017     <- tracks
+    0.008                  0.00977
+    0.006                  0.00965
+    0.004                  0.0064
+    0.000                  0.00177
+
+so the jaw tracks well near open and approaches a closed command slowly, and is
+still descending when the 4 s dwell ends. A 30 s hold at command 0 from the
+already-closed rest pose sits at 11.41 mm -- but the fingers never moved there,
+so that run says nothing about tracking.
+
+## Diagnosis, corrected
+
+The earlier diagnosis -- the engine's joint velocity limiter fighting the
+position controller -- is **wrong**, and the two runs above falsify it: neither
+ramping the command nor removing the velocity limit nor deleting the pad
+collisions changes where the jaw ends up.
+
+What the runs support instead: **this is not a stall, it is a long approach.**
+The jaw leaves open at the joint's 0.2 m/s limit (63 -> 26 mm in 0.15 s is
+exactly 0.2 m/s for that distance), reaches roughly 22 mm, and then closes at
+about 0.6 mm/s while an error of several millimetres is still present. Something
+holds it there with a force of the same order as the controller's command, and
+the ablations say it is not the object, the table, the pad collision geometry,
+the velocity limit, or the command rate.
+
+For the grasp this is decisive even without knowing what the reaction is. The
+policy advances past the grasp on `close_dwell >= 6` ticks -- 0.3 s at 20 Hz --
+and the measured aperture at that moment is about 0.021 m. The cube is 0.016 m
+wide. **The jaws are still 5 mm too wide to enclose it when the lift starts**,
+which is exactly what the contact sensors show: cube-to-finger contact on zero
+ticks of a 149-tick episode.
+
+## The fix this implies, and why it is not applied here
+
+Two candidate fixes, neither applied:
+
+1. **Wait for the aperture instead of counting ticks.** The backend already
+   reports the measured aperture in `RobotState.gripper.width_m`, so the policy
+   could require the measured width to reach the commanded width before lifting.
+   This touches shared policy code and therefore MuJoCo's behaviour, and MuJoCo
+   cannot be re-validated from this repository in the time available.
+2. **Give the closing transient authority to finish** by changing what the
+   controller can apply. That is a gain change, and the cause of the reaction is
+   not yet known, so changing gains now would be tuning rather than fixing.
+
+The next concrete diagnostic is a **force-torque sensor on each finger link**.
+The wrench schema is already captured in `message_schemas.json` (it has `force`,
+`torque` and `force_offset`), so the remaining work is to place the sensor, read
+it with the descriptor-verified field names, and read the reaction directly
+instead of inferring it from the creep rate.
