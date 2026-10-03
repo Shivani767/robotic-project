@@ -786,3 +786,59 @@ def test_observations_and_ground_truth_agree_on_the_tool_pose(
         assert truth[0] != pytest.approx(float(bare[0]))
     finally:
         backend.close_all()
+
+
+# ------------------------------------------------- shared gripper force bound
+def test_the_gripper_controller_is_the_one_mujoco_also_uses(
+    fake_gazebo: dict[str, Any],
+) -> None:
+    """Both backends must bound the gripper with the same, derived quantity.
+
+    The Gazebo path used to write the policy's requested aperture straight to
+    the finger actuators. ``control/gripper.py`` exists because that is not
+    safe -- a requested aperture smaller than the object is a *position error*,
+    and a position error times an actuator stiffness is a force with no
+    relationship to what the object needs -- and the MuJoCo backend already
+    routed through it. Two backends resolving the same gripper question
+    differently is how a cross-simulator comparison stops meaning anything.
+    """
+    from robot_ci.control.gripper import GripperController
+    from robot_ci.gazebo.world import FINGER_ACTUATOR_STIFFNESS_N_PER_M
+    from robot_ci.models.robot import GripperControlMode
+    from robot_ci.scenarios import set_by_path
+
+    backend = GazeboBackend()
+    try:
+        scenario = default_scenario(seed=3)
+        handle = backend.reset(scenario, seed=3)
+        controller = backend._state(handle)["gripper_controller"]
+        assert isinstance(controller, GripperController)
+        # The stiffness must be the one the generated world actually configures,
+        # because the force bound is derived from it.
+        assert controller.stiffness_n_per_m == FINGER_ACTUATOR_STIFFNESS_N_PER_M
+        assert controller.open_width_m == float(scenario.robot.max_gripper_width_m)
+        assert controller.closed_width_m == float(
+            scenario.robot.gripper_closed_separation_m
+        )
+        backend.close(handle)
+
+        # In the default POSITION mode it is a pass-through...
+        assert controller.step(requested_width_m=0.0) == pytest.approx(0.0)
+
+        # ...and in BOUNDED mode it floors the request against the object width,
+        # which is the behaviour the module exists for.
+        bounded = backend._make_gripper_controller(
+            set_by_path(
+                scenario, "robot.gripper_control_mode", GripperControlMode.BOUNDED
+            ),
+            period=0.05,
+        )
+        bounded.command_close(contact_width_m=2.0 * float(scenario.target.size_m))
+        commanded = bounded.step(requested_width_m=0.0)
+        assert commanded > 0.0, (
+            "BOUNDED mode must not command the fingers through the object; the "
+            "floor is what keeps the contact force finite"
+        )
+        assert commanded < 2.0 * float(scenario.target.size_m)
+    finally:
+        backend.close_all()

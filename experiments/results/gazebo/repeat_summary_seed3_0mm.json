@@ -1,0 +1,52 @@
+{
+  "experiment": "PickAndPlace, seed 3, 0 mm, policy_v1, GazeboBackend",
+  "repeats": [
+    {
+      "run": "run1",
+      "steps": 150,
+      "closest_tcp_to_object_mm": 0.89,
+      "ticks_grasped": 4,
+      "object_lift_mm": 44.9,
+      "placement_error_m": 0.1979,
+      "status": "failure",
+      "success": false
+    },
+    {
+      "run": "run2",
+      "steps": 150,
+      "closest_tcp_to_object_mm": 0.52,
+      "ticks_grasped": 1,
+      "object_lift_mm": 10.5,
+      "placement_error_m": 0.1815,
+      "status": "failure",
+      "success": false
+    },
+    {
+      "run": "run3",
+      "steps": 150,
+      "closest_tcp_to_object_mm": 0.68,
+      "ticks_grasped": 2,
+      "object_lift_mm": 27.8,
+      "placement_error_m": 0.1609,
+      "status": "failure",
+      "success": false
+    }
+  ],
+  "reach_is_reproducible_mm": [
+    0.52,
+    0.68,
+    0.89
+  ],
+  "lift_is_not_reproducible_mm": [
+    10.5,
+    27.8,
+    44.9
+  ],
+  "placement_error_m": [
+    0.1609,
+    0.1815,
+    0.1979
+  ],
+  "observation": "The approach is deterministic and sub-millimetre on every run. The grasp is not: the same configuration lifted the object 10.5, 27.8 and 44.9 mm above the table, and the task held it as grasped for 1, 2 and 4 ticks. The object is lifted off the table by contact in every run, and is never carried to the target zone in any of them.",
+  "not_claimed": "No PASS. Placement fails on every repeat and the grasp retention is marginal, so no single-run number here should be read as the result."
+}

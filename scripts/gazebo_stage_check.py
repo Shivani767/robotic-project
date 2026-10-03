@@ -55,8 +55,11 @@ GRIPPER_TOLERANCE_M = 0.004
 
 
 def stage1_load(backend: Any, scenario: Any, handle: Any) -> dict[str, Any]:
-    """The world is up and the robot publishes state."""
+    """The world is up, the robot publishes state, and the reader keeps up."""
+    from robot_ci.models.state import Action
+
     reader = backend._state(handle)["joints"]
+    reader.health = reader._health
     deadline = time.monotonic() + 20.0
     names: tuple[str, ...] = ()
     while time.monotonic() < deadline:
@@ -67,11 +70,37 @@ def stage1_load(backend: Any, scenario: Any, handle: Any) -> dict[str, Any]:
         time.sleep(0.2)
     expected = set(scenario.robot.all_joint_names)
     missing = sorted(expected - set(names))
+
+    # How fast the reader actually parses, against how fast Gazebo publishes.
+    # The joint state arrives on a 1 kHz physics-rate topic, but it is decoded
+    # from the `gz topic -e` CLI's pretty-printed JSON by a brace-matching
+    # reader. If that reader cannot keep up, every measurement this project
+    # makes about the arm is stale by however many periods it falls behind --
+    # including the trace used to judge whether a grasp is stable.
+    start_messages = reader.health.joint_messages
+    _, start_sim = reader.latest()
+    deadline = time.monotonic() + 10.0
+    while time.monotonic() < deadline:
+        time.sleep(0.5)
+        backend.step(handle, Action.noop())
+    parsed = reader.health.joint_messages - start_messages
+    sim_elapsed = backend._sim_time(handle) - start_sim
+    measured_hz = parsed / sim_elapsed if sim_elapsed > 0 else 0.0
     return {
         "ok": not missing and bool(names),
         "sim_time_s": backend._sim_time(handle),
         "joints_reported": sorted(names),
         "missing": missing,
+        "joint_messages_parsed": parsed,
+        "sim_seconds_advanced": round(sim_elapsed, 3),
+        "reader_rate_hz": round(measured_hz, 1),
+        "publish_rate_hz": 1000.0,
+        # At the physics rate, a reader keeping up would parse 1000 messages
+        # per simulated second.
+        "reader_keeps_up": measured_hz > 500.0,
+        "periods_behind_at_20hz": round((1000.0 / measured_hz - 1) / 20.0, 2)
+        if measured_hz > 0
+        else None,
     }
 
 

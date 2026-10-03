@@ -34,6 +34,7 @@ from robot_ci.models.environment import object_half_extents
 from robot_ci.models.scenario import ScenarioConfig
 
 __all__ = [
+    "FINGER_ACTUATOR_STIFFNESS_N_PER_M",
     "GAZEBO_ROBOT_NAME",
     "GAZEBO_WORLD_NAME",
     "GazeboWorld",
@@ -160,6 +161,14 @@ def unsupported_conditions(scenario: ScenarioConfig) -> list[str]:
     return gaps
 
 
+#: Stiffness of the finger position actuators in newtons per metre of position
+#: error, which is exactly ``p_gain`` for a Gazebo joint position controller.
+#: Exported so :mod:`robot_ci.simulation.gazebo` can hand the same number to
+#: :class:`~robot_ci.control.gripper.GripperController`, whose force bound is
+#: derived from the actuator stiffness rather than chosen.
+FINGER_ACTUATOR_STIFFNESS_N_PER_M = 1000.0
+
+
 def _joint_controller_plugin() -> str:
     """The joint controller, to be placed *inside* the robot model.
 
@@ -231,8 +240,32 @@ def _joint_controller_plugin() -> str:
     # ``i_max`` is 4 N: enough to trim the residual, and still small against
     # the 100 N finger limit and the 0.49 N object, so it cannot crush what it
     # is holding.
+    #
+    # ``p_gain`` stays at 1000 N/m, and the reason is a measurement rather than a
+    # preference. The episode trace shows the grasp failing as **squeeze
+    # ejection**: the pads command 11.2 mm of separation against a 16 mm object,
+    # so each interferes by 4.8 mm, and the object is thrown 14 mm clear of the
+    # jaws in a single control tick -- about 0.28 m/s -- on the tick the lift
+    # begins. Halving the finger stiffness to 500 N/m to soften that impulse was
+    # tried and made the grasp *worse*, not better: the lift fell from 45 mm to
+    # 13.9 mm and the grasp was held for 1 tick instead of 4. So the failure is
+    # not a force that is too large; it is that a light object trapped between
+    # two stiff pads has no stable equilibrium. Lowering the force only loses
+    # the grip. 1000 N/m is kept because it is the measured best of the two, and
+    # the ejection itself is recorded as the open problem.
     gains = {
         # joint name -> (p, i, d, i_max, i_min, cmd_max)
+        # p_gain/d_gain are 4000/100, not the 1000/50 first tried. Measured, a
+        # ramped command left the arm trailing by a constant 84-100 ms -- 0.1087
+        # rad on joints 1-4 and 0.1305 on joints 5-7, which are exactly
+        # ``max_velocity * control_period`` for those joints -- and the grasped
+        # object left the jaws on the tick the command ramped hardest. A PD
+        # position controller's bandwidth goes as ``sqrt(p / I)``, so quadrupling
+        # p and doubling d (which keeps the damping ratio, since d goes as
+        # ``sqrt(p)``) halves the lag. cmd_max is unchanged: it stays at each
+        # joint's real effort limit, so the extra stiffness cannot become extra
+        # force.
+        #
         # ``i_max`` is 10 N, not the 50 first tried. The steady-state integral
         # that cancels gravity here is tiny -- the settled joint errors are
         # 0.2-4.0 mrad, i.e. under 4 N of commanded force -- so 10 N is ample.
@@ -241,13 +274,13 @@ def _joint_controller_plugin() -> str:
         # arm overshooting the lift pose by 17 mm and oscillating +/-20 mm until
         # the object shook out of the jaws. The bound is the anti-windup, and it
         # has to be sized against the load, not chosen generously.
-        "joint1": (1000.0, 100.0, 50.0, 10.0, -10.0, 87.0),
-        "joint2": (1000.0, 100.0, 50.0, 10.0, -10.0, 87.0),
-        "joint3": (1000.0, 100.0, 50.0, 10.0, -10.0, 87.0),
-        "joint4": (1000.0, 100.0, 50.0, 10.0, -10.0, 87.0),
-        "joint5": (1000.0, 100.0, 50.0, 10.0, -10.0, 12.0),
-        "joint6": (1000.0, 100.0, 50.0, 10.0, -10.0, 12.0),
-        "joint7": (1000.0, 100.0, 50.0, 10.0, -10.0, 12.0),
+        "joint1": (4000.0, 100.0, 100.0, 10.0, -10.0, 87.0),
+        "joint2": (4000.0, 100.0, 100.0, 10.0, -10.0, 87.0),
+        "joint3": (4000.0, 100.0, 100.0, 10.0, -10.0, 87.0),
+        "joint4": (4000.0, 100.0, 100.0, 10.0, -10.0, 87.0),
+        "joint5": (4000.0, 100.0, 100.0, 10.0, -10.0, 12.0),
+        "joint6": (4000.0, 100.0, 100.0, 10.0, -10.0, 12.0),
+        "joint7": (4000.0, 100.0, 100.0, 10.0, -10.0, 12.0),
         "left_finger": (1000.0, 100.0, 50.0, 4.0, -4.0, 100.0),
         "right_finger": (1000.0, 100.0, 50.0, 4.0, -4.0, 100.0),
     }

@@ -182,12 +182,15 @@ Full transcript: `experiments/results/gazebo/evidence_robot_not_rendered.txt`
 
 ## 7. Limitations and blockers
 
-* **Placement does not succeed yet; the grasp and the lift do.** Measured on
-  the live pipeline at seed 3, 0 mm: the arm reaches within **3.1 mm** of the
-  object, the jaws enclose it, the object is lifted **55.7 mm by contact alone**
-  and is carried ~120 mm along the transit. It is then shed part-way and ends
-  0.125 m from the target zone, so the episode reports `FAIL`. That is a
-  measured outcome, and no `PASS` is claimed for any condition. See section 10.
+* **Placement does not succeed yet.** Measured on the live pipeline at seed 3,
+  0 mm, three repeats: the arm reaches within **0.52-0.89 mm** of the object on
+  every run, the jaws enclose it, and the object leaves the table by contact --
+  44.9, 10.5 and 27.8 mm in three identical configurations. The grasp is
+  **not reproducible**, and the object was never carried to the target zone. The
+  measured mechanism is squeeze ejection: the pads command 4.8 mm of
+  interference each and throw the object 14 mm clear of the jaws in a single
+  tick. Every run reports `FAIL`; no `PASS` is claimed for any condition. See
+  section 10.
 * **Grasp is resolved contact, not a latch.** The kinematic latch that used to
   attach the object whenever the commanded aperture closed within 50 mm of it
   has been **deleted**. Ground truth is now the pose Gazebo's physics engine
@@ -196,12 +199,12 @@ Full transcript: `experiments/results/gazebo/evidence_robot_not_rendered.txt`
   its measured height above the support surface. No code path writes the
   object's pose, so an object that rose was raised by contact.
 * **Collision geometry differs from MuJoCo.** The URDF uses per-link primitive
-  bounding volumes where the MuJoCo model uses meshes. Contact response is
-  therefore *expected* to differ between the two simulators, which is a real
-  source of cross-simulator disagreement rather than a defect. The parallel jaw
-  is the sharpest case: the pads contact a 16 mm cube on two diagonal edges
-  rather than two faces, which is the leading suspect for the shed object in
-  section 10.
+  bounding volumes where the MuJoCo model uses meshes, and the pads are plain
+  20 x 15 x 17 mm boxes where the real Panda's are tapered and undercut.
+  Contact response is therefore *expected* to differ between the two
+  simulators, which is a real source of cross-simulator disagreement rather
+  than a defect -- and it is the leading suspect for the squeeze ejection in
+  section 10, because a box pad gives a trapped cube no way to settle.
 * **Depth noise cannot perturb the policy on this backend.** The camera noise is
   real and is written into the generated world (`<mean>`/`<stddev>` = 0.008 m
   for the 8 mm condition), and the depth frame is delivered in the observation.
@@ -263,6 +266,8 @@ stated as: the measurement, the cause, the change. Evidence lives in
 | 5 | the arm stalled **134 mm** short of the object | IK and `RobotState.end_effector_pose` used the **wrist** (`panda_link7`), 0.2104 m behind the tool, while the waypoints are tool-centre points. The policy's "have I reached" test could never become true, so the waypoint cursor never advanced. | The URDF provider's chain now runs through the fixed `hand_joint` to the TCP site at hand-frame `z = 0.1034`, the same frame `simulation/mujoco_env.py` injects. Pinned by `test_tcp_constant_matches_the_site_mujoco_injects`. |
 | 6 | the gripper geometry did not match `RobotConfig` | The URDF's pads were 50 mm tall boxes 20 mm behind the pad centre, and the two jaws were asymmetric (midpoint 5 mm off the hand axis). | Rebuilt from the MJCF measurements: pad centre at hand-frame `z = 0.1029`, half-height 8.5 mm, closed separation 11 mm, symmetric by construction. Pinned by `test_urdf_gripper_geometry_matches_the_robot_config`. |
 | 7 | the world drew a **40 mm** cube for a **16 mm** condition, a table 20% too small, the target marker 0.27 m from where the task scores placement, and no friction at all | `world_sdf` hard-coded the scene instead of reading the scenario. | Object size, mass, inertia, resting height, target zone, table extent, spawn annulus and friction are all derived from the `ScenarioConfig`. Pinned by `test_world_states_the_scenario_object_size_and_target_zone`. |
+| 9 | the arm trailed a ramped command by a constant **84-100 ms**, and one finger intermittently stalled 31.6 mm short of its command | A PD position controller's bandwidth goes as `sqrt(p / I)`; at `p_gain = 1000, d_gain = 50` the lag on a 1.3 rad/s ramp was 0.1087 rad on joints 1-4 and 0.1305 on joints 5-7 -- exactly `max_velocity * control_period`. | `p_gain = 4000, d_gain = 100` on the seven arm joints (d scales as `sqrt(p)`, so the damping ratio is preserved) while `cmd_max` stays at each joint's real effort limit. Stage 3's tool-error bound went 9.31 mm -> **4.16 mm** and stage 5's worst finger residual 31.6 mm -> **0.4 mm**; all five stages now pass. |
+| 10 | the Gazebo path wrote the policy's requested aperture straight to the fingers, while MuJoCo routed it through `control.gripper.py` | Two backends resolving the same gripper question differently is exactly how a cross-simulator comparison stops meaning anything. | Both now use `GripperController`, with the stiffness handed in as the one the generated world actually configures (`p_gain` is newtons per metre of position error). In the default POSITION mode it is a pass-through and changes nothing numerically. |
 | 8 | the grasp was a **kinematic latch** reporting the object at the end effector | `_update_grasp` attached the object whenever the aperture closed within 50 mm, and `ground_truth` then returned a reconstructed pose. No physics. | Deleted. Ground truth is Gazebo's own pose and orientation; `grasped` is derived from three measurements. Pinned by `test_ground_truth_is_the_simulators_own_pose_not_a_reconstruction`. |
 
 1. **Why the grasp does not latch and complete.** The end effector reaches
@@ -276,22 +281,63 @@ stated as: the measurement, the cause, the change. Evidence lives in
 
 ### What the episode now does, measured
 
-Seed 3, 0 mm, `policy_v1`, 174 control ticks, through `run_episode`:
+Seed 3, 0 mm, `policy_v1`, 150 control ticks, through `run_episode`. Three
+repeats, because the grasp turned out not to be reproducible and a single run
+would have hidden that (`repeat_summary_seed3_0mm.json`):
 
-| Quantity | Value |
-|---|---|
-| Closest tool-to-object distance | **3.1 mm** |
-| Ticks the task counted as grasped | 13 |
-| Object height above the table, max | **55.7 mm** |
-| Object position at the end | 0.125 m from the target zone |
-| Task outcome | `FAIL` |
+| Quantity | run 1 | run 2 | run 3 |
+|---|---|---|---|
+| Closest tool-to-object distance | 0.89 mm | 0.52 mm | 0.68 mm |
+| Ticks the task counted as grasped | 4 | 1 | 2 |
+| Object height above the table, max | 44.9 mm | 10.5 mm | 27.8 mm |
+| Placement error | 0.198 m | 0.181 m | 0.161 m |
+| Task outcome | `FAIL` | `FAIL` | `FAIL` |
 
-The arm reaches the object, encloses it, lifts it 55.7 mm by contact and carries
-it about 120 mm along the transit, and then the object leaves the jaws. The
-leading suspect is recorded rather than asserted: the pads are 20 mm deep and
-the jaw axis is 45 deg to the cube's faces (the URDF keeps the Panda's -45 deg
-hand mounting), so the pads grip two diagonal **edges** instead of two faces,
-and a 0.8 m/s transit shakes the cube out of that grip.
+The **approach is deterministic and sub-millimetre** on every run: the arm
+reaches the object, the jaws enclose it, and the object leaves the table by
+contact. The **grasp is not reproducible**: the same configuration held it for
+1, 2 and 4 ticks, and it was never carried to the target zone in any repeat. No
+`PASS` is claimed and no single-run number here is the result.
+
+### What was ruled out, and how
+
+* **Stale observations.** The suspicion was that every measurement is lagging,
+  because the joints trail a ramped command by 0.1087 rad on joints 1-4 and
+  0.1305 rad on joints 5-7 -- exactly `max_velocity * control_period`. Stage 1
+  now measures the reader directly against the 1 kHz physics rate: it parses
+  **1000.0 messages per simulated second and is 0.0 control periods behind**.
+  The lag is the arm's, not the reader's.
+* **A diagonal grasp.** The pads separate along the hand's local y, the TCP
+  frame carries the hand's orientation, and the commanded grasp orientation is a
+  180 deg turn about x, so the jaws close along `-(0, 1, 0)` -- onto two
+  opposite faces of an axis-aligned cube, not onto its edges. This hypothesis
+  was written down first and was wrong; it is recorded because "checked and
+  excluded" is worth more than "not considered".
+* **The pads hitting the table.** The aim puts the pad centre 1.0 mm above the
+  cube's centre, so the 8.5 mm pad half-height leaves the pads' lower edge
+  0.5 mm **above** the tabletop. There is no table penetration to squeeze
+  against.
+
+### The remaining failure: squeeze ejection
+
+The trace shows what happens. The pads command 11.2 mm of separation against a
+16 mm object, so each interferes by 4.8 mm. On the tick the waypoint cursor
+advances and the lift begins, the object is thrown **14 mm clear of the jaws in
+one control tick** -- about 0.28 m/s -- and falls back to the table. It is not
+slipping under a weak grip and it is not being dragged: a 0.049 kg cube trapped
+between two stiff pads has no stable equilibrium.
+
+Halving the finger stiffness to 500 N/m to soften the impulse was tried and made
+it **worse**, not better: the lift fell from 45 mm to 13.9 mm and the grasp was
+held for 1 tick. So the problem is not that the force is too large, and reducing
+it only loses the grip. The finger gains stay at the measured best of the two.
+
+What is left to try, in order, none of which is done here: shaping the pads so
+the cube cannot translate out of them (a real Panda's pads are tapered); adding
+a Gazebo contact sensor so the ejection impulse can be attributed to a specific
+contact pair rather than inferred from the object's velocity; and revisiting the
+task's 4.8 mm engagement against ``control/gripper.py``, which already argues
+that the force is two orders of magnitude more than the object needs.
 
 ### Reproducing it on a Mac
 
@@ -314,6 +360,6 @@ Artifacts: `stage_check.json`, `stage_check.txt`,
 
 | Condition | Status | What was measured |
 |---|---|---|
-| PickAndPlace, seed 3, 0 mm | **FAIL** | Reach 3.1 mm, grasp 13 ticks, lift 55.7 mm, placement error 0.125 m. |
-| PickAndPlace, seed 3, 8 mm | **NOT_SUPPORTED** | The camera noise *is* generated (the world's `<stddev>` reads 0.008 m) and the depth frame is delivered, but the object belief the policy receives is the simulator's pose, so noise cannot reach the policy. The run differs only because `scenario_id` participates in object placement, which moved the cube from (0.023, 0.226) to (-0.003, 0.189). It is **not** evidence that 8 mm breaks grasping. |
+| PickAndPlace, seed 3, 0 mm | **FAIL** | Three repeats: reach 0.89 / 0.52 / 0.68 mm, lift 44.9 / 10.5 / 27.8 mm, placement error 0.198 / 0.181 / 0.161 m. The approach is deterministic; the grasp is not. |
+| PickAndPlace, seed 3, 8 mm | **NOT_SUPPORTED** | The camera noise *is* generated (the world's `<stddev>` reads 0.008 m) and the depth frame is delivered, but the object belief the policy receives is the simulator's pose, so noise cannot reach the policy. The run differs only because `scenario_id` participates in object placement, which moved the cube from (0.023, 0.226) to (-0.003, 0.189); at that placement the arm reaches 84 mm and never closes. It is **not** evidence that 8 mm breaks grasping, and it is not evidence about noise at all. |
 | Paired baseline/candidate | **NOT_IMPLEMENTED** | Both policies must genuinely execute through Gazebo. Placement does not yet succeed, so a paired comparison would compare two failing arms. |

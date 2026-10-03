@@ -1,12 +1,12 @@
 scenario=depth_noise_8mm_seed3 policy=policy_v1
-status=failure success=False steps=109
+status=failure success=False steps=98
   1_world_and_control: PASS
-      steps: 109
-      ticks_with_a_measured_object: 109
+      steps: 98
+      ticks_with_a_measured_object: 98
   2_gripper_enclosed_the_object: FAIL
-      closest_tcp_to_object_m: 0.08431
+      closest_tcp_to_object_m: 0.08426
       bound_m: 0.03
-      minimum_measured_aperture_m: 0.03591
+      minimum_measured_aperture_m: 0.03812
   3_object_lifted_by_contact: FAIL
       ticks_the_task_counted_as_grasped: 0
       max_object_height_above_table_m: 0.008
@@ -18,6 +18,6 @@ status=failure success=False steps=109
   5_task_outcome: FAIL
       status: failure
       placement_error_m: 0.2072114279980716
-      grasp_error_m: 0.08430536441359017
+      grasp_error_m: 0.08421909886099382
       measured_object_lift_m: 0.0
 wrote experiments/results/gazebo/pick_place_seed3_8mm_policy_v1.json

@@ -42,10 +42,15 @@ from typing import Any
 
 import numpy as np
 
+from robot_ci.control.gripper import GripperController
 from robot_ci.core.errors import BackendUnavailableError, SimulationError
 from robot_ci.core.logging import get_logger
 from robot_ci.gazebo.live import JOINT_NAMES, JointStateReader
-from robot_ci.gazebo.world import GAZEBO_ROBOT_NAME, world_sdf
+from robot_ci.gazebo.world import (
+    FINGER_ACTUATOR_STIFFNESS_N_PER_M,
+    GAZEBO_ROBOT_NAME,
+    world_sdf,
+)
 from robot_ci.models.environment import TaskName, object_half_extents
 from robot_ci.models.geometry import Covariance, Pose, Quaternion, Vec3
 from robot_ci.models.scenario import ScenarioConfig
@@ -459,6 +464,9 @@ class GazeboBackend(SimulatorBackend):
         self._episodes[handle.episode_id] = {
             "process": process,
             "joints": joints,
+            "gripper_controller": self._make_gripper_controller(
+                scenario, period=1.0 / float(scenario.sensors.control_hz or 50.0)
+            ),
             "poses": _PoseStream(self._world_name),
             "depth": _DepthStream(self._world_name),
             "publishers": self._make_publishers(),
@@ -486,6 +494,27 @@ class GazeboBackend(SimulatorBackend):
         self._settle(handle, seconds=0.4)
         handle.sim_time_s = self._sim_time(handle)
         return handle
+
+    def _make_gripper_controller(
+        self, scenario: ScenarioConfig, *, period: float
+    ) -> GripperController:
+        """Build the gripper controller for one episode.
+
+        The stiffness handed in is the finger actuator's real one -- a Gazebo
+        joint position controller produces ``p_gain`` newtons per metre of
+        position error, and ``p_gain`` is what the generated world configures.
+        The force bound in :mod:`robot_ci.control.gripper` is derived from that
+        stiffness, so passing anything else would bound the force against the
+        wrong actuator.
+        """
+        robot = scenario.robot
+        return GripperController(
+            mode=robot.gripper_control_mode,
+            stiffness_n_per_m=FINGER_ACTUATOR_STIFFNESS_N_PER_M,
+            control_dt_s=float(period),
+            open_width_m=float(robot.max_gripper_width_m),
+            closed_width_m=float(robot.gripper_closed_separation_m),
+        )
 
     def _drive_to(
         self,
@@ -581,6 +610,18 @@ class GazeboBackend(SimulatorBackend):
             targets = [current.get(joint, 0.0) for joint in ARM_JOINTS]
         if width is None:
             width = 2.0 * current.get("left_finger", 0.04)
+
+        # The aperture goes through the same controller MuJoCo uses, so the two
+        # backends share one gripper policy. In the default POSITION mode it is
+        # a pass-through and changes nothing numerically; what it buys is that a
+        # scenario asking for GripperControlMode.BOUNDED gets the force bound
+        # here too, derived from the actuator stiffness that is actually
+        # driving the fingers rather than from a number typed in here.
+        controller: GripperController = state["gripper_controller"]
+        measured_width = float(current.get("left_finger", 0.0)) + float(
+            current.get("right_finger", 0.0)
+        )
+        width = controller.step(requested_width_m=float(width), measured_width_m=measured_width)
 
         before_time = self._sim_time(handle)
         self._publish(handle, targets, width)
