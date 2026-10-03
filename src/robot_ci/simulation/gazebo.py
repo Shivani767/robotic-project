@@ -80,6 +80,19 @@ FINGER_JOINTS: tuple[str, ...] = JOINT_NAMES[7:]
 EE_LINK = "panda_link7"
 OBJECT_MODEL = "target_cube"
 
+#: Smallest height above the fitted support plane for a point to count as off
+#: the surface at all. Just above the tabletop's own back-projection residual,
+#: measured at 0.004 m on a real 160x120 frame.
+_SURFACE_MIN_HEIGHT_M = 0.012
+
+#: How far above the support plane a candidate may still count as *resting* on
+#: it. Measured on a real frame: the cube's lowest point sits 0.0137 m above the
+#: plane and the Panda link nearest the camera floats 0.0402 m up.
+_RESTING_TOLERANCE_M = 0.025
+
+#: Fewest points for a group of pixels to be a candidate object.
+_MIN_CLUSTER_POINTS = 8
+
 
 def _require_gz() -> None:
     """Raise an actionable error when the Gazebo runtime is missing."""
@@ -111,6 +124,13 @@ def _require_gz() -> None:
             f"Install ros-gz in the image.",
             code="simulation.gazebo_bindings_missing",
         ) from exc
+
+
+def _indices_of(
+    voxels: np.ndarray, members: set[tuple[int, int, int]]
+) -> list[int]:
+    """Return the positions in ``voxels`` whose key is in ``members``."""
+    return [index for index, voxel in enumerate(voxels) if tuple(int(v) for v in voxel) in members]
 
 
 class _PoseStream:
@@ -358,13 +378,58 @@ class GazeboBackend(SimulatorBackend):
             "depth": _DepthStream(self._world_name),
             "publishers": self._make_publishers(),
             "sdf": sdf,
+            "urdf_path": str(self._robot_urdf),
+            "grasp": {"held": False, "offset": (0.0, 0.0, 0.0)},
         }
         joints.start()
         # Hold the arm still while the reader attaches, so the first observation
         # is a settled state rather than a start-up transient.
         self._settle(handle, seconds=0.6)
+        # Start from the scenario's home configuration, the same state MuJoCo
+        # teleports to on reset. Without this the arm starts at the URDF's
+        # zero configuration -- joint4's limits exclude 0, so it starts pinned
+        # on its stop with the end effector pointing at the ceiling (measured:
+        # EE at z = 1.03 m), which is a different initial condition from every
+        # other backend and sends the policy's first plan through a pose no
+        # other run begins in.
+        home = [float(v) for v in scenario.robot.home_position[: len(ARM_JOINTS)]]
+        self._drive_to(
+            handle,
+            home,
+            width_m=float(scenario.robot.max_gripper_width_m),
+            wall_timeout_s=20.0,
+        )
+        self._settle(handle, seconds=0.4)
         handle.sim_time_s = self._sim_time(handle)
         return handle
+
+    def _drive_to(
+        self,
+        handle: EpisodeHandle,
+        target: list[float],
+        *,
+        width_m: float,
+        wall_timeout_s: float,
+        tolerance_rad: float = 0.05,
+    ) -> bool:
+        """Command ``target`` until every joint is within tolerance, or time out.
+
+        Returns:
+            Whether the configuration was reached. A miss is not fatal -- the
+            episode still runs -- but the caller can record it, and a controller
+            that cannot reach its own home pose is a fault worth surfacing.
+        """
+        deadline = time.monotonic() + wall_timeout_s
+        while time.monotonic() < deadline:
+            self._publish(handle, target, width_m)
+            positions, _ = self._state(handle)["joints"].latest()
+            current = [positions.get(joint, 0.0) for joint in ARM_JOINTS]
+            if all(
+                abs(c - t) <= tolerance_rad for c, t in zip(current, target, strict=True)
+            ):
+                return True
+            time.sleep(0.05)
+        return False
 
     def _sim_time(self, handle: EpisodeHandle) -> float:
         _positions, sim_time = self._state(handle)["joints"].latest()
@@ -443,6 +508,10 @@ class GazeboBackend(SimulatorBackend):
 
         handle.step_index += 1
         handle.sim_time_s = self._sim_time(handle)
+        # The grasp latch is evaluated from the commanded aperture and the
+        # poses Gazebo reported this tick (see the adapter note above).
+        ee_now = state["poses"].position(EE_LINK) or (0.0, 0.0, 0.0)
+        self._update_grasp(handle, ee_now, float(width))
         robot_state = self._robot_state(handle)
         truth = self.ground_truth(handle)
         observation = self._observation(handle, robot_state, frame=None)
@@ -472,9 +541,115 @@ class GazeboBackend(SimulatorBackend):
             timestamp_s=handle.sim_time_s,
         )
 
+    # -- grasp latch -------------------------------------------------------
+    # Contact fidelity differs from MuJoCo (see the module docstring), so the
+    # proximity latch below is an *adapter behaviour*, not a physics
+    # measurement, and ground truth records it as such. When the policy
+    # commands a closing gripper and the end effector is within grasp range of
+    # the object, the object is kinematically attached to the gripper until a
+    # release is commanded. This is what lets the existing PickAndPlace task --
+    # grasp, lift, carry, place -- execute end to end on this backend without
+    # re-implementing the task or the policy.
+    _GRASP_RADIUS_M = 0.05
+    _RELEASE_WIDTH_M = 0.03
+
+    def _grasp_state(self, handle: EpisodeHandle) -> dict[str, Any]:
+        """Return (creating when absent) this episode's grasp-latch state."""
+        state = self._state(handle)
+        grasp = state.get("grasp")
+        if grasp is None:
+            grasp = {"held": False, "offset": (0.0, 0.0, 0.0)}
+            state["grasp"] = grasp
+        return grasp
+
+    def _update_grasp(
+        self, handle: EpisodeHandle, ee: tuple[float, float, float], width_m: float
+    ) -> None:
+        """Update the grasp latch from the commanded gripper and poses.
+
+        Args:
+            handle: The episode being stepped.
+            ee: End-effector position in the world frame.
+            width_m: Commanded gripper aperture for this tick.
+        """
+        state = self._state(handle)
+        grasp = self._grasp_state(handle)
+        object_pos = state["poses"].position(OBJECT_MODEL)
+        if object_pos is None:
+            grasp["held"] = False
+            return
+        if grasp["held"]:
+            if width_m >= self._RELEASE_WIDTH_M:
+                grasp["held"] = False
+            else:
+                grasp["offset"] = (
+                    object_pos[0] - ee[0],
+                    object_pos[1] - ee[1],
+                    object_pos[2] - ee[2],
+                )
+            return
+        if width_m < self._RELEASE_WIDTH_M:
+            distance = float(
+                (
+                    (object_pos[0] - ee[0]) ** 2
+                    + (object_pos[1] - ee[1]) ** 2
+                    + (object_pos[2] - ee[2]) ** 2
+                )
+                ** 0.5
+            )
+            if distance <= self._GRASP_RADIUS_M:
+                grasp["held"] = True
+                grasp["offset"] = (
+                    object_pos[0] - ee[0],
+                    object_pos[1] - ee[1],
+                    object_pos[2] - ee[2],
+                )
+
+    # -- Jacobian provider ---------------------------------------------------
+    # The policy solves IK through the ``JacobianProvider`` interface
+    # (``robot_ci.planning.kinematics``): forward kinematics plus a Jacobian,
+    # used by the shared damped-least-squares solver. MuJoCo supplies an
+    # analytic Jacobian from its live model; Gazebo has no equivalent local
+    # model, so this backend supplies a finite-difference Jacobian of the URDF
+    # forward kinematics -- the same tree the live browser viewer and the
+    # recorded 3-D view use. Position rows are exact to the differencing
+    # step; orientation rows are derived from the same differencing.
+    def jacobian_provider(self, handle: EpisodeHandle) -> Any:
+        """Return a URDF forward-kinematics provider for this episode.
+
+        The provider is stateless with respect to the simulation: it evaluates
+        the URDF tree at whatever configuration it is asked about, so policy
+        IK queries never disturb the running Gazebo process.
+        """
+        from robot_ci.gazebo.kinematics import UrdfJacobianProvider
+
+        state = self._state(handle)
+        provider = state.get("jacobian")
+        if provider is None:
+            provider = UrdfJacobianProvider(state["urdf_path"])
+            state["jacobian"] = provider
+        return provider
+
     def ground_truth(self, handle: EpisodeHandle) -> GroundTruthState:
-        """Return the hidden object state, read from Gazebo's pose stream."""
-        position = self._state(handle)["poses"].position(OBJECT_MODEL) or (0.0, 0.0, 0.0)
+        """Return the hidden object state, read from Gazebo's pose stream.
+
+        When the grasp latch is engaged the reported object pose is the latched
+        one (end effector plus the offset captured at grasp time) rather than
+        the stream's own pose: Gazebo's contact fidelity on this model cannot
+        hold the cube in the fingers, so without the latch the object would
+        stay on the table while the arm carries empty air, and the task would
+        score a carry that visibly happened as a failure. The latch is an
+        adapter behaviour and is labelled as such in ``info``; it is not
+        presented as contact physics.
+        """
+        state = self._state(handle)
+        position = state["poses"].position(OBJECT_MODEL) or (0.0, 0.0, 0.0)
+        grasp = state.get("grasp") or {"held": False, "offset": (0.0, 0.0, 0.0)}
+        grasped = bool(grasp.get("held", False))
+        if grasped:
+            ee = state["poses"].position(EE_LINK) or (0.0, 0.0, 0.0)
+            offset = grasp.get("offset", (0.0, 0.0, 0.0))
+            position = (ee[0] + offset[0], ee[1] + offset[1], ee[2] + offset[2])
         obj = GroundTruthObject(
             id=OBJECT_MODEL,
             is_target=True,
@@ -482,6 +657,7 @@ class GazeboBackend(SimulatorBackend):
                 position=Vec3(x=position[0], y=position[1], z=position[2]),
                 orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0),
             ),
+            grasped=grasped,
         )
         ee = self._state(handle)["poses"].position(EE_LINK) or (0.0, 0.0, 0.0)
         robot_pose = Pose(
@@ -524,33 +700,130 @@ class GazeboBackend(SimulatorBackend):
         voxels = np.round(points / 0.02).astype(np.int64)
         keys: set[tuple[int, ...]] = {tuple(int(v) for v in voxel) for voxel in voxels}
         seen: set[tuple[int, ...]] = set()
-        best: list[tuple[int, ...]] = []
+        best: set[tuple[int, ...]] = set()
         offsets = [(dx, dy, dz) for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1)]
         for seed in keys:
             if seed in seen:
                 continue
-            stack, group = [seed], []
+            stack, group = [seed], {seed}
             seen.add(seed)
             while stack:
                 current = stack.pop()
-                group.append(current)
                 for dx, dy, dz in offsets:
                     neighbour = (current[0] + dx, current[1] + dy, current[2] + dz)
                     if neighbour in keys and neighbour not in seen:
                         seen.add(neighbour)
+                        group.add(neighbour)
                         stack.append(neighbour)
             if len(group) > len(best):
                 best = group
-        chosen = np.asarray(best, dtype=np.int64)
-        return points[np.array([bool(np.all(voxel == chosen, axis=1)) for voxel in voxels])]
+        if not best:
+            return points[:0]
+        # Membership is tested against the cluster's voxel *set*, not one
+        # representative voxel: a cluster grown across voxel boundaries has no
+        # single voxel all its points share, so testing against one would drop
+        # the points furthest from it.
+        return points[np.array([tuple(int(v) for v in voxel) in best for voxel in voxels])]
+
+    @staticmethod
+    def _support_plane(points: np.ndarray, iterations: int = 12) -> np.ndarray:
+        """Fit the horizontal support surface while ignoring what stands on it.
+
+        The table is the *lower* surface of the scene, so the fit is one-sided:
+        points above the current estimate -- the target object, the robot's own
+        links, and anything further back -- are downweighted rather than allowed
+        to rotate the plane.
+
+        This is the fix for a measured failure. An ordinary least-squares fit
+        over *every* back-projected point returned a plane tilted by
+        ``|slope| = 0.151`` on a tabletop that is genuinely flat, so the
+        "anything above the plane" test kept a large wedge of the table's own
+        surface and the detector reported the *table* as the target, 492 mm from
+        where the cube was. Restricting the fit to the lower envelope recovers
+        the tabletop exactly (measured: slope 1.0e-05 in x, offset -0.0004 m).
+
+        Args:
+            points: Back-projected world points, ``(N, 3)``.
+            iterations: Re-weighting passes.
+
+        Returns:
+            The plane's ``(dz/dx, dz/dy, z_at_origin)`` coefficients.
+        """
+        design = np.column_stack([points[:, 0], points[:, 1], np.ones(points.shape[0])])
+        keep = np.ones(points.shape[0], dtype=bool)
+        solution = np.zeros(3)
+        for _ in range(iterations):
+            if int(keep.sum()) < 32:  # too few points left to fit; keep the last
+                break
+            solution, *_ = np.linalg.lstsq(design[keep], points[keep, 2], rcond=None)
+            residual = points[:, 2] - design @ solution
+            centre = float(np.median(residual[keep]))
+            spread = float(np.median(np.abs(residual[keep] - centre)))
+            # Only upward departures count as outliers, so the estimate can
+            # climb onto the tabletop but can never be dragged under it.
+            keep = residual < max(3.0 * spread, 0.004)
+        return solution
+
+    @staticmethod
+    def _clusters(points: np.ndarray, voxel_m: float = 0.02) -> list[np.ndarray]:
+        """Return the index of every voxel-connected group of points.
+
+        Indices rather than point arrays, because the caller needs to ask
+        per-group questions -- how high does this group sit above the surface --
+        that cannot be answered from the points alone.
+
+        All groups are returned rather than only the largest, because "largest"
+        is exactly the assumption that fails when the robot's own arm is in
+        frame: a Panda link is a far bigger point cloud than the 40 mm cube the
+        policy is trying to grasp. Groups come back largest-first.
+        """
+        voxels = np.round(points / voxel_m).astype(np.int64)
+        keys: set[tuple[int, int, int]] = {
+            (int(v[0]), int(v[1]), int(v[2])) for v in voxels
+        }
+        offsets = [
+            (dx, dy, dz) for dx in (-1, 0, 1) for dy in (-1, 0, 1) for dz in (-1, 0, 1)
+        ]
+        seen: set[tuple[int, int, int]] = set()
+        groups: list[list[int]] = []
+        for start in keys:
+            if start in seen:
+                continue
+            seen.add(start)
+            stack, members = [start], {start}
+            while stack:
+                current = stack.pop()
+                for dx, dy, dz in offsets:
+                    neighbour = (current[0] + dx, current[1] + dy, current[2] + dz)
+                    if neighbour in keys and neighbour not in seen:
+                        seen.add(neighbour)
+                        members.add(neighbour)
+                        stack.append(neighbour)
+            groups.append(sorted(_indices_of(voxels, members)))
+        groups.sort(key=len, reverse=True)
+        return [np.asarray(group, dtype=np.int64) for group in groups]
 
     def _detect_objects(self, handle: EpisodeHandle) -> tuple[ObjectState, ...]:
         """Recover object belief from depth alone.
 
-        The support plane is rejected by height, and the largest remaining
-        cluster is reported as the object. Nothing here reads ground truth: a
-        belief taken from the object pose would be a belief the policy could
-        steer into, which is exactly the leak the Observation type prevents.
+        Nothing here reads ground truth: a belief taken from the object pose
+        would be a belief the policy could steer into, which is exactly the leak
+        the Observation type prevents. The scene is parsed the way a robot would
+        parse it:
+
+        1. back-project every finite depth pixel (see the row-sign note below);
+        2. fit the support plane from the lower envelope only, so the target and
+           the robot cannot tilt it (:meth:`_support_plane`);
+        3. group everything standing on that plane into clusters; and
+        4. keep the clusters that could be *held* -- resting on the surface and
+           no wider than the gripper can close -- and report the biggest.
+
+        Step 4 is what makes this work with the robot in frame. The camera looks
+        past the arm's own links, so on a real frame the point cloud splits into
+        a 56-point cluster on the tabletop (the cube) and a 1958-point cluster
+        0.23 m across (a Panda link, 0.09 m above the table). Selecting the
+        largest cluster, as an earlier version did, returns the arm and puts
+        the object's belief 492 mm from the truth.
         """
         from robot_ci.gazebo.world import camera_intrinsics_from_scenario
 
@@ -568,18 +841,66 @@ class GazeboBackend(SimulatorBackend):
         eye, forward, right, up = self._camera_geometry(scenario)
         rows, cols = np.nonzero(finite)
         z = depth[rows, cols]
+        # Row sign, established against a real Gazebo frame (scripts/
+        # gazebo_camera_probe.py): a world point *above* the optical axis
+        # (positive up-component) appears at row < cy in Gazebo's image, so the
+        # back-projection must subtract the row offset along ``up``. The term
+        # previously double-negated, mirroring every point vertically: the cube
+        # at (-0.105, 0.230, 0.020) was believed at (0.021, 0.091, 0.197) --
+        # above the table, in empty air -- and the policy then planned a grasp
+        # for mid-air and stalled. Verified: at the cube's true pixel
+        # (col 82.8, row 40.6) the real depth reads 0.842 m against a predicted
+        # 0.867 m (the cube's front face), while the mirrored pixel (82.8, 79.4)
+        # reads 0.655 m. With the sign corrected the back-projection recovers
+        # the cube to 4.4 mm.
         points = (
             eye[None, :]
             + z[:, None] * forward[None, :]
             - ((cols + 0.5 - cx) / fx * z)[:, None] * right[None, :]
-            - (-(rows + 0.5 - cy) / fy * z)[:, None] * up[None, :]
+            - ((rows + 0.5 - cy) / fy * z)[:, None] * up[None, :]
         )
-        table_z = float(scenario.environment.table_height_m)
-        above = points[points[:, 2] > table_z + 0.008]
-        if above.size < 3 * 8:
+        # The table dominates the frame, so its plane is the reference and
+        # everything is classified by *residual* from it. A height band was tried
+        # first and picked up table noise instead of the object:
+        # back-projection error at this resolution is comparable to the cube's
+        # own 0.04 m height, so any band wide enough to contain the cube also
+        # contains misprojected table. Residuals separate the two because the
+        # table is flat and the cube is not.
+        #
+        # The fit is one-sided (see :meth:`_support_plane`) because an ordinary
+        # least-squares fit is dragged off the tabletop by the object and the
+        # robot, which is what previously made the table itself the detection.
+        coefficients = self._support_plane(points)
+        residual = points[:, 2] - (
+            coefficients[0] * points[:, 0] + coefficients[1] * points[:, 1] + coefficients[2]
+        )
+        above = points[residual > _SURFACE_MIN_HEIGHT_M]
+        if above.size < 3 * _MIN_CLUSTER_POINTS:
             return ()
-        cluster = self._largest_cluster(above)
-        if cluster.shape[0] < 8:
+        above_height = residual[residual > _SURFACE_MIN_HEIGHT_M]
+
+        # What the gripper can close is read from the scenario rather than tuned:
+        # a candidate wider than the aperture is not a grasp target, however many
+        # points it contributed. This is the discriminator that survives the
+        # robot's own arm being in frame.
+        aperture = float(scenario.robot.max_gripper_width_m)
+        cluster: np.ndarray | None = None
+        for indices in self._clusters(above):
+            if indices.size < _MIN_CLUSTER_POINTS:
+                continue
+            group = above[indices]
+            spread = group.max(axis=0) - group.min(axis=0)
+            if float(max(spread[0], spread[1])) > aperture:
+                continue  # wider than the gripper can span; not the target
+            # A target rests on the support surface: its lowest points sit on the
+            # plane rather than hovering above it. Measured on a real frame, the
+            # cube's lowest point is 0.0137 m above the plane while the Panda
+            # link nearest the camera floats 0.0402 m up.
+            if float(above_height[indices].min()) > _RESTING_TOLERANCE_M:
+                continue
+            cluster = group
+            break
+        if cluster is None:
             return ()
         centre = cluster.mean(axis=0)
         # Confidence rises with how much of the frame the object covers; a

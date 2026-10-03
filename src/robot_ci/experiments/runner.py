@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import math
 import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -26,11 +27,12 @@ from robot_ci.core.errors import EvaluationError
 from robot_ci.core.logging import JsonlLogger, get_logger
 from robot_ci.metrics import EpisodeTrace, MetricValue, compute_episode_metrics
 from robot_ci.models.scenario import PolicyConfig, ScenarioConfig
+from robot_ci.models.state import Action, GroundTruthState, Observation, RobotState
 from robot_ci.policies import RobotPolicy
-from robot_ci.simulation import SimulatorBackend
-from robot_ci.tasks import Task, TaskStatus, create_task
+from robot_ci.simulation import SimulatorBackend, Transition
+from robot_ci.tasks import StepOutcome, Task, TaskStatus, create_task
 
-__all__ = ["EpisodeResult", "RunSpec", "run_episode"]
+__all__ = ["EpisodeResult", "RunSpec", "StepRecord", "run_episode"]
 
 _LOG = get_logger(__name__)
 
@@ -263,6 +265,46 @@ class EpisodeResult:
         )
 
 
+@dataclass(frozen=True)
+class StepRecord:
+    """One control tick, handed to an optional observer.
+
+    The runner produces a compact :class:`EpisodeResult` at the end, which is
+    the right shape for statistics and the wrong shape for a recording: by then
+    the per-tick joint states and camera frames are gone. A recorder needs them
+    while they exist, so the loop offers each tick to a hook.
+
+    Everything here is what the step actually produced -- observed state, the
+    action that was sent, the ground truth used to score it, and the task's
+    verdict. Nothing is derived for display.
+
+    Attributes:
+        step_index: Zero-based control tick.
+        sim_time_s: Simulation clock at this tick, in seconds.
+        wall_time_s: Wall-clock time at this tick, for synchronisation notes.
+        observation: What the policy was shown this tick.
+        robot_state: Observed proprioception after the tick.
+        ground_truth: Hidden state used by the task, recorded for scoring.
+        transition: The backend's report of the tick.
+        outcome: The task's verdict for this tick.
+        action: The action the policy issued.
+    """
+
+    step_index: int
+    sim_time_s: float
+    wall_time_s: float
+    observation: Observation
+    robot_state: RobotState
+    ground_truth: GroundTruthState
+    transition: Transition
+    outcome: StepOutcome
+    action: Action
+
+
+#: Signature of the optional per-tick observer accepted by :func:`run_episode`.
+StepHook = Callable[["StepRecord"], None]
+
+
 def _git_commit() -> str:
     """Return the current git commit, or ``"unknown"`` outside a repository."""
     import subprocess
@@ -290,6 +332,7 @@ def run_episode(
     seed: int,
     experiment_id: str,
     log: JsonlLogger | None = None,
+    step_hook: StepHook | None = None,
 ) -> EpisodeResult:
     """Run one policy through one scenario once.
 
@@ -300,6 +343,12 @@ def run_episode(
         seed: Episode seed.
         experiment_id: Owning experiment, for logging.
         log: Optional JSONL research log.
+        step_hook: Optional per-tick observer, called after each tick with a
+            :class:`StepRecord`. Recording uses it; the statistics path does
+            not, so the default of ``None`` leaves existing behaviour and
+            timing untouched. An observer that raises is not caught here -- a
+            recorder that cannot record is a failure the caller must see,
+            rather than one that silently produces a short video.
 
     Returns:
         The episode's :class:`EpisodeResult`.
@@ -399,6 +448,23 @@ def run_episode(
                     status=status.value,
                     collision=transition.collision,
                     satisfied={k: bool(v) for k, v in result.satisfied.items()},
+                )
+            if step_hook is not None:
+                # Offered before the break so the tick that *ended* the episode
+                # is recorded too. A recording that stopped one tick short would
+                # omit the success or the failure that the artifact claims.
+                step_hook(
+                    StepRecord(
+                        step_index=observation.step_index,
+                        sim_time_s=handle.sim_time_s,
+                        wall_time_s=time.time(),
+                        observation=observation,
+                        robot_state=transition.robot_state,
+                        ground_truth=transition.ground_truth,
+                        transition=transition,
+                        outcome=result,
+                        action=output.action,
+                    )
                 )
             if status is not TaskStatus.RUNNING or transition.terminated:
                 break

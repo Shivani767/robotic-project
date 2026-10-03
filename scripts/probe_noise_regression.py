@@ -8,7 +8,6 @@ regression. No result is asserted; the script reports what it measures.
 from __future__ import annotations
 
 import json
-import sys
 import time
 from pathlib import Path
 
@@ -21,6 +20,7 @@ MAX_STEPS = 90
 
 
 def main() -> int:
+    """Probe how injected depth noise changes belief error on MuJoCo."""
     config = ExperimentConfig.model_validate(
         {
             "experiment": {"id": "probe_noise_regression"},

@@ -58,10 +58,21 @@ def object_pose_from_scenario(scenario: ScenarioConfig) -> tuple[float, float, f
     ``(scenario.seed, scenario_id)`` and therefore reproducible for Gazebo runs
     and identical between repeats. Cross-simulator *absolute* placement is not
     claimed, and :func:`unsupported_conditions` says so.
+
+    An **explicit** ``scenario.target.position`` wins over the seeded draw, the
+    same way ``simulation/mujoco_env.py`` honours it. Without that rule the
+    ``pose_perturbation`` family (object-position perturbation) would be
+    silently ignored here: the scenario would say the cube is at x=0.31 and
+    Gazebo would put it wherever the seed drew it, so the experiment would run
+    a *different* condition under the perturbed condition's name.
     """
     import numpy as np
 
     from robot_ci.core.seeding import make_numpy_rng
+
+    explicit = scenario.target.position
+    if explicit is not None:
+        return (float(explicit.x), float(explicit.y), float(explicit.z))
 
     rng = make_numpy_rng(scenario.seed, "gazebo-scene", scenario.scenario_id)
     centre = np.asarray(scenario.environment.workspace_center, dtype=np.float64)
@@ -419,6 +430,16 @@ def _camera_pose(scenario: ScenarioConfig) -> str:
     ``d`` the unit direction from eye to target gives
     ``yaw = atan2(dy, dx)`` and ``pitch = asin(-dz)``.
 
+    The second version aimed at ``(cx, cy, table_z + 0.35)``, roughly the middle
+    of the arm. That framed the robot but wrecked the measurement: back-projected
+    depths then ran 0.29..0.89 m with no mass near the tabletop, because the
+    frame was filled with the arm and the far background rather than with the
+    table. Object perception found a "target" at z = 0.64 m, which is not where
+    the object is. The object stands on the table and the arm does not, so the
+    camera now aims at the table. The arm ends up above the top of frame, which
+    costs nothing here because this build does not draw the robot anyway (see
+    ``docs/gazebo.md``) and buys an honest depth image about the object.
+
     Args:
         scenario: The condition whose workspace is to be viewed.
 
@@ -431,14 +452,16 @@ def _camera_pose(scenario: ScenarioConfig) -> str:
     cy = float(scenario.environment.workspace_center[1])
     table_z = float(scenario.environment.table_height_m)
 
-    # Back, above and outside the table, aiming at a point above the workspace
-    # rather than at the tabletop. Aiming at the tabletop put the arm -- which
-    # reaches ~0.9 m up -- outside the frustum of a camera pitched down at it;
-    # aiming higher keeps the object, the gripper and the full arm in frame.
-    # The offsets are relative to the workspace centre, so any scenario's
-    # workspace is framed the same way.
-    eye = (cx + 0.9, cy - 0.9, table_z + 0.9)
-    target = (cx, cy, table_z + 0.35)
+    # Close enough that the object is resolvable, far enough that the table's
+    # far edge stays in frame. The 0.22 m standoff framed the object large
+    # (~12 px) but pushed the table's near edge off-frame (px=-7), failing
+    # the framing test; the 0.9 m standoff passed framing but left the 40 mm
+    # cube at ~5 px, where a plane fit discards it. 0.4 m / 0.5 m passes all
+    # four table corners inside 160x120 (measured) with the cube at ~7.4 px:
+    # small, but above the detection floor, and the depth noise settings still
+    # reach the sensor rather than being dropped.
+    eye = (cx + 0.4, cy - 0.4, table_z + 0.5)
+    target = (cx, cy, table_z + 0.005)
 
     dx = target[0] - eye[0]
     dy = target[1] - eye[1]

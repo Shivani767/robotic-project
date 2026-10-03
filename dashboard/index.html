@@ -38,6 +38,47 @@
       </section>
 
       <section class="panel">
+        <h2>Experiment launcher</h2>
+        <p class="hint">
+          One experiment at a time: the simulator is shared, so a second start
+          is refused while one run holds it.
+        </p>
+        <label>
+          condition
+          <select id="experiment-key"></select>
+        </label>
+        <label>
+          task
+          <input id="experiment-task" readonly value="pick_and_place" />
+        </label>
+        <label>
+          policy
+          <select id="experiment-policy">
+            <option value="policy_v1">policy_v1 (baseline)</option>
+            <option value="policy_v3">policy_v3 (candidate)</option>
+          </select>
+        </label>
+        <label>
+          seed
+          <input id="experiment-seed" type="number" value="3" min="0" />
+        </label>
+        <button id="experiment-start" type="button">Start recording</button>
+        <div id="recording-progress" class="hint">idle</div>
+        <dl id="recording-result"></dl>
+      </section>
+
+      <section class="panel">
+        <h2>Recorded experiments</h2>
+        <table id="artifacts">
+          <thead>
+            <tr><th>experiment</th><th>status</th><th>files</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+        <p class="hint">Registered only after a real run completes and its ZIP verifies.</p>
+      </section>
+
+      <section class="panel">
         <h2>Joint state</h2>
         <table id="joints">
           <thead>

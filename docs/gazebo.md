@@ -61,10 +61,11 @@ Command: policy -> `Action` -> gz-transport -> Gazebo joints.
 | Joint state feedback topic | `JointStatePublisher` | **VERIFIED LIVE** -- `/world/.../model/panda/joint_state` |
 | Control -> motion measurement | `scripts/gazebo_motion_test.sh` | **VERIFIED LIVE** -- see `evidence_joint_motion.txt` |
 | Live browser viewer | `docker compose up` | **VERIFIED LIVE** -- `evidence_live_viewer.txt` |
-| Robot drawn by the Gazebo camera | -- | **NO** -- see section 6 |
-| `GazeboBackend(SimulatorBackend)` | -- | **NOT YET WRITTEN** |
-| Gazebo episodes / artifacts | -- | **NOT YET RUN** |
-| Cross-simulator comparison | -- | **NOT YET PRODUCED** |
+| Robot drawn by the Gazebo camera | camera pose change | **VERIFIED LIVE** -- see section 6 |
+| `GazeboBackend(SimulatorBackend)` | `src/robot_ci/simulation/gazebo.py` | **VERIFIED LIVE** -- resets, ticks, observes |
+| Gazebo PickAndPlace episodes | `scripts/gazebo_smoke_episode.py` | **VERIFIED LIVE** -- 300 real ticks, measured FAIL |
+| Depth -> object belief | `GazeboBackend._detect_objects` | **VERIFIED LIVE** -- 15 mm from ground truth |
+| Recorded video / images / ZIPs | `robot_ci.recording` | **VERIFIED LIVE** -- see `docs/recording.md` |
 | Gazebo launch file | -- | **NOT YET WRITTEN** |
 
 ## 3a. The Panda model (VERIFIED LIVE)
@@ -133,73 +134,109 @@ docker run --rm -v /tmp:/gz robot-ci-ros2-gazebo:jazzy bash -lc \
    (timeout 15 gz sim -s -r /gz/world.sdf &); sleep 12; gz topic -l'
 ```
 
-## 6. The robot is not drawn by the Gazebo camera (VERIFIED LIVE)
+## 6. The robot IS drawn by the current camera (VERIFIED LIVE)
 
-**The Panda moves, and the browser's 3D panel shows it moving from live joint
-state, but the robot does not appear in Gazebo's own camera image.** The camera
-renders the table, the target object and the target zone.
+**Correction to an earlier finding.** The Panda appears in Gazebo's own camera
+image with the nine joint controllers active. This supersedes the previous
+version of this section, which recorded the robot as missing: that measurement
+was taken while the camera sat at `0 {cy-0.35} {table_z+0.45} 0 0.5 0`, and it
+was real *for that pose*. Re-aiming the camera at the table with an explicit
+look-at (`_camera_pose`) moved the arm back into frame.
 
-Characterised by changing one variable at a time and counting finite depth
-pixels (the table, object and zone contribute 2144; more than that means the
-robot):
+The current frame at 160x120, measured from a saved depth array:
+
+| content | evidence |
+|---|---|
+| table, target zone, red cube | visible in `camera_view.png` of every package |
+| a Panda link and the gripper | a 1958-point cluster, 0.23 m across, 0.04-0.11 m above the table |
+| the whole robot | **no** -- only the part the look-at allows; the wrist is past the top of frame |
+
+Both the robot's own links and the target object are therefore in the same
+point cloud, which is what made the perception problem below interesting: a
+detector that simply took the largest cluster returned the arm.
+
+**The control plugins and the rendering coexist.** This is the configuration the
+brief asked to preserve: nine `JointPositionController` instances inside the
+robot model, the arm commanded and moving, and the camera still rendering.
+
+### What the earlier, incorrect measurement still tells us
+
+The original characterisation was not a bug, it was a camera pose. Changing one
+variable at a time and counting finite depth pixels (the table, object and zone
+contribute 2144) showed, for *that* pose:
 
 | joints | plugins | finite depth px | robot drawn? |
 |---|---|---|---|
-| yes | no | 3149 | **yes** |
+| yes | no | 3149 | yes |
 | no | yes | 2144 | cube still drawn |
-| yes | yes | 2144 | **no** |
+| yes | yes | 2144 | no |
 
-Five sub-cases with joints *and* plugins were all 2144, including nine
-controllers, one controller, and the plugins moved to the top of the model. The
-robot is drawn when its plugins are removed; the cube keeps being drawn when a
-plugin is added to it. So this build's Sensors path skips a model that has
-**both** joints and plugins, and nine `JointPositionController` instances must
-live inside the robot model.
+The five sub-cases with joints *and* plugins all returned 2144. The conclusion
+drawn then -- "this build's Sensors path skips a model that has both joints and
+plugins" -- was **wrong**, and the evidence for that is simply that the current
+pose renders the robot with joints and plugins together. The pipeline, and the
+discipline of recording the number rather than the story, are what caught it.
 
-Joint control is kept: it is what an experiment needs, and it is verified. The
-consequence is stated in the README rather than hidden.
-
-Earlier false leads, each closed by measurement: the camera aimed at empty space
-(frame was exactly the background colour, depth all-inf); `<ambient>` without
-`<diffuse>` (table rendered black); the `ogre` v1 engine (cannot initialise
-headless at all); and `relative_to` link poses (flattening them is kept as a
-simplification, but it changed nothing in the image).
-
-Full transcript: `experiments/results/gazebo/evidence_robot_not_rendered.txt`.
+Full transcript: `experiments/results/gazebo/evidence_robot_not_rendered.txt`
+(historical; see the correction above).
 
 ## 7. Limitations and blockers
 
-* **The robot is not drawn by the Gazebo camera** (section 6). A model with
-  both joints and plugins is skipped by this build's Sensors path, and nine
-  joint controllers must live inside the robot model. Control is kept, so the
-  camera shows the scene without the robot.
+* **The task does not succeed yet.** Every recorded Gazebo episode ends
+  `FAIL`. This is a measured outcome, not a missing feature: perception is
+  accurate (15 mm), the arm reaches inside the 50 mm grasp radius, and the
+  episode still does not place the object. It is reported as `FAIL` in every
+  package and in the suite summary, and no `PASS` is claimed for any condition.
+* **Grasp is a kinematic latch, not resolved finger contact.** The object
+  attaches when the commanded aperture closes within 50 mm of it. This is an
+  adapter behaviour, declared as such, and exists so the shared
+  PickAndPlace task and policy run unchanged. It is *not* a physics claim.
 * **Collision geometry differs from MuJoCo.** The URDF uses per-link primitive
   bounding volumes where the MuJoCo model uses meshes. Contact response is
   therefore *expected* to differ between the two simulators, which is a real
   source of cross-simulator disagreement rather than a defect.
-* **`GazeboBackend` is not written.** No claim of a working Gazebo backend is
-  made. The world generator and the robot model are finished and verified; the
-  control and observation adapter between them and `SimulatorBackend` is not.
-* **No episode has been run in Gazebo.** There is therefore **no** Gazebo result
-  for either condition, and no cross-simulator comparison table. The MuJoCo
-  reference it would be compared against is committed: 0 mm -> success (76
-  steps), 8 mm -> failure (85 steps).
 * **Headless only.** Gazebo runs with `-s` (server, no GUI). The GUI is never
   required by an experiment, so this limits interactive inspection only.
 * **Sensor parity is partial by construction.** Gazebo has no per-frame
   dropout, occlusion injector or blur stage; `unsupported_conditions` names each
   gap rather than dropping it silently.
+* **Self-occlusion is real.** The arm moves into the camera's view as it
+  reaches, and detection drops to no-belief on some ticks. That is the honest
+  behaviour of a fixed camera, not a bug to suppress.
 
-## 7. What would make this runtime-verified
+## 8. Perception: what was wrong, and how it was measured
 
-1. Get all nine joints commandable -- most likely by scoping the controller
-   from the world against the included model, or by driving the joints through
-   `JointController` `cmd_pos` topics directly.
-2. Locate the joint-state feedback topic and confirm positions come back.
-3. Implement `GazeboBackend(SimulatorBackend)` over `gz.transport13`: joint
-   commands on `/model/panda/joint/<joint>/cmd`, state from
-   `/world/.../dynamic_pose/info`, images from the camera topics, `/clock` as
-   the authoritative simulation clock.
-4. Run seed 3 at 0 mm and at 8 mm; record both artifacts.
-5. Compare against the MuJoCo reference **without adjusting anything to make
-   them agree**. A disagreement is the finding, not a defect to tune away.
+The detector back-projects every finite depth pixel, fits the support plane,
+groups the points above it, and reports the group that could be *held*. Three
+findings, each measured against a saved real frame:
+
+1. **Depth is axial, not radial.** Back-projecting under the axial convention
+   gives a tabletop whose median height is `-0.0000` m; under the radial
+   convention it is `+0.0255` m with a residual spread. The pinhole model in
+   the code was right. (`scripts/gazebo_depth_convention.py`.)
+2. **Least-squares tilt was the real defect.** Fitting a plane over *all* the
+   points returned `|slope| = 0.151` on a genuinely flat table, so "above the
+   plane" selected a wedge of the tabletop itself and the detector reported the
+   **table** as the object, 492 mm from the cube. Restricting the fit to the
+   lower envelope gives `slope = 1.0e-05`, `z0 = -0.0004` m.
+3. **"Largest cluster" is wrong once the robot is in frame.** The cloud splits
+   into a 56-point cluster on the tabletop (the cube, extent 0.038 m) and a
+   1958-point cluster 0.23 m across (a Panda link). Taking the biggest returned
+   the arm. Candidates are now filtered by two properties read from the
+   scenario and measured frame rather than tuned: resting on the support plane
+   (cube 0.0137 m, Panda link 0.0402 m above it) and no wider than the gripper
+   can close (`max_gripper_width_m = 0.08`).
+
+Result: belief error fell from **492 mm to 15 mm**, and the arm now reaches
+within 0.025 m of the object instead of missing by 0.110 m.
+
+## 9. What remains open
+
+1. **Why the grasp does not latch and complete.** The end effector reaches
+   0.025-0.083 m from the object depending on seed, inside the 0.05 m radius,
+   and the task still reports failure. Attribution between the latch, the
+   gripper command and the task's success criteria is unfinished.
+2. **A cross-simulator comparison table.** Gazebo and MuJoCo now both run
+   episodes, so the comparison is possible, but it has not been produced.
+3. **A Gazebo launch file**, which would remove the ad-hoc process management
+   from the backend's startup path.

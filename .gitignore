@@ -21,6 +21,20 @@ dashboard/node_modules/
 experiments/results/*
 !experiments/results/.gitkeep
 
+# Recorded experiment video, images and ZIP packages.
+#
+# These are the only generated files in the project that are large *and*
+# unregenerable-by-inspection: an MP4 of an episode is tens of megabytes and a
+# reviewer gains nothing from it being in git history, because
+# `scripts/record_suite.py` rebuilds it from the seed and the manifest. The
+# manifests, summaries and READMEs are small and are the part worth keeping, so
+# those stay tracked and the media does not.
+artifacts/visual_reports/*/
+artifacts/visual_reports/*.zip
+artifacts/visual_reports/*.mp4
+!artifacts/visual_reports/suite_summary.json
+!artifacts/visual_reports/SUITE.md
+
 # ...with one deliberate exception: the evidence behind the frozen baseline.
 #
 # Results are ignorable only as long as something else can regenerate them. A

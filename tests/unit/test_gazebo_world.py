@@ -155,8 +155,17 @@ def test_the_two_conditions_generate_different_sensor_noise() -> None:
 
 
 # -- camera aiming -----------------------------------------------------------
-def _camera_ray(scenario: ScenarioConfig) -> tuple[tuple[float, ...], tuple[float, ...]]:
-    """Return the camera eye and forward vector as derived from the SDF pose."""
+def _camera_ray(
+    scenario: ScenarioConfig,
+) -> tuple[tuple[float, ...], tuple[float, ...], tuple[float, ...], tuple[float, ...]]:
+    """Return the camera's ``(eye, forward, right, up)`` from the SDF pose.
+
+    Gazebo cameras look along +X with +Z up, and the SDF pose applies
+    ``Rz(yaw) * Ry(pitch) * Rx(roll)``. The full basis is returned, not just the
+    forward vector, because a test that only checks "is it pointing roughly the
+    right way" would pass a pose whose up-vector was mirrored, and a mirrored up
+    vector silently mirrors the image.
+    """
     import math
     from xml.etree import ElementTree as ET
 
@@ -166,13 +175,14 @@ def _camera_ray(scenario: ScenarioConfig) -> tuple[tuple[float, ...], tuple[floa
     )
     assert pose is not None and pose.text is not None
     x, y, z, _roll, pitch, yaw = (float(v) for v in pose.text.split())
-    # Gazebo cameras look along +X with +Z up; SDF applies Rz(yaw)Ry(pitch)Rx(roll).
-    forward = (
-        math.cos(pitch) * math.cos(yaw),
-        math.cos(pitch) * math.sin(yaw),
-        -math.sin(pitch),
+    cp, sp = math.cos(pitch), math.sin(pitch)
+    cy, sy = math.cos(yaw), math.sin(yaw)
+    return (
+        (x, y, z),
+        (cy * cp, sy * cp, -sp),
+        (-sy, cy, 0.0),
+        (cy * sp, sy * sp, cp),
     )
-    return (x, y, z), forward
 
 
 def test_camera_aims_at_the_workspace_not_past_it() -> None:
@@ -187,7 +197,7 @@ def test_camera_aims_at_the_workspace_not_past_it() -> None:
     import math
 
     scenario = default_scenario()
-    eye, forward = _camera_ray(scenario)
+    eye, forward, right, up = _camera_ray(scenario)
     cx = float(scenario.environment.workspace_center[0])
     cy = float(scenario.environment.workspace_center[1])
     table_z = float(scenario.environment.table_height_m)
@@ -206,20 +216,64 @@ def test_camera_aims_at_the_workspace_not_past_it() -> None:
         dot = forward[0] * dx + forward[1] * dy + forward[2] * dz
         return dot / length > cos_limit
 
-    # Three things the camera exists to show. The arm point is 0.5 m above the
-    # mount because the Panda reaches ~0.9 m up; framing only the tabletop put
-    # the arm outside the frustum even though the camera "worked".
+    # Three things the camera exists to show. The object check is the strict
+    # one: the camera is aimed at the table, so the object standing on it must
+    # be in frustum, and a small margin is right. The arm is above the top of
+    # frame by design (see _camera_pose), so it is only checked for not being
+    # behind the camera, which would mean a sign error in the pose maths.
     object_pose = tuple(float(v) for v in object_pose_from_scenario(scenario))
     required = {
         "table": (cx, cy, table_z),
         "object": object_pose,
-        "arm": (0.0, 0.0, table_z + 0.5),
     }
     for label, point in required.items():
         assert in_frustum(point), (
             f"{label} at {point} is outside the camera frustum "
             f"(eye={eye}, forward={forward}, half_fov={half_fov:.3f} rad)"
         )
+
+    arm = (0.0, 0.0, table_z + 0.5)
+    dx, dy, dz = (arm[i] - eye[i] for i in range(3))
+    depth = sum(a * b for a, b in zip(forward, (dx, dy, dz), strict=True))
+    assert depth > 0, "the arm is behind the camera, so the pose maths are wrong"
+
+    # The table's far edge must be inside the image. When it is not, the camera
+    # is aimed past the table and every depth pixel comes back as background,
+    # which is exactly how this bug presented the first time.
+    width_px, height_px, fx_, fy_, pcx, pcy = camera_intrinsics_from_scenario(scenario)
+    # table_extent_m is a (x, y) half-extent pair, not a single number.
+    half_x, half_y = (float(v) / 2.0 for v in scenario.environment.table_extent_m)
+    for label, corner in {
+        "near": (cx - half_x, cy - half_y, table_z),
+        "far": (cx + half_x, cy + half_y, table_z),
+        "left": (cx - half_x, cy + half_y, table_z),
+        "right": (cx + half_x, cy - half_y, table_z),
+    }.items():
+        vx, vy, vz = (corner[i] - eye[i] for i in range(3))
+        along = forward[0] * vx + forward[1] * vy + forward[2] * vz
+        assert along > 0, f"table {label} corner is behind the camera"
+        px = pcx - fx_ * ((right[0] * vx + right[1] * vy + right[2] * vz) / along)
+        py = pcy - fy_ * ((up[0] * vx + up[1] * vy + up[2] * vz) / along)
+        assert 0 <= px <= width_px, f"table {label} edge is off-frame (px={px:.0f})"
+        assert 0 <= py <= height_px, f"table {label} edge is off-frame (py={py:.0f})"
+
+
+def test_explicit_object_position_wins_over_the_seeded_draw() -> None:
+    """An explicit ``objects[0].position`` must reach the generated world.
+
+    The ``pose_perturbation`` family expresses object-position perturbation as
+    an explicit position. MuJoCo honours it (``mujoco_env.py``); Gazebo used to
+    ignore it and place the cube from the seed alone, which would have run a
+    *different* condition under the perturbed condition's name.
+    """
+    from robot_ci.scenarios import get_family
+
+    perturbed = get_family("pose_perturbation").build(5.0, seed=42)
+    assert object_pose_from_scenario(perturbed) == pytest.approx((0.35, 0.0, 0.025))
+
+    seeded = default_scenario(seed=42)
+    explicit_free = object_pose_from_scenario(seeded)
+    assert object_pose_from_scenario(seeded) == pytest.approx(explicit_free)
 
 
 def test_every_material_sets_diffuse_so_surfaces_are_not_black() -> None:

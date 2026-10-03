@@ -458,7 +458,20 @@ def _static_handler(directory: Path, bridge: LiveBridge) -> type[SimpleHTTPReque
 
     Returning a class rather than a module-level handler keeps the bridge
     instance reachable from the request without a global.
+
+    Besides the viewer this exposes the experiment launcher:
+
+    * ``GET  /experiments.json`` -- the suite, the artifacts, and launcher status;
+    * ``POST /experiments/start`` -- start one condition (refused if one runs);
+    * ``GET  /artifacts/...``    -- the generated packages, for download.
+
+    The launcher serialises runs deliberately: Gazebo's transport is global to
+    the container, so two concurrent episodes would interleave on the same joint
+    state and produce two results neither could be trusted.
     """
+    from robot_ci.recording.launcher import ExperimentLauncher, artifacts_root
+
+    launcher = ExperimentLauncher(root=artifacts_root())
 
     class Handler(SimpleHTTPRequestHandler):
         def __init__(self, *args: Any, **kwargs: Any) -> None:
@@ -476,9 +489,68 @@ def _static_handler(directory: Path, bridge: LiveBridge) -> type[SimpleHTTPReque
             if self.path == "/status.json":
                 self._json(bridge.health_report())
                 return
+            if self.path == "/experiments.json":
+                self._json(
+                    {
+                        "ready": bridge.health.ready(),
+                        "status": launcher.status().to_dict(),
+                        "suite": launcher.suite(),
+                        "artifacts": _artifact_index(artifacts_root()),
+                    }
+                )
+                return
+            if self.path.startswith("/artifacts/"):
+                self._artifact(self.path[len("/artifacts/"):])
+                return
             if self.path == "/":
                 bridge.health.viewer_served = True
             super().do_GET()
+
+        def do_POST(self) -> None:
+            if self.path != "/experiments/start":
+                self._error(404, "not found")
+                return
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                body = json.loads(self.rfile.read(length) or b"{}")
+            except (ValueError, json.JSONDecodeError):
+                self._error(400, "invalid JSON body")
+                return
+            seed = body.get("seed")
+            policy = body.get("policy")
+            started, message = launcher.start(
+                str(body.get("key", "")),
+                seed=int(seed) if seed is not None else None,
+                policy=str(policy) if policy else None,
+            )
+            if not started:
+                self._error(409, message)
+                return
+            self._json(
+                {"started": started, "message": message, "status": launcher.status().to_dict()}
+            )
+
+        def _artifact(self, relative: str) -> None:
+            """Serve a file from the artifacts directory, refusing escapes."""
+            root = artifacts_root().resolve()
+            target = (root / relative).resolve()
+            if not target.is_relative_to(root) or not target.is_file():
+                self._error(404, "no such artifact")
+                return
+            payload = target.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", _content_type(target))
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def _error(self, code: int, message: str) -> None:
+            body = json.dumps({"error": message}).encode()
+            self.send_response(code)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
 
         def _json(self, payload: dict[str, Any]) -> None:
             body = json.dumps(payload).encode()
@@ -492,6 +564,44 @@ def _static_handler(directory: Path, bridge: LiveBridge) -> type[SimpleHTTPReque
             """Silence per-request logging; the demo logs its own milestones."""
 
     return Handler
+
+
+def _artifact_index(root: Path) -> list[dict[str, Any]]:
+    """List the artifacts currently on disk, so the dashboard can link them."""
+    if not root.is_dir():
+        return []
+    entries: list[dict[str, Any]] = []
+    for package in sorted(p for p in root.iterdir() if p.is_dir()):
+        files = sorted(f.name for f in package.iterdir() if f.is_file())
+        if not files:
+            continue
+        entries.append(
+            {
+                "key": package.name,
+                "package": f"artifacts/{root.name}/{package.name}",
+                "files": files,
+                "zip": f"artifacts/{root.name}/{package.name}.zip"
+                if (root / f"{package.name}.zip").exists()
+                else None,
+            }
+        )
+    for archive in sorted(root.glob("*.zip")):
+        if (root / archive.stem).is_dir():
+            continue  # already listed above with the package it belongs to
+        entries.append({"key": archive.stem, "zip": f"artifacts/{root.name}/{archive.name}"})
+    return entries
+
+
+def _content_type(path: Path) -> str:
+    """Map an artifact's extension to a content type."""
+    return {
+        ".mp4": "video/mp4",
+        ".png": "image/png",
+        ".json": "application/json",
+        ".md": "text/markdown; charset=utf-8",
+        ".zip": "application/zip",
+        ".txt": "text/plain; charset=utf-8",
+    }.get(path.suffix, "application/octet-stream")
 
 
 def main(argv: list[str] | None = None) -> int:

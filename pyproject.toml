@@ -40,6 +40,14 @@ analysis = [
   "seaborn>=0.13",
   "statsmodels>=0.14",
 ]
+# Recording experiments to video. imageio-ffmpeg ships a static CPU H.264
+# encoder, so a recorded episode produces a real MP4 without a system ffmpeg and
+# without a GPU. Without it the stills, JSON and ZIP are still produced and the
+# package says plainly that the video is missing.
+recording = [
+  "Pillow>=10",
+  "imageio-ffmpeg>=0.5",
+]
 # Bayesian optimization for counterexample search (Phase 5). Optional on purpose:
 # the default searchers are pure NumPy so that a CPU-only laptop stays sufficient.
 bayes = ["scikit-learn>=1.3"]

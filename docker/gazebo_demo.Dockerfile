@@ -36,7 +36,8 @@ RUN python3 -m pip install --no-cache-dir --break-system-packages --ignore-insta
         "rich>=13.7" \
         "PyYAML>=6.0" \
         "websockets>=13" \
-        "Pillow>=10"
+        "Pillow>=10" \
+        "imageio-ffmpeg>=0.5"
 
 ENV ROS_DISTRO=jazzy
 ENV ROBOT_CI_ROOT=/workspace/robot-ci

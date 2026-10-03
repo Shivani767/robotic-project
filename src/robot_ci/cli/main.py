@@ -44,11 +44,13 @@ experiment_app = typer.Typer(help="Run and compare experiments.", no_args_is_hel
 backend_app = typer.Typer(help="Inspect simulator backends.", no_args_is_help=True)
 counterexample_app = typer.Typer(help="Search, minimize and reproduce counterexamples.", no_args_is_help=True)
 ros2_app = typer.Typer(help="Run the experiment through a live ROS 2 process graph.", no_args_is_help=True)
+record_app = typer.Typer(help="Record experiments to video, images and ZIP packages.", no_args_is_help=True)
 app.add_typer(scenario_app, name="scenario")
 app.add_typer(experiment_app, name="experiment")
 app.add_typer(backend_app, name="backend")
 app.add_typer(counterexample_app, name="counterexample")
 app.add_typer(ros2_app, name="ros2")
+app.add_typer(record_app, name="record")
 
 
 # ------------------------------------------------------------------ ros2 info
@@ -1567,6 +1569,113 @@ def _axis_path(name: str) -> str:
 def export_reserved() -> None:
     """Package an experiment for Colab/Kaggle (Phase 13)."""
     not_implemented("robot-ci export", 13)
+
+
+@record_app.command("suite")
+@handle_errors
+def record_suite_command(
+    only: Annotated[
+        list[str] | None, typer.Option("--only", "-k", help="Only these suite keys (repeatable).")
+    ] = None,
+    backend: Annotated[str, typer.Option(help="Simulator backend to record against.")] = "gazebo",
+    out: Annotated[
+        Path, typer.Option("--out", help="Directory the packages and ZIPs are written to.")
+    ] = Path("artifacts/visual_reports"),
+    no_video: Annotated[bool, typer.Option("--no-video", help="Skip video encoding.")] = False,
+) -> None:
+    """Record the visual experiment suite, one ZIP per condition.
+
+    Only conditions that actually ran get a ZIP. Everything declared
+    unavailable appears in the summary with its reason, and the exit code is
+    non-zero when no condition completed, so CI cannot read an empty suite as a
+    pass. Meant to be run inside the Gazebo container.
+    """
+    from robot_ci.recording.bundle import write_suite_summary, zip_package
+    from robot_ci.recording.suite import default_suite, run_package_suite
+
+    entries = default_suite()
+    if only:
+        wanted = set(only)
+        entries = [entry for entry in entries if entry.key in wanted]
+        missing = wanted - {entry.key for entry in entries}
+        if missing:
+            fail(f"unknown suite key(s): {', '.join(sorted(missing))}")
+            raise typer.Exit(2)
+
+    out = Path(out)
+    out.mkdir(parents=True, exist_ok=True)
+    table = Table(title="Recorded experiment suite", show_header=True, header_style="bold")
+    for column in ("experiment", "status", "steps", "motion", "camera", "zip"):
+        table.add_column(column)
+    report = run_package_suite(
+        entries, out, backend_name=backend, make_video=not no_video
+    )
+    for package in report.packages:
+        if package.directory is None:
+            continue
+        archive = package.directory.with_suffix(".zip")
+        try:
+            zip_package(package.directory, archive)
+        except (OSError, RuntimeError) as exc:
+            error_console.print(f"[yellow]zip failed for {package.entry.key}: {exc}[/]")
+        experiment = package.experiment
+        table.add_row(
+            package.entry.key,
+            f"[bold]{package.status.value}[/]",
+            "-" if experiment is None else str(experiment.steps),
+            "-" if experiment is None else f"{experiment.joint_motion_rad():.4f}",
+            "-" if experiment is None else str(experiment.frames_with_image),
+            archive.name if package.directory is not None else "-",
+        )
+    console.print(table)
+    console.print("counts: " + ", ".join(f"{k}={v}" for k, v in report.counts().items()))
+    summary_path, suite_zip = write_suite_summary(report, out)
+    console.print(f"summary: {summary_path}")
+    if suite_zip is not None:
+        console.print(f"suite zip: {suite_zip}")
+    if not report.completed:
+        error_console.print("[bold yellow]no condition completed; nothing was recorded[/]")
+        raise typer.Exit(EXIT_BACKEND_UNAVAILABLE)
+
+
+@record_app.command("one")
+@handle_errors
+def record_one(
+    key: Annotated[str, typer.Argument(help="Suite key to record.")],
+    backend: Annotated[str, typer.Option(help="Simulator backend.")] = "gazebo",
+    out: Annotated[Path, typer.Option("--out")] = Path("artifacts/visual_reports"),
+    seed: Annotated[int | None, typer.Option("--seed", help="Override the episode seed.")] = None,
+    policy: Annotated[
+        str | None, typer.Option("--policy", help="Override the policy name.")
+    ] = None,
+    no_video: Annotated[bool, typer.Option("--no-video")] = False,
+) -> None:
+    """Record a single suite condition and write its package and ZIP."""
+    from robot_ci.recording.bundle import zip_package
+    from robot_ci.recording.suite import default_suite, run_package_suite
+
+    matches = [entry for entry in default_suite() if entry.key == key]
+    if not matches:
+        fail(f"unknown suite key: {key}")
+        raise typer.Exit(2)
+    from dataclasses import replace
+
+    if seed is not None or policy is not None:
+        matches = [replace(matches[0], seed=seed or matches[0].seed, policy=policy or matches[0].policy)]
+    report = run_package_suite(
+        matches, Path(out), backend_name=backend, make_video=not no_video
+    )
+    package = report.packages[0]
+    if package.directory is None:
+        fail(f"{key} produced no package: {package.entry.reason or 'not run'}")
+        raise typer.Exit(EXIT_BACKEND_UNAVAILABLE)
+    archive = zip_package(package.directory, package.directory.with_suffix(".zip"))
+    console.print(
+        f"{key}: {package.status.value}  steps={package.experiment.steps}  "
+        f"motion={package.experiment.joint_motion_rad():.4f} rad  video="
+        f"{'yes' if package.artifacts and package.artifacts.video else 'no'}"
+    )
+    console.print(f"zip: {archive}")
 
 
 def run() -> None:

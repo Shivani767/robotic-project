@@ -313,3 +313,124 @@ resize();
 animate();
 connectState();
 connectCamera();
+refreshExperiments();
+setInterval(refreshExperiments, 5000);
+
+const keySelect = document.getElementById('experiment-key');
+const policySelect = document.getElementById('experiment-policy');
+const seedInput = document.getElementById('experiment-seed');
+const startButton = document.getElementById('experiment-start');
+const progress = document.getElementById('recording-progress');
+const resultList = document.getElementById('recording-result');
+
+startButton.addEventListener('click', () => {
+  startButton.disabled = true;
+  const payload = {
+    key: keySelect.value,
+    policy: policySelect.value,
+    seed: Number(seedInput.value || 0),
+  };
+  fetch('experiments/start', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+    .then((response) => response.json().then((data) => ({ ok: response.ok, data })))
+    .then(({ ok, data }) => {
+      if (!ok) {
+        progress.textContent = `refused: ${data.error || 'busy'}`;
+        startButton.disabled = false;
+        return;
+      }
+      progress.textContent = `running ${payload.key} (seed ${payload.seed})…`;
+      refreshExperiments();
+    })
+    .catch((error) => {
+      progress.textContent = `failed to start: ${error}`;
+      startButton.disabled = false;
+    });
+});
+
+function refreshExperiments() {
+  fetch('experiments.json')
+    .then((response) => response.json())
+    .then((data) => {
+      renderSuite(data.suite || []);
+      renderLauncher(data.status || {});
+      renderArtifacts(data.suite || []);
+    })
+    .catch((error) => console.error(error));
+}
+
+function renderSuite(suite) {
+  const running = document.body.dataset.experimentsInit === '1';
+  if (!running) {
+    keySelect.innerHTML = '';
+    suite.forEach((entry) => {
+      const option = document.createElement('option');
+      option.value = entry.key;
+      option.textContent = `${entry.key} — ${entry.condition}`;
+      option.disabled = !entry.runnable;
+      keySelect.appendChild(option);
+    });
+    document.body.dataset.experimentsInit = '1';
+  }
+}
+
+function renderLauncher(status) {
+  if (status.running) {
+    startButton.disabled = true;
+    progress.textContent = `recording ${status.key}… ${status.stage || ''} ${status.message || ''}`.trim();
+  } else if (status.key) {
+    startButton.disabled = false;
+    progress.textContent = status.stage === 'error'
+      ? `last run ${status.key}: ERROR — ${status.message || 'see logs'}`
+      : `last run ${status.key}: ${status.status || status.stage}`;
+    resultList.innerHTML = '';
+    [
+      ['status', status.status || status.stage],
+      ['zip', status.zip || '—'],
+      ['wall time', status.finished_wall && status.started_wall
+        ? `${(status.finished_wall - status.started_wall).toFixed(1)} s` : '—'],
+    ].forEach(([label, value]) => {
+      const dt = document.createElement('dt');
+      dt.textContent = label;
+      const dd = document.createElement('dd');
+      dd.textContent = value;
+      resultList.append(dt, dd);
+    });
+  } else {
+    startButton.disabled = false;
+    progress.textContent = 'idle';
+  }
+}
+
+function renderArtifacts(suite) {
+  const body = document.querySelector('#artifacts tbody');
+  body.innerHTML = '';
+  suite.forEach((entry) => {
+    const row = document.createElement('tr');
+    const name = document.createElement('td');
+    name.textContent = entry.key;
+    const status = document.createElement('td');
+    status.textContent = entry.status;
+    const files = document.createElement('td');
+    if (entry.package) {
+      ['experiment.mp4', 'overview.png', 'camera_view.png', 'metrics.png', 'results.json', 'manifest.json']
+        .forEach((file) => {
+          const link = document.createElement('a');
+          link.href = `artifacts/visual_reports/${entry.package}/${file}`;
+          link.textContent = file.replace('.mp4', '').replace('.png', '').replace('.json', '');
+          files.append(link, document.createTextNode(' '));
+        });
+    }
+    if (entry.zip) {
+      const link = document.createElement('a');
+      link.href = `artifacts/visual_reports/${entry.zip}`;
+      link.innerHTML = '<b>zip</b>';
+      files.append(link);
+    }
+    row.append(name, status, files);
+    body.appendChild(row);
+  });
+}

@@ -128,11 +128,40 @@ The 3D arm is built from the joint origins, axes and limits in
 `gazebo/models/panda/panda.urdf` (the same URDF Gazebo loads), then posed by
 whatever angles Gazebo publishes. If the simulation stops, the arm stops.
 
-**Known gap, stated plainly:** the RGB panel renders the real scene, but the
-Panda itself does not appear in the Gazebo camera image. The 3D panel does show
-it, moving, from live state. See `docs/gazebo.md` for what was ruled out.
+**Correction:** the RGB panel *does* show the Panda's own links as well as the
+table, the object and the target zone. An earlier version of this README said it
+did not; that was a camera-pose artefact, re-measured since. See
+`docs/gazebo.md` section 6.
 
 To stop: `Ctrl-C`, then `docker compose down`.
+
+## 5b. Recorded experiment videos, images and ZIP reports
+
+One headless command records the whole suite through the real Gazebo backend
+and writes a package per condition:
+
+```bash
+cd "/Users/shivanibhandari/Downloads/Robotic Project"
+docker compose run --rm gazebo-demo \
+  python3 scripts/record_suite.py --out artifacts/visual_reports
+```
+
+Per-condition entry points for batch runs and single runs:
+
+```bash
+python3 -m robot_ci.cli.main record suite --only depth_noise_8mm
+python3 -m robot_ci.cli.main record one joint_perturbation
+```
+
+The dashboard also exposes this: the launcher panel at `http://localhost:8000`
+lists conditions, starts a recording, shows progress and links the MP4s, PNGs
+and ZIPs once they verify. Concurrent runs are refused because the simulator is
+shared.
+
+What a package contains, and where each thing comes from, is specified in
+`docs/recording.md`. Generated MP4s and ZIPs are intentionally not committed;
+`artifacts/visual_reports/suite_summary.json` and `SUITE.md` are, because the
+seed, commit and config hash needed to rebuild every file are recorded there.
 
 
 ## 6. Status
@@ -159,7 +188,7 @@ and what was never run. `docs/verification.md` holds the full split.
 | 14 | Benchmark suite + RQ1–RQ5 | **done** — 20 benchmarks, 0 expectation mismatches; RQ2's strong form demonstrated |
 | 15 | Verification path | **`verify.sh` verified locally; the Linux workflow has never run** — `.github/workflows/verify.yml` |
 
-## 5b. Reproducing this
+## 5c. Reproducing this
 
 ```bash
 bash scripts/verify.sh            # one definition of "verified", ~12 min

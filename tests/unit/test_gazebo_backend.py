@@ -160,6 +160,231 @@ def test_camera_geometry_is_read_from_the_same_helper_that_writes_the_sdf() -> N
     assert basis @ basis.T == pytest.approx(np.eye(3), abs=1e-9)
 
 
+def test_back_projection_recovers_an_object_from_a_synthetic_frame() -> None:
+    """A cube rendered at its true pixel must be believed at its true position.
+
+    This is the regression test for the row-sign bug found against a real
+    Gazebo frame: the row term was double-negated, mirroring every point
+    vertically, and the cube at z = 0.02 m was believed at z = 0.197 m -- in
+    mid-air. The synthetic depth image here is built from the *same* camera
+    geometry the SDF uses (table plane via ray-cast, cube as a blob at its
+    projected pixel), so a mirror-sign back-projection places the blob below
+    the table and fails this test rather than passing a self-consistent pair
+    of wrong formulas.
+    """
+    from robot_ci.gazebo.world import camera_intrinsics_from_scenario, object_pose_from_scenario
+
+    scenario = default_scenario(seed=42)
+    backend = GazeboBackend()
+    eye, forward, right, up = backend._camera_geometry(scenario)
+    width, height, fx, fy, cx, cy = camera_intrinsics_from_scenario(scenario)
+
+    # Ray-cast the table plane (z = 0) for every pixel: the background of the
+    # synthetic frame, exactly as the camera would measure it.
+    u = np.arange(width, dtype=np.float64) + 0.5
+    v = np.arange(height, dtype=np.float64) + 0.5
+    du = (u - cx) / fx
+    dv = (v - cy) / fy
+    direction = (
+        forward[None, None, :]
+        - du[None, :, None] * right[None, None, :]
+        - dv[:, None, None] * up[None, None, :]
+    )
+    with np.errstate(divide="ignore", invalid="ignore"):
+        table_depth = -eye[2] / direction[:, :, 2]
+    table_depth = np.where(np.isfinite(table_depth) & (table_depth > 0), table_depth, 8.0)
+    depth = table_depth.astype(np.float32)
+
+    # Stamp the cube at its projected pixel, at the cube's own centre depth.
+    cube = np.array(object_pose_from_scenario(scenario))
+    local = cube - eye
+    along = float(local @ forward)
+    col = int(round(cx + (-(local @ right) / along) * fx))
+    row = int(round(cy + (-(local @ up) / along) * fy))
+    assert 3 <= row < height - 3 and 3 <= col < width - 3, "cube must be in frame"
+    depth[row - 2 : row + 3, col - 2 : col + 3] = along
+
+    class _FakeDepth:
+        def latest(self) -> tuple[np.ndarray | None, None, int, int]:
+            return depth, None, width, height
+
+    backend._episodes["synthetic"] = {"depth": _FakeDepth()}
+    handle = type(
+        "H",
+        (),
+        {
+            "episode_id": "synthetic",
+            "scenario": scenario,
+            "step_index": 0,
+            "sim_time_s": 0.0,
+        },
+    )()
+    try:
+        beliefs = backend._detect_objects(handle)
+    finally:
+        backend._episodes.clear()
+    assert len(beliefs) == 1, "the stamped cube must be detected as exactly one object"
+    believed = beliefs[0].pose.position.array
+    assert believed == pytest.approx(cube, abs=0.04), (
+        f"belief {believed} must be at the cube {cube}; a mirrored row sign "
+        "puts the belief on the other side of the optical axis"
+    )
+def test_support_plane_ignores_what_stands_on_the_table() -> None:
+    """An object and a distractor must not tilt the surface estimate.
+
+    This is the measured defect in miniature: a least-squares fit over every
+    point returned ``|slope| = 0.151`` on a table that is genuinely flat, which
+    selected half the tabletop as "the object". The support-plane fit must
+    recover the flat table even when most outliers stand above it.
+    """
+    rng = np.random.default_rng(0)
+    # A flat table at z = 0 across the workspace, sampled on a fine grid.
+    xs = np.linspace(-0.3, 0.3, 41)
+    ys = np.linspace(-0.2, 0.4, 41)
+    grid_x, grid_y = np.meshgrid(xs, ys)
+    table = np.column_stack([grid_x.ravel(), grid_y.ravel(), np.zeros(grid_x.size)])
+    # A 40 mm cube standing on it, plus a large tilted distractor above.
+    cube = np.column_stack(
+        [
+            rng.uniform(-0.12, -0.08, 60),
+            rng.uniform(0.21, 0.25, 60),
+            rng.uniform(0.0, 0.04, 60),
+        ]
+    )
+    link = np.column_stack(
+        [
+            rng.uniform(0.2, 0.43, 400),
+            rng.uniform(-0.12, 0.10, 400),
+            rng.uniform(0.06, 0.20, 400),
+        ]
+    )
+    cloud = np.vstack([table, cube, link])
+    coefficients = GazeboBackend._support_plane(cloud)
+    assert abs(coefficients[0]) < 0.01
+    assert abs(coefficients[1]) < 0.01
+    assert coefficients[2] == pytest.approx(0.0, abs=0.005)
+
+
+def test_clusters_come_back_with_usable_indices() -> None:
+    """Every group is returned, and its indices select it."""
+    near = np.array([[0.0, 0.0, 0.03 + 0.001 * i] for i in range(12)])
+    far = np.array([[0.3, 0.0, 0.12 + 0.001 * i] for i in range(30)])
+    cloud = np.vstack([near, far])
+    groups = GazeboBackend._clusters(cloud)
+    assert len(groups) == 2
+    assert groups[0].size == 30  # largest first
+    assert cloud[groups[0]][:, 0].mean() == pytest.approx(0.3)
+    assert groups[1].size == 12
+    assert cloud[groups[1]][:, 0].mean() == pytest.approx(0.0)
+
+
+def test_detector_prefers_the_cube_over_a_bigger_arm_link() -> None:
+    """The graspable object wins even when the robot's arm is the bigger cloud.
+
+    A synthetic frame carries a stamped cube *and* a large distractor floating
+    above the table. The detector must believe the cube. This is the regression
+    test for the failure that reported the arm at 492 mm from the truth on a
+    real frame.
+    """
+    from robot_ci.gazebo.world import camera_intrinsics_from_scenario, object_pose_from_scenario
+
+    scenario = default_scenario(seed=42)
+    backend = GazeboBackend()
+    eye, forward, right, up = backend._camera_geometry(scenario)
+    width, height, fx, fy, cx, cy = camera_intrinsics_from_scenario(scenario)
+
+    # The same flat-table background the back-projection test trusts.
+    u = np.arange(width, dtype=np.float64) + 0.5
+    v = np.arange(height, dtype=np.float64) + 0.5
+    du = (u - cx) / fx
+    dv = (v - cy) / fy
+    direction = (
+        forward[None, None, :]
+        - du[None, :, None] * right[None, None, :]
+        - dv[:, None, None] * up[None, None, :]
+    )
+    with np.errstate(divide="ignore", invalid="ignore"):
+        table_depth = -eye[2] / direction[:, :, 2]
+    table_depth = np.where(np.isfinite(table_depth) & (table_depth > 0), table_depth, 8.0)
+    depth = table_depth.astype(np.float32)
+
+    # The real cube, stamped at its true pixel at the cube's own centre depth.
+    cube = np.array(object_pose_from_scenario(scenario))
+    local = cube - eye
+    along = float(local @ forward)
+    col = int(round(cx + (-(local @ right) / along) * fx))
+    row = int(round(cy + (-(local @ up) / along) * fy))
+    depth[row - 2 : row + 3, col - 2 : col + 3] = along
+
+    # A distractor bigger than the cube and floating above the table -- the
+    # shape an arm link makes in the depth image.
+    link_depth = along * 0.75
+    depth[85:112, 100:150] = link_depth
+
+    class _FakeDepth:
+        def latest(self) -> tuple[np.ndarray | None, None, int, int]:
+            return depth, None, width, height
+
+    backend._episodes["synthetic"] = {"depth": _FakeDepth()}
+    handle = type(
+        "H",
+        (),
+        {
+            "episode_id": "synthetic",
+            "scenario": scenario,
+            "step_index": 0,
+            "sim_time_s": 0.0,
+        },
+    )()
+    try:
+        beliefs = backend._detect_objects(handle)
+    finally:
+        backend._episodes.clear()
+    assert len(beliefs) == 1, "exactly one graspable object must be believed"
+    believed = beliefs[0].pose.position.array
+    assert believed == pytest.approx(cube, abs=0.04), (
+        f"belief {believed} must be at the cube {cube}, not at the distractor"
+    )
+    assert believed[2] < 0.10, "the cube sits on the table; believing it in mid-air is the bug"
+
+
+# ------------------------------------------------------------- IK provider
+def test_urdf_jacobian_fk_matches_the_recording_renderer() -> None:
+    """The IK provider and the recorded 3-D view must describe the same robot."""
+    from robot_ci.gazebo.kinematics import UrdfJacobianProvider
+    from robot_ci.recording.render3d import forward_kinematics, load_kinematics
+
+    provider = UrdfJacobianProvider(URDF)
+    kin = load_kinematics(URDF)
+    home = np.asarray(default_scenario().robot.home_position[:7], dtype=np.float64)
+    for q in (home, np.zeros(7), home * 0.5):
+        full = np.concatenate([q, np.zeros(len(kin.joints) - 7)])
+        position, rotation = provider.forward(q)
+        frames = forward_kinematics(kin, full)
+        assert frames["panda_link7"] == pytest.approx(position, abs=1e-9)
+        # A rotation matrix must stay orthonormal through the cached chain.
+        assert rotation @ rotation.T == pytest.approx(np.eye(3), abs=1e-9)
+
+
+def test_urdf_jacobian_position_rows_match_central_differences() -> None:
+    """An independent differencing scheme must agree with the provider's."""
+    from robot_ci.gazebo.kinematics import UrdfJacobianProvider
+
+    provider = UrdfJacobianProvider(URDF)
+    q = np.asarray(default_scenario().robot.home_position[:7], dtype=np.float64)
+    jac = provider.jacobian(q)
+    assert jac.shape == (6, 7)
+    assert np.all(np.isfinite(jac))
+    step = 1e-4
+    for column in range(7):
+        delta = np.zeros(7)
+        delta[column] = step
+        plus, _ = provider.forward(q + delta)
+        minus, _ = provider.forward(q - delta)
+        central = (plus - minus) / (2 * step)
+        assert jac[:3, column] == pytest.approx(central, abs=1e-4)
+
+
 # ------------------------------------------------------------------ scenario
 @pytest.mark.skipif(
     shutil.which("gz") is None,
