@@ -1,0 +1,298 @@
+{
+  "ablation": {
+    "no_object": true,
+    "no_table": false
+  },
+  "commanded_aperture_m": 0.0002,
+  "commanded_per_finger_m": 0.0001,
+  "hold_s": 2.0,
+  "label": "no_object",
+  "rate_hz": 20.0,
+  "reader": {
+    "errors": [],
+    "messages": 5939
+  },
+  "samples": [
+    {
+      "left_m": 0.02606,
+      "pad_separation_m": 0.06331,
+      "right_m": 0.02625,
+      "sim_time_s": 6.9,
+      "t_s": 0.05
+    },
+    {
+      "left_m": 0.01646,
+      "pad_separation_m": 0.04411,
+      "right_m": 0.01665,
+      "sim_time_s": 6.95,
+      "t_s": 0.101
+    },
+    {
+      "left_m": 0.00781,
+      "pad_separation_m": 0.0266,
+      "right_m": 0.00779,
+      "sim_time_s": 7.0,
+      "t_s": 0.151
+    },
+    {
+      "left_m": 0.00583,
+      "pad_separation_m": 0.02248,
+      "right_m": 0.00565,
+      "sim_time_s": 7.05,
+      "t_s": 0.201
+    },
+    {
+      "left_m": 0.00581,
+      "pad_separation_m": 0.02241,
+      "right_m": 0.0056,
+      "sim_time_s": 7.1,
+      "t_s": 0.251
+    },
+    {
+      "left_m": 0.00578,
+      "pad_separation_m": 0.02236,
+      "right_m": 0.00558,
+      "sim_time_s": 7.15,
+      "t_s": 0.301
+    },
+    {
+      "left_m": 0.00576,
+      "pad_separation_m": 0.02231,
+      "right_m": 0.00555,
+      "sim_time_s": 7.2,
+      "t_s": 0.352
+    },
+    {
+      "left_m": 0.00573,
+      "pad_separation_m": 0.02225,
+      "right_m": 0.00552,
+      "sim_time_s": 7.25,
+      "t_s": 0.402
+    },
+    {
+      "left_m": 0.0055,
+      "pad_separation_m": 0.02219,
+      "right_m": 0.00569,
+      "sim_time_s": 7.3,
+      "t_s": 0.452
+    },
+    {
+      "left_m": 0.00548,
+      "pad_separation_m": 0.02214,
+      "right_m": 0.00566,
+      "sim_time_s": 7.35,
+      "t_s": 0.502
+    },
+    {
+      "left_m": 0.00544,
+      "pad_separation_m": 0.02208,
+      "right_m": 0.00564,
+      "sim_time_s": 7.4,
+      "t_s": 0.552
+    },
+    {
+      "left_m": 0.00542,
+      "pad_separation_m": 0.02203,
+      "right_m": 0.00561,
+      "sim_time_s": 7.45,
+      "t_s": 0.603
+    },
+    {
+      "left_m": 0.00539,
+      "pad_separation_m": 0.02197,
+      "right_m": 0.00558,
+      "sim_time_s": 7.5,
+      "t_s": 0.653
+    },
+    {
+      "left_m": 0.00536,
+      "pad_separation_m": 0.02192,
+      "right_m": 0.00555,
+      "sim_time_s": 7.55,
+      "t_s": 0.703
+    },
+    {
+      "left_m": 0.00554,
+      "pad_separation_m": 0.02186,
+      "right_m": 0.00533,
+      "sim_time_s": 7.6,
+      "t_s": 0.753
+    },
+    {
+      "left_m": 0.00551,
+      "pad_separation_m": 0.02181,
+      "right_m": 0.0053,
+      "sim_time_s": 7.65,
+      "t_s": 0.803
+    },
+    {
+      "left_m": 0.00548,
+      "pad_separation_m": 0.02176,
+      "right_m": 0.00527,
+      "sim_time_s": 7.7,
+      "t_s": 0.854
+    },
+    {
+      "left_m": 0.00546,
+      "pad_separation_m": 0.02171,
+      "right_m": 0.00525,
+      "sim_time_s": 7.75,
+      "t_s": 0.904
+    },
+    {
+      "left_m": 0.00523,
+      "pad_separation_m": 0.02165,
+      "right_m": 0.00542,
+      "sim_time_s": 7.8,
+      "t_s": 0.954
+    },
+    {
+      "left_m": 0.0052,
+      "pad_separation_m": 0.0216,
+      "right_m": 0.0054,
+      "sim_time_s": 7.85,
+      "t_s": 1.004
+    },
+    {
+      "left_m": 0.00518,
+      "pad_separation_m": 0.02155,
+      "right_m": 0.00537,
+      "sim_time_s": 7.9,
+      "t_s": 1.055
+    },
+    {
+      "left_m": 0.00535,
+      "pad_separation_m": 0.0215,
+      "right_m": 0.00514,
+      "sim_time_s": 7.95,
+      "t_s": 1.105
+    },
+    {
+      "left_m": 0.00533,
+      "pad_separation_m": 0.02144,
+      "right_m": 0.00512,
+      "sim_time_s": 8.0,
+      "t_s": 1.155
+    },
+    {
+      "left_m": 0.0053,
+      "pad_separation_m": 0.02139,
+      "right_m": 0.00509,
+      "sim_time_s": 8.05,
+      "t_s": 1.205
+    },
+    {
+      "left_m": 0.00528,
+      "pad_separation_m": 0.02134,
+      "right_m": 0.00507,
+      "sim_time_s": 8.1,
+      "t_s": 1.255
+    },
+    {
+      "left_m": 0.00525,
+      "pad_separation_m": 0.02129,
+      "right_m": 0.00504,
+      "sim_time_s": 8.15,
+      "t_s": 1.305
+    },
+    {
+      "left_m": 0.00522,
+      "pad_separation_m": 0.02124,
+      "right_m": 0.00502,
+      "sim_time_s": 8.2,
+      "t_s": 1.356
+    },
+    {
+      "left_m": 0.0052,
+      "pad_separation_m": 0.02119,
+      "right_m": 0.00499,
+      "sim_time_s": 8.25,
+      "t_s": 1.406
+    },
+    {
+      "left_m": 0.00518,
+      "pad_separation_m": 0.02114,
+      "right_m": 0.00497,
+      "sim_time_s": 8.3,
+      "t_s": 1.456
+    },
+    {
+      "left_m": 0.00495,
+      "pad_separation_m": 0.02109,
+      "right_m": 0.00514,
+      "sim_time_s": 8.35,
+      "t_s": 1.506
+    },
+    {
+      "left_m": 0.00492,
+      "pad_separation_m": 0.02104,
+      "right_m": 0.00512,
+      "sim_time_s": 8.4,
+      "t_s": 1.556
+    },
+    {
+      "left_m": 0.0049,
+      "pad_separation_m": 0.02099,
+      "right_m": 0.00509,
+      "sim_time_s": 8.45,
+      "t_s": 1.607
+    },
+    {
+      "left_m": 0.00488,
+      "pad_separation_m": 0.02094,
+      "right_m": 0.00507,
+      "sim_time_s": 8.5,
+      "t_s": 1.657
+    },
+    {
+      "left_m": 0.00485,
+      "pad_separation_m": 0.02089,
+      "right_m": 0.00504,
+      "sim_time_s": 8.55,
+      "t_s": 1.707
+    },
+    {
+      "left_m": 0.00503,
+      "pad_separation_m": 0.02084,
+      "right_m": 0.00482,
+      "sim_time_s": 8.6,
+      "t_s": 1.757
+    },
+    {
+      "left_m": 0.005,
+      "pad_separation_m": 0.0208,
+      "right_m": 0.00479,
+      "sim_time_s": 8.65,
+      "t_s": 1.807
+    },
+    {
+      "left_m": 0.00498,
+      "pad_separation_m": 0.02075,
+      "right_m": 0.00477,
+      "sim_time_s": 8.7,
+      "t_s": 1.857
+    },
+    {
+      "left_m": 0.00495,
+      "pad_separation_m": 0.0207,
+      "right_m": 0.00475,
+      "sim_time_s": 8.75,
+      "t_s": 1.908
+    },
+    {
+      "left_m": 0.00493,
+      "pad_separation_m": 0.02065,
+      "right_m": 0.00472,
+      "sim_time_s": 8.8,
+      "t_s": 1.958
+    },
+    {
+      "left_m": 0.00471,
+      "pad_separation_m": 0.0206,
+      "right_m": 0.0049,
+      "sim_time_s": 8.85,
+      "t_s": 2.008
+    }
+  ],
+  "stepped_from_aperture_m": 0.08
+}

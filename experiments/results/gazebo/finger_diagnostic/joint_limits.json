@@ -1,0 +1,143 @@
+{
+  "closed_separation_m": 0.011,
+  "collisions": {
+    "panda_left_finger_collision": {
+      "box_size": null,
+      "cylinder": null,
+      "pose": "0 0.0074999999999999997 0.058400000000000001 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link0_collision": {
+      "box_size": null,
+      "cylinder": {
+        "length": "0.14000000000000001",
+        "radius": "0.070000000000000007"
+      },
+      "pose": "0 0 0.050000000000000003 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link1_collision": {
+      "box_size": null,
+      "cylinder": {
+        "length": "0.23999999999999999",
+        "radius": "0.059999999999999998"
+      },
+      "pose": "0 0 -0.10000000000000001 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link2_collision": {
+      "box_size": null,
+      "cylinder": {
+        "length": "0.23999999999999999",
+        "radius": "0.059999999999999998"
+      },
+      "pose": "0 0 0.10000000000000001 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link3_collision": {
+      "box_size": null,
+      "cylinder": {
+        "length": "0.20000000000000001",
+        "radius": "0.059999999999999998"
+      },
+      "pose": "0.050000000000000003 0 0.050000000000000003 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link4_collision": {
+      "box_size": null,
+      "cylinder": {
+        "length": "0.19",
+        "radius": "0.059999999999999998"
+      },
+      "pose": "-0.02 0 0.059999999999999998 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link5_collision": {
+      "box_size": null,
+      "cylinder": {
+        "length": "0.14999999999999999",
+        "radius": "0.055"
+      },
+      "pose": "0 0 0.050000000000000003 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link6_collision": {
+      "box_size": null,
+      "cylinder": {
+        "length": "0.13",
+        "radius": "0.050000000000000003"
+      },
+      "pose": "0.029999999999999999 0 0.029999999999999999 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link7_collision": {
+      "box_size": null,
+      "cylinder": {
+        "length": "0.10000000000000001",
+        "radius": "0.044999999999999998"
+      },
+      "pose": "0 0 0.040000000000000001 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_link7_fixed_joint_lump__panda_hand_collision_1": {
+      "box_size": null,
+      "cylinder": null,
+      "pose": "0 0 0.14699999999999999 0 0 -0.78539820000000005",
+      "pose_relative_to": null,
+      "surface_friction": null
+    },
+    "panda_right_finger_collision": {
+      "box_size": null,
+      "cylinder": null,
+      "pose": "0 -0.0074999999999999997 0.058400000000000001 0 0 0",
+      "pose_relative_to": null,
+      "surface_friction": null
+    }
+  },
+  "finger_joints": {
+    "left_finger": {
+      "axis": "0 1 0",
+      "child": "panda_left_finger",
+      "damping": null,
+      "dynamics_damping": "1",
+      "dynamics_friction": "0",
+      "effort": "100",
+      "friction": null,
+      "lower": "0",
+      "parent": "panda_link7",
+      "pose": "0.0038890874388765278 0.0038890871541754891 0.1515 0 0 -0.78539820000000005",
+      "pose_relative_to": "panda_link7",
+      "stiffness": null,
+      "type": "prismatic",
+      "upper": "0.040000000000000001",
+      "velocity": "0.20000000000000001"
+    },
+    "right_finger": {
+      "axis": "0 -1 0",
+      "child": "panda_right_finger",
+      "damping": null,
+      "dynamics_damping": "1",
+      "dynamics_friction": "0",
+      "effort": "100",
+      "friction": null,
+      "lower": "0",
+      "parent": "panda_link7",
+      "pose": "-0.0038890874388765278 -0.0038890871541754891 0.1515 0 0 -0.78539820000000005",
+      "pose_relative_to": "panda_link7",
+      "stiffness": null,
+      "type": "prismatic",
+      "upper": "0.040000000000000001",
+      "velocity": "0.20000000000000001"
+    }
+  },
+  "object_width_m": 0.016
+}

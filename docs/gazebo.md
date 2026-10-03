@@ -362,6 +362,51 @@ and they were doing it because the pads' lower edge grazed the surface. That is
 also why no gain change ever removed the finger residual: the pads were pressed
 against the table and physically could not close.
 
+### Part 1B: the grasp blocker, investigated with instruments
+
+`experiments/results/gazebo/finger_diagnostic/` holds the evidence. The short
+version: **the cube was never the cause.** With the object deleted the jaw still
+stalls at the same place, and the same stall appears with nothing in the scene at
+all. What the instruments ruled out, and how:
+
+| Candidate | Verdict | Evidence |
+|---|---|---|
+| Object blocks the pads | ruled out | `finger_sweep_no_object.json` |
+| Table blocks the pads | ruled out | same sweep, table present, cube gone |
+| Wrong axis / limits / damping | ruled out | `joint_limits.json`: axis (0,+-1,0), limits 0..0.04, effort 100, velocity 0.2, damping 1 |
+| Wrong parent/child | ruled out | parent `panda_link7`, child `panda_left/right_finger` |
+| Collision geometry | ruled out | `model_sdf.txt`: no other volume within reach |
+| Guessed publisher schema | avoided | `message_schemas.json` is written from the live descriptors first |
+
+The reproduction, with the cube deleted: the jaw is stepped from 0.08 open to the
+0.0002 grasp aperture and reaches **22.5 mm at t = 0.20 s**, then stalls and
+creeps at ~0.5 mm/s, ending at 20.6 mm after 2 s. Raising the finger velocity
+limit tenfold moves the stall to a limit cycle between 15 and 19 mm rather than
+removing it.
+
+That shape -- fast approach, then a stall holding a large error against a ~5 N
+command, then slow creep, with and without the velocity limit -- is the engine's
+joint velocity limiter acting against a position controller: the limiter scales
+the applied force down to hold the velocity under its cap, so the proportional
+term loses authority exactly when the error is largest. **This is a diagnosis,
+not a confirmed fix**, because it has not been verified by changing one thing and
+re-measuring.
+
+The change it implies is a commanded closure *rate* rather than a step, and the
+project already owns that: `control/gripper.GripperController` has
+`closure_ramp_enabled` and `max_closure_speed_m_s`, and the Gazebo backend now
+constructs one. It is deliberately **not** applied yet: the policy advances past
+the grasp on `close_dwell >= 6` ticks (0.3 s at 20 Hz), and a ramp that respects
+the 0.2 m/s velocity limit needs about 0.2 s for the travel alone, so enabling
+the ramp without measuring that the policy waits would trade a slow grip for no
+grip at all.
+
+One caveat on the instrumentation itself: the first two passes of the SDF parser
+reported the finger joints as having no axis and no limits, because `<axis>`,
+`<limit>` and `<dynamics>` are nested inside `<axis>` and hold child elements
+rather than attributes. The raw SDF has all of them. A report that trusted that
+parser would have "fixed" a defect that does not exist.
+
 ### The remaining failure, as measured
 
 Shortening the pads to 6.5 mm half-height (2.0 mm of nominal clearance, against

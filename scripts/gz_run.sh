@@ -20,6 +20,9 @@ case "${1:-}" in
   start)
     shift
     docker exec rc-gz bash -lc "$CLEAN"
+    # Truncate first: status greps for the DONE marker, and a stale log from the
+    # previous run would make a fresh run look finished before it started.
+    docker exec rc-gz bash -lc ': > /tmp/gz_run.log'
     docker exec -d rc-gz bash -lc "$* > /tmp/gz_run.log 2>&1; echo DONE >> /tmp/gz_run.log"
     echo "started"
     ;;

@@ -667,7 +667,14 @@ def _world_anchor_joint() -> ElementTree.Element:
     return joint
 
 
-def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str:
+def world_sdf(
+    scenario: ScenarioConfig,
+    *,
+    robot_urdf: str | None = None,
+    include_object: bool = True,
+    include_table: bool = True,
+    finger_collisions: bool = True,
+) -> str:
     """Render the pick-and-place world as SDF.
 
     The world mirrors the MuJoCo one: a table at the workspace centre, the robot
@@ -679,9 +686,17 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
     Args:
         scenario: The ROBOT CI condition to translate.
         robot_urdf: Optional path to the robot's URDF, recorded for provenance.
+    The three flags below are accepted and deliberately unused: the ablations
+    the grasp investigation needs (no object, no table, no pad collision) are
+    applied by ``scripts/gazebo_finger_diagnostic.py`` to the SDF this function
+    returns, one variable at a time. Building the variants here instead would
+    mean interpolating a second copy of the scene template, and two copies of a
+    scene are exactly how a diagnostic and a real run drift apart.
 
-    Returns:
-        An SDF document as text.
+    Args:
+        include_object: Retained for call-site clarity; ignored.
+        include_table: Retained for call-site clarity; ignored.
+        finger_collisions: Retained for call-site clarity; ignored.
     """
     cx, cy = (
         float(scenario.environment.workspace_center[0]),

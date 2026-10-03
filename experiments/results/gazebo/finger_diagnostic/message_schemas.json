@@ -1,0 +1,1267 @@
+{
+  "Contacts": {
+    "contact": {
+      "fields": {
+        "collision1": {
+          "fields": {
+            "header": {
+              "fields": {
+                "data": {
+                  "fields": {
+                    "key": {
+                      "repeated": false,
+                      "type": 9
+                    },
+                    "value": {
+                      "repeated": true,
+                      "type": 9
+                    }
+                  },
+                  "message": "gz.msgs.Header.Map",
+                  "repeated": true,
+                  "type": 11
+                },
+                "stamp": {
+                  "fields": {
+                    "nsec": {
+                      "repeated": false,
+                      "type": 5
+                    },
+                    "sec": {
+                      "repeated": false,
+                      "type": 3
+                    }
+                  },
+                  "message": "gz.msgs.Time",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Header",
+              "repeated": false,
+              "type": 11
+            },
+            "id": {
+              "repeated": false,
+              "type": 4
+            },
+            "name": {
+              "repeated": false,
+              "type": 9
+            },
+            "type": {
+              "repeated": false,
+              "type": 14
+            }
+          },
+          "message": "gz.msgs.Entity",
+          "repeated": false,
+          "type": 11
+        },
+        "collision2": {
+          "fields": {
+            "header": {
+              "fields": {
+                "data": {
+                  "fields": {
+                    "key": {
+                      "repeated": false,
+                      "type": 9
+                    },
+                    "value": {
+                      "repeated": true,
+                      "type": 9
+                    }
+                  },
+                  "message": "gz.msgs.Header.Map",
+                  "repeated": true,
+                  "type": 11
+                },
+                "stamp": {
+                  "fields": {
+                    "nsec": {
+                      "repeated": false,
+                      "type": 5
+                    },
+                    "sec": {
+                      "repeated": false,
+                      "type": 3
+                    }
+                  },
+                  "message": "gz.msgs.Time",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Header",
+              "repeated": false,
+              "type": 11
+            },
+            "id": {
+              "repeated": false,
+              "type": 4
+            },
+            "name": {
+              "repeated": false,
+              "type": 9
+            },
+            "type": {
+              "repeated": false,
+              "type": 14
+            }
+          },
+          "message": "gz.msgs.Entity",
+          "repeated": false,
+          "type": 11
+        },
+        "depth": {
+          "repeated": true,
+          "type": 1
+        },
+        "header": {
+          "fields": {
+            "data": {
+              "fields": {
+                "key": {
+                  "repeated": false,
+                  "type": 9
+                },
+                "value": {
+                  "repeated": true,
+                  "type": 9
+                }
+              },
+              "message": "gz.msgs.Header.Map",
+              "repeated": true,
+              "type": 11
+            },
+            "stamp": {
+              "fields": {
+                "nsec": {
+                  "repeated": false,
+                  "type": 5
+                },
+                "sec": {
+                  "repeated": false,
+                  "type": 3
+                }
+              },
+              "message": "gz.msgs.Time",
+              "repeated": false,
+              "type": 11
+            }
+          },
+          "message": "gz.msgs.Header",
+          "repeated": false,
+          "type": 11
+        },
+        "normal": {
+          "fields": {
+            "header": {
+              "fields": {
+                "data": {
+                  "fields": {
+                    "key": {
+                      "repeated": false,
+                      "type": 9
+                    },
+                    "value": {
+                      "repeated": true,
+                      "type": 9
+                    }
+                  },
+                  "message": "gz.msgs.Header.Map",
+                  "repeated": true,
+                  "type": 11
+                },
+                "stamp": {
+                  "fields": {
+                    "nsec": {
+                      "repeated": false,
+                      "type": 5
+                    },
+                    "sec": {
+                      "repeated": false,
+                      "type": 3
+                    }
+                  },
+                  "message": "gz.msgs.Time",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Header",
+              "repeated": false,
+              "type": 11
+            },
+            "x": {
+              "repeated": false,
+              "type": 1
+            },
+            "y": {
+              "repeated": false,
+              "type": 1
+            },
+            "z": {
+              "repeated": false,
+              "type": 1
+            }
+          },
+          "message": "gz.msgs.Vector3d",
+          "repeated": true,
+          "type": 11
+        },
+        "position": {
+          "fields": {
+            "header": {
+              "fields": {
+                "data": {
+                  "fields": {
+                    "key": {
+                      "repeated": false,
+                      "type": 9
+                    },
+                    "value": {
+                      "repeated": true,
+                      "type": 9
+                    }
+                  },
+                  "message": "gz.msgs.Header.Map",
+                  "repeated": true,
+                  "type": 11
+                },
+                "stamp": {
+                  "fields": {
+                    "nsec": {
+                      "repeated": false,
+                      "type": 5
+                    },
+                    "sec": {
+                      "repeated": false,
+                      "type": 3
+                    }
+                  },
+                  "message": "gz.msgs.Time",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Header",
+              "repeated": false,
+              "type": 11
+            },
+            "x": {
+              "repeated": false,
+              "type": 1
+            },
+            "y": {
+              "repeated": false,
+              "type": 1
+            },
+            "z": {
+              "repeated": false,
+              "type": 1
+            }
+          },
+          "message": "gz.msgs.Vector3d",
+          "repeated": true,
+          "type": 11
+        },
+        "world": {
+          "fields": {
+            "header": {
+              "fields": {
+                "data": {
+                  "fields": {
+                    "key": {
+                      "repeated": false,
+                      "type": 9
+                    },
+                    "value": {
+                      "repeated": true,
+                      "type": 9
+                    }
+                  },
+                  "message": "gz.msgs.Header.Map",
+                  "repeated": true,
+                  "type": 11
+                },
+                "stamp": {
+                  "fields": {
+                    "nsec": {
+                      "repeated": false,
+                      "type": 5
+                    },
+                    "sec": {
+                      "repeated": false,
+                      "type": 3
+                    }
+                  },
+                  "message": "gz.msgs.Time",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Header",
+              "repeated": false,
+              "type": 11
+            },
+            "id": {
+              "repeated": false,
+              "type": 4
+            },
+            "name": {
+              "repeated": false,
+              "type": 9
+            },
+            "type": {
+              "repeated": false,
+              "type": 14
+            }
+          },
+          "message": "gz.msgs.Entity",
+          "repeated": false,
+          "type": 11
+        },
+        "wrench": {
+          "fields": {
+            "body_1_id": {
+              "repeated": false,
+              "type": 13
+            },
+            "body_1_name": {
+              "repeated": false,
+              "type": 9
+            },
+            "body_1_wrench": {
+              "fields": {
+                "force": {
+                  "fields": {
+                    "header": {
+                      "fields": {
+                        "data": {
+                          "fields": {
+                            "key": {
+                              "repeated": false,
+                              "type": 9
+                            },
+                            "value": {
+                              "repeated": true,
+                              "type": 9
+                            }
+                          },
+                          "message": "gz.msgs.Header.Map",
+                          "repeated": true,
+                          "type": 11
+                        },
+                        "stamp": {
+                          "fields": {
+                            "nsec": {
+                              "repeated": false,
+                              "type": 5
+                            },
+                            "sec": {
+                              "repeated": false,
+                              "type": 3
+                            }
+                          },
+                          "message": "gz.msgs.Time",
+                          "repeated": false,
+                          "type": 11
+                        }
+                      },
+                      "message": "gz.msgs.Header",
+                      "repeated": false,
+                      "type": 11
+                    },
+                    "x": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "y": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "z": {
+                      "repeated": false,
+                      "type": 1
+                    }
+                  },
+                  "message": "gz.msgs.Vector3d",
+                  "repeated": false,
+                  "type": 11
+                },
+                "force_offset": {
+                  "fields": {
+                    "header": {
+                      "fields": {
+                        "data": {
+                          "fields": {
+                            "key": {
+                              "repeated": false,
+                              "type": 9
+                            },
+                            "value": {
+                              "repeated": true,
+                              "type": 9
+                            }
+                          },
+                          "message": "gz.msgs.Header.Map",
+                          "repeated": true,
+                          "type": 11
+                        },
+                        "stamp": {
+                          "fields": {
+                            "nsec": {
+                              "repeated": false,
+                              "type": 5
+                            },
+                            "sec": {
+                              "repeated": false,
+                              "type": 3
+                            }
+                          },
+                          "message": "gz.msgs.Time",
+                          "repeated": false,
+                          "type": 11
+                        }
+                      },
+                      "message": "gz.msgs.Header",
+                      "repeated": false,
+                      "type": 11
+                    },
+                    "x": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "y": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "z": {
+                      "repeated": false,
+                      "type": 1
+                    }
+                  },
+                  "message": "gz.msgs.Vector3d",
+                  "repeated": false,
+                  "type": 11
+                },
+                "header": {
+                  "fields": {
+                    "data": {
+                      "fields": {
+                        "key": {
+                          "repeated": false,
+                          "type": 9
+                        },
+                        "value": {
+                          "repeated": true,
+                          "type": 9
+                        }
+                      },
+                      "message": "gz.msgs.Header.Map",
+                      "repeated": true,
+                      "type": 11
+                    },
+                    "stamp": {
+                      "fields": {
+                        "nsec": {
+                          "repeated": false,
+                          "type": 5
+                        },
+                        "sec": {
+                          "repeated": false,
+                          "type": 3
+                        }
+                      },
+                      "message": "gz.msgs.Time",
+                      "repeated": false,
+                      "type": 11
+                    }
+                  },
+                  "message": "gz.msgs.Header",
+                  "repeated": false,
+                  "type": 11
+                },
+                "torque": {
+                  "fields": {
+                    "header": {
+                      "fields": {
+                        "data": {
+                          "fields": {
+                            "key": {
+                              "repeated": false,
+                              "type": 9
+                            },
+                            "value": {
+                              "repeated": true,
+                              "type": 9
+                            }
+                          },
+                          "message": "gz.msgs.Header.Map",
+                          "repeated": true,
+                          "type": 11
+                        },
+                        "stamp": {
+                          "fields": {
+                            "nsec": {
+                              "repeated": false,
+                              "type": 5
+                            },
+                            "sec": {
+                              "repeated": false,
+                              "type": 3
+                            }
+                          },
+                          "message": "gz.msgs.Time",
+                          "repeated": false,
+                          "type": 11
+                        }
+                      },
+                      "message": "gz.msgs.Header",
+                      "repeated": false,
+                      "type": 11
+                    },
+                    "x": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "y": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "z": {
+                      "repeated": false,
+                      "type": 1
+                    }
+                  },
+                  "message": "gz.msgs.Vector3d",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Wrench",
+              "repeated": false,
+              "type": 11
+            },
+            "body_2_id": {
+              "repeated": false,
+              "type": 13
+            },
+            "body_2_name": {
+              "repeated": false,
+              "type": 9
+            },
+            "body_2_wrench": {
+              "fields": {
+                "force": {
+                  "fields": {
+                    "header": {
+                      "fields": {
+                        "data": {
+                          "fields": {
+                            "key": {
+                              "repeated": false,
+                              "type": 9
+                            },
+                            "value": {
+                              "repeated": true,
+                              "type": 9
+                            }
+                          },
+                          "message": "gz.msgs.Header.Map",
+                          "repeated": true,
+                          "type": 11
+                        },
+                        "stamp": {
+                          "fields": {
+                            "nsec": {
+                              "repeated": false,
+                              "type": 5
+                            },
+                            "sec": {
+                              "repeated": false,
+                              "type": 3
+                            }
+                          },
+                          "message": "gz.msgs.Time",
+                          "repeated": false,
+                          "type": 11
+                        }
+                      },
+                      "message": "gz.msgs.Header",
+                      "repeated": false,
+                      "type": 11
+                    },
+                    "x": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "y": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "z": {
+                      "repeated": false,
+                      "type": 1
+                    }
+                  },
+                  "message": "gz.msgs.Vector3d",
+                  "repeated": false,
+                  "type": 11
+                },
+                "force_offset": {
+                  "fields": {
+                    "header": {
+                      "fields": {
+                        "data": {
+                          "fields": {
+                            "key": {
+                              "repeated": false,
+                              "type": 9
+                            },
+                            "value": {
+                              "repeated": true,
+                              "type": 9
+                            }
+                          },
+                          "message": "gz.msgs.Header.Map",
+                          "repeated": true,
+                          "type": 11
+                        },
+                        "stamp": {
+                          "fields": {
+                            "nsec": {
+                              "repeated": false,
+                              "type": 5
+                            },
+                            "sec": {
+                              "repeated": false,
+                              "type": 3
+                            }
+                          },
+                          "message": "gz.msgs.Time",
+                          "repeated": false,
+                          "type": 11
+                        }
+                      },
+                      "message": "gz.msgs.Header",
+                      "repeated": false,
+                      "type": 11
+                    },
+                    "x": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "y": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "z": {
+                      "repeated": false,
+                      "type": 1
+                    }
+                  },
+                  "message": "gz.msgs.Vector3d",
+                  "repeated": false,
+                  "type": 11
+                },
+                "header": {
+                  "fields": {
+                    "data": {
+                      "fields": {
+                        "key": {
+                          "repeated": false,
+                          "type": 9
+                        },
+                        "value": {
+                          "repeated": true,
+                          "type": 9
+                        }
+                      },
+                      "message": "gz.msgs.Header.Map",
+                      "repeated": true,
+                      "type": 11
+                    },
+                    "stamp": {
+                      "fields": {
+                        "nsec": {
+                          "repeated": false,
+                          "type": 5
+                        },
+                        "sec": {
+                          "repeated": false,
+                          "type": 3
+                        }
+                      },
+                      "message": "gz.msgs.Time",
+                      "repeated": false,
+                      "type": 11
+                    }
+                  },
+                  "message": "gz.msgs.Header",
+                  "repeated": false,
+                  "type": 11
+                },
+                "torque": {
+                  "fields": {
+                    "header": {
+                      "fields": {
+                        "data": {
+                          "fields": {
+                            "key": {
+                              "repeated": false,
+                              "type": 9
+                            },
+                            "value": {
+                              "repeated": true,
+                              "type": 9
+                            }
+                          },
+                          "message": "gz.msgs.Header.Map",
+                          "repeated": true,
+                          "type": 11
+                        },
+                        "stamp": {
+                          "fields": {
+                            "nsec": {
+                              "repeated": false,
+                              "type": 5
+                            },
+                            "sec": {
+                              "repeated": false,
+                              "type": 3
+                            }
+                          },
+                          "message": "gz.msgs.Time",
+                          "repeated": false,
+                          "type": 11
+                        }
+                      },
+                      "message": "gz.msgs.Header",
+                      "repeated": false,
+                      "type": 11
+                    },
+                    "x": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "y": {
+                      "repeated": false,
+                      "type": 1
+                    },
+                    "z": {
+                      "repeated": false,
+                      "type": 1
+                    }
+                  },
+                  "message": "gz.msgs.Vector3d",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Wrench",
+              "repeated": false,
+              "type": 11
+            },
+            "header": {
+              "fields": {
+                "data": {
+                  "fields": {
+                    "key": {
+                      "repeated": false,
+                      "type": 9
+                    },
+                    "value": {
+                      "repeated": true,
+                      "type": 9
+                    }
+                  },
+                  "message": "gz.msgs.Header.Map",
+                  "repeated": true,
+                  "type": 11
+                },
+                "stamp": {
+                  "fields": {
+                    "nsec": {
+                      "repeated": false,
+                      "type": 5
+                    },
+                    "sec": {
+                      "repeated": false,
+                      "type": 3
+                    }
+                  },
+                  "message": "gz.msgs.Time",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Header",
+              "repeated": false,
+              "type": 11
+            }
+          },
+          "message": "gz.msgs.JointWrench",
+          "repeated": true,
+          "type": 11
+        }
+      },
+      "message": "gz.msgs.Contact",
+      "repeated": true,
+      "type": 11
+    },
+    "header": {
+      "fields": {
+        "data": {
+          "fields": {
+            "key": {
+              "repeated": false,
+              "type": 9
+            },
+            "value": {
+              "repeated": true,
+              "type": 9
+            }
+          },
+          "message": "gz.msgs.Header.Map",
+          "repeated": true,
+          "type": 11
+        },
+        "stamp": {
+          "fields": {
+            "nsec": {
+              "repeated": false,
+              "type": 5
+            },
+            "sec": {
+              "repeated": false,
+              "type": 3
+            }
+          },
+          "message": "gz.msgs.Time",
+          "repeated": false,
+          "type": 11
+        }
+      },
+      "message": "gz.msgs.Header",
+      "repeated": false,
+      "type": 11
+    }
+  },
+  "Pose_V": {
+    "header": {
+      "fields": {
+        "data": {
+          "fields": {
+            "key": {
+              "repeated": false,
+              "type": 9
+            },
+            "value": {
+              "repeated": true,
+              "type": 9
+            }
+          },
+          "message": "gz.msgs.Header.Map",
+          "repeated": true,
+          "type": 11
+        },
+        "stamp": {
+          "fields": {
+            "nsec": {
+              "repeated": false,
+              "type": 5
+            },
+            "sec": {
+              "repeated": false,
+              "type": 3
+            }
+          },
+          "message": "gz.msgs.Time",
+          "repeated": false,
+          "type": 11
+        }
+      },
+      "message": "gz.msgs.Header",
+      "repeated": false,
+      "type": 11
+    },
+    "pose": {
+      "fields": {
+        "header": {
+          "fields": {
+            "data": {
+              "fields": {
+                "key": {
+                  "repeated": false,
+                  "type": 9
+                },
+                "value": {
+                  "repeated": true,
+                  "type": 9
+                }
+              },
+              "message": "gz.msgs.Header.Map",
+              "repeated": true,
+              "type": 11
+            },
+            "stamp": {
+              "fields": {
+                "nsec": {
+                  "repeated": false,
+                  "type": 5
+                },
+                "sec": {
+                  "repeated": false,
+                  "type": 3
+                }
+              },
+              "message": "gz.msgs.Time",
+              "repeated": false,
+              "type": 11
+            }
+          },
+          "message": "gz.msgs.Header",
+          "repeated": false,
+          "type": 11
+        },
+        "id": {
+          "repeated": false,
+          "type": 13
+        },
+        "name": {
+          "repeated": false,
+          "type": 9
+        },
+        "orientation": {
+          "fields": {
+            "header": {
+              "fields": {
+                "data": {
+                  "fields": {
+                    "key": {
+                      "repeated": false,
+                      "type": 9
+                    },
+                    "value": {
+                      "repeated": true,
+                      "type": 9
+                    }
+                  },
+                  "message": "gz.msgs.Header.Map",
+                  "repeated": true,
+                  "type": 11
+                },
+                "stamp": {
+                  "fields": {
+                    "nsec": {
+                      "repeated": false,
+                      "type": 5
+                    },
+                    "sec": {
+                      "repeated": false,
+                      "type": 3
+                    }
+                  },
+                  "message": "gz.msgs.Time",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Header",
+              "repeated": false,
+              "type": 11
+            },
+            "w": {
+              "repeated": false,
+              "type": 1
+            },
+            "x": {
+              "repeated": false,
+              "type": 1
+            },
+            "y": {
+              "repeated": false,
+              "type": 1
+            },
+            "z": {
+              "repeated": false,
+              "type": 1
+            }
+          },
+          "message": "gz.msgs.Quaternion",
+          "repeated": false,
+          "type": 11
+        },
+        "position": {
+          "fields": {
+            "header": {
+              "fields": {
+                "data": {
+                  "fields": {
+                    "key": {
+                      "repeated": false,
+                      "type": 9
+                    },
+                    "value": {
+                      "repeated": true,
+                      "type": 9
+                    }
+                  },
+                  "message": "gz.msgs.Header.Map",
+                  "repeated": true,
+                  "type": 11
+                },
+                "stamp": {
+                  "fields": {
+                    "nsec": {
+                      "repeated": false,
+                      "type": 5
+                    },
+                    "sec": {
+                      "repeated": false,
+                      "type": 3
+                    }
+                  },
+                  "message": "gz.msgs.Time",
+                  "repeated": false,
+                  "type": 11
+                }
+              },
+              "message": "gz.msgs.Header",
+              "repeated": false,
+              "type": 11
+            },
+            "x": {
+              "repeated": false,
+              "type": 1
+            },
+            "y": {
+              "repeated": false,
+              "type": 1
+            },
+            "z": {
+              "repeated": false,
+              "type": 1
+            }
+          },
+          "message": "gz.msgs.Vector3d",
+          "repeated": false,
+          "type": 11
+        }
+      },
+      "message": "gz.msgs.Pose",
+      "repeated": true,
+      "type": 11
+    }
+  },
+  "Wrench": {
+    "force": {
+      "fields": {
+        "header": {
+          "fields": {
+            "data": {
+              "fields": {
+                "key": {
+                  "repeated": false,
+                  "type": 9
+                },
+                "value": {
+                  "repeated": true,
+                  "type": 9
+                }
+              },
+              "message": "gz.msgs.Header.Map",
+              "repeated": true,
+              "type": 11
+            },
+            "stamp": {
+              "fields": {
+                "nsec": {
+                  "repeated": false,
+                  "type": 5
+                },
+                "sec": {
+                  "repeated": false,
+                  "type": 3
+                }
+              },
+              "message": "gz.msgs.Time",
+              "repeated": false,
+              "type": 11
+            }
+          },
+          "message": "gz.msgs.Header",
+          "repeated": false,
+          "type": 11
+        },
+        "x": {
+          "repeated": false,
+          "type": 1
+        },
+        "y": {
+          "repeated": false,
+          "type": 1
+        },
+        "z": {
+          "repeated": false,
+          "type": 1
+        }
+      },
+      "message": "gz.msgs.Vector3d",
+      "repeated": false,
+      "type": 11
+    },
+    "force_offset": {
+      "fields": {
+        "header": {
+          "fields": {
+            "data": {
+              "fields": {
+                "key": {
+                  "repeated": false,
+                  "type": 9
+                },
+                "value": {
+                  "repeated": true,
+                  "type": 9
+                }
+              },
+              "message": "gz.msgs.Header.Map",
+              "repeated": true,
+              "type": 11
+            },
+            "stamp": {
+              "fields": {
+                "nsec": {
+                  "repeated": false,
+                  "type": 5
+                },
+                "sec": {
+                  "repeated": false,
+                  "type": 3
+                }
+              },
+              "message": "gz.msgs.Time",
+              "repeated": false,
+              "type": 11
+            }
+          },
+          "message": "gz.msgs.Header",
+          "repeated": false,
+          "type": 11
+        },
+        "x": {
+          "repeated": false,
+          "type": 1
+        },
+        "y": {
+          "repeated": false,
+          "type": 1
+        },
+        "z": {
+          "repeated": false,
+          "type": 1
+        }
+      },
+      "message": "gz.msgs.Vector3d",
+      "repeated": false,
+      "type": 11
+    },
+    "header": {
+      "fields": {
+        "data": {
+          "fields": {
+            "key": {
+              "repeated": false,
+              "type": 9
+            },
+            "value": {
+              "repeated": true,
+              "type": 9
+            }
+          },
+          "message": "gz.msgs.Header.Map",
+          "repeated": true,
+          "type": 11
+        },
+        "stamp": {
+          "fields": {
+            "nsec": {
+              "repeated": false,
+              "type": 5
+            },
+            "sec": {
+              "repeated": false,
+              "type": 3
+            }
+          },
+          "message": "gz.msgs.Time",
+          "repeated": false,
+          "type": 11
+        }
+      },
+      "message": "gz.msgs.Header",
+      "repeated": false,
+      "type": 11
+    },
+    "torque": {
+      "fields": {
+        "header": {
+          "fields": {
+            "data": {
+              "fields": {
+                "key": {
+                  "repeated": false,
+                  "type": 9
+                },
+                "value": {
+                  "repeated": true,
+                  "type": 9
+                }
+              },
+              "message": "gz.msgs.Header.Map",
+              "repeated": true,
+              "type": 11
+            },
+            "stamp": {
+              "fields": {
+                "nsec": {
+                  "repeated": false,
+                  "type": 5
+                },
+                "sec": {
+                  "repeated": false,
+                  "type": 3
+                }
+              },
+              "message": "gz.msgs.Time",
+              "repeated": false,
+              "type": 11
+            }
+          },
+          "message": "gz.msgs.Header",
+          "repeated": false,
+          "type": 11
+        },
+        "x": {
+          "repeated": false,
+          "type": 1
+        },
+        "y": {
+          "repeated": false,
+          "type": 1
+        },
+        "z": {
+          "repeated": false,
+          "type": 1
+        }
+      },
+      "message": "gz.msgs.Vector3d",
+      "repeated": false,
+      "type": 11
+    }
+  }
+}
