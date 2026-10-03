@@ -1,0 +1,352 @@
+{
+  "gripper_tolerance_m": 0.004,
+  "passed": false,
+  "scenario_id": "nominal",
+  "seed": 3,
+  "stages": {
+    "1_world_loaded": {
+      "joints_reported": [
+        "joint1",
+        "joint2",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7",
+        "left_finger",
+        "right_finger"
+      ],
+      "missing": [],
+      "ok": true,
+      "sim_time_s": 4.256
+    },
+    "2_all_joints_respond": {
+      "commanded_last_round": {
+        "joint1": -1.15892,
+        "joint2": -0.70512,
+        "joint3": -1.15892,
+        "joint4": -2.1712,
+        "joint5": -1.15892,
+        "joint6": 1.1135,
+        "joint7": -1.15892,
+        "left_finger": 0.012,
+        "right_finger": 0.012
+      },
+      "measured_last_round": {
+        "joint1": 0.8559033083916122,
+        "joint2": 0.21569457614536544,
+        "joint3": 1.167826089538323,
+        "joint4": -2.2046619630881747,
+        "joint5": -0.9931587105735358,
+        "joint6": 1.3365041023450996,
+        "joint7": -1.1014965559679848,
+        "left_finger": 0.021231287302576916,
+        "right_finger": 0.02093535925494458
+      },
+      "not_moving": [],
+      "ok": true,
+      "start": {
+        "joint1": 0.9443834148945803,
+        "joint2": 0.38136017638158803,
+        "joint3": 1.3345190263740145,
+        "joint4": -2.188331307316576,
+        "joint5": -0.823811423920252,
+        "joint6": 1.4599780709485564,
+        "joint7": -0.9349726504803016,
+        "left_finger": 0.03705304764253665,
+        "right_finger": 0.03612385056581165
+      },
+      "travel_rad": {
+        "joint1": -0.08848,
+        "joint2": -0.16567,
+        "joint3": -0.16669,
+        "joint4": -0.01633,
+        "joint5": -0.16935,
+        "joint6": -0.12347,
+        "joint7": -0.16652,
+        "left_finger": -0.01582,
+        "right_finger": -0.01519
+      }
+    },
+    "3_joints_settle": {
+      "final_max_error_rad": 0.02231,
+      "fingers": {
+        "commanded_aperture_m": 0.0,
+        "interference_m": 0.00237,
+        "object_width_m": 0.016,
+        "ok": true,
+        "pad_separation_at_closed_m": 0.01363,
+        "residual_per_finger_m": {
+          "left_finger": 0.00117,
+          "right_finger": 0.00132
+        }
+      },
+      "flat_tail": [],
+      "ok": true,
+      "per_joint": {
+        "joint1": {
+          "drift_mrad": -8.04,
+          "first_mrad": 170.39,
+          "last_mrad": 0.54,
+          "max_mrad": 170.39
+        },
+        "joint2": {
+          "drift_mrad": -1.0,
+          "first_mrad": 75.32,
+          "last_mrad": 4.76,
+          "max_mrad": 75.32
+        },
+        "joint3": {
+          "drift_mrad": -14.27,
+          "first_mrad": 150.91,
+          "last_mrad": 1.44,
+          "max_mrad": 150.91
+        },
+        "joint4": {
+          "drift_mrad": -12.74,
+          "first_mrad": 15.06,
+          "last_mrad": 8.14,
+          "max_mrad": 28.17
+        },
+        "joint5": {
+          "drift_mrad": -8.79,
+          "first_mrad": 221.02,
+          "last_mrad": 0.71,
+          "max_mrad": 221.02
+        },
+        "joint6": {
+          "drift_mrad": -7.85,
+          "first_mrad": 170.25,
+          "last_mrad": 0.56,
+          "max_mrad": 170.25
+        },
+        "joint7": {
+          "drift_mrad": -10.94,
+          "first_mrad": 101.11,
+          "last_mrad": 22.31,
+          "max_mrad": 101.11
+        }
+      },
+      "samples": 489,
+      "settled_within_budget": true,
+      "still_converging": [
+        "joint1",
+        "joint3",
+        "joint4",
+        "joint5",
+        "joint6",
+        "joint7"
+      ],
+      "tool_error_bound_m": 0.00934,
+      "tool_tolerance_m": 0.02,
+      "trace_joint1_mrad": [
+        170.39,
+        6.09,
+        5.52,
+        5.0,
+        4.53,
+        4.11,
+        3.73,
+        3.38,
+        3.06,
+        2.79,
+        2.53,
+        2.3,
+        2.07,
+        1.89,
+        1.7,
+        1.56,
+        1.4,
+        1.27,
+        1.15,
+        1.06,
+        0.96,
+        0.86,
+        0.79,
+        0.7,
+        0.64,
+        0.59
+      ],
+      "window_sim_s": 44.8
+    },
+    "4_kinematics_match": {
+      "base_measured": [
+        0.0,
+        0.0,
+        0.0
+      ],
+      "bound_m": 0.005,
+      "link_residual_m": {
+        "panda_hand": NaN,
+        "panda_link7": 0.0
+      },
+      "measured_links_available": [
+        "panda_link7"
+      ],
+      "ok": true,
+      "scene": {
+        "panda": [
+          0.0,
+          0.0,
+          0.02
+        ],
+        "panda_left_finger": [
+          -0.195415,
+          0.417933,
+          0.291165
+        ],
+        "panda_left_finger_visual": [
+          0.0,
+          0.0075,
+          0.0584
+        ],
+        "panda_link0": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "panda_link0_visual": [
+          0.0,
+          0.0,
+          0.05
+        ],
+        "panda_link1": [
+          0.0,
+          0.0,
+          0.333
+        ],
+        "panda_link1_visual": [
+          0.0,
+          0.0,
+          -0.1
+        ],
+        "panda_link2": [
+          -0.0,
+          -0.0,
+          0.333
+        ],
+        "panda_link2_visual": [
+          0.0,
+          -0.0,
+          0.1
+        ],
+        "panda_link3": [
+          0.066213,
+          0.08765,
+          0.629293
+        ],
+        "panda_link3_visual": [
+          0.05,
+          0.0,
+          0.05
+        ],
+        "panda_link4": [
+          0.012959,
+          0.150309,
+          0.622657
+        ],
+        "panda_link4_visual": [
+          -0.02,
+          0.0,
+          0.06
+        ],
+        "panda_link5": [
+          -0.253055,
+          0.387473,
+          0.457575
+        ],
+        "panda_link5_visual": [
+          0.0,
+          0.0,
+          0.05
+        ],
+        "panda_link6": [
+          -0.253055,
+          0.387473,
+          0.457575
+        ],
+        "panda_link6_visual": [
+          0.03,
+          -0.0,
+          0.03
+        ],
+        "panda_link7": [
+          -0.302678,
+          0.428835,
+          0.39782
+        ],
+        "panda_link7_fixed_joint_lump__panda_hand_visual_1": [
+          0.0,
+          0.0,
+          0.147
+        ],
+        "panda_link7_visual": [
+          0.0,
+          0.0,
+          0.04
+        ],
+        "panda_right_finger": [
+          -0.187226,
+          0.413162,
+          0.300758
+        ],
+        "panda_right_finger_visual": [
+          0.0,
+          -0.0075,
+          0.0584
+        ],
+        "table": [
+          0.0,
+          0.1,
+          -0.02
+        ]
+      },
+      "scene_entities": 23,
+      "tcp_beyond_hand_m": 0.09118,
+      "worst_residual_m": 0.0,
+      "wrist_fk_minus_measured_m": 3.388143231464494e-10
+    },
+    "5_gripper_reaches_aperture": {
+      "commanded_aperture_m": [
+        0.08,
+        0.04,
+        0.0
+      ],
+      "max_residual_m": 0.03155,
+      "measured_per_finger_m": {
+        "0.0000": {
+          "left_finger": 0.031552527615065995,
+          "right_finger": 0.004609245666959463
+        },
+        "0.0400": {
+          "left_finger": 0.039887707726108904,
+          "right_finger": 0.020108032375594585
+        },
+        "0.0800": {
+          "left_finger": 0.040000000000293336,
+          "right_finger": 0.03979713518608179
+        }
+      },
+      "object_width_m": 0.016,
+      "ok": false,
+      "pad_separation_at_closed_m": 0.07411,
+      "residual_per_finger_m": {
+        "0.0000": {
+          "left_finger": 0.031552527615065995,
+          "right_finger": 0.004609245666959463
+        },
+        "0.0400": {
+          "left_finger": 0.019887707726108903,
+          "right_finger": 0.00010803237559458417
+        },
+        "0.0800": {
+          "left_finger": 2.9333480089377417e-13,
+          "right_finger": -0.00020286481391820765
+        }
+      },
+      "tolerance_m": 0.004
+    }
+  },
+  "tool_tolerance_m": 0.02,
+  "wall_clock_s": 142.07
+}

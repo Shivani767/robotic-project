@@ -30,6 +30,7 @@ from typing import Any
 from xml.etree import ElementTree
 from xml.sax.saxutils import escape
 
+from robot_ci.models.environment import object_half_extents
 from robot_ci.models.scenario import ScenarioConfig
 
 __all__ = [
@@ -38,6 +39,7 @@ __all__ = [
     "GazeboWorld",
     "camera_intrinsics_from_scenario",
     "object_pose_from_scenario",
+    "place_robot_model",
     "unsupported_conditions",
     "world_sdf",
 ]
@@ -46,6 +48,21 @@ __all__ = [
 #: has to know are predictable rather than derived per run.
 GAZEBO_WORLD_NAME = "robot_ci_pick_place"
 GAZEBO_ROBOT_NAME = "panda"
+
+#: Height of the Panda's base collision cylinder *below* the model frame origin,
+#: in metres, so the model must be raised by this much to sit **on** the table.
+#:
+#: Read off ``gazebo/models/panda/panda.urdf``: ``panda_link0``'s collision is a
+#: cylinder of length 0.14 at ``origin xyz="0 0 0.05"``, so it spans
+#: ``z in [-0.02, 0.12]`` in the model frame. Spawning the model at the table
+#: height therefore buried the base 20 mm inside the tabletop.
+#:
+#: That is not a cosmetic overlap. Measured on a live run, ODE resolved the
+#: interpenetration with an impulse that ejected the whole arm: the ``panda``
+#: entity was reported at ``z = -10189 m`` after one episode, i.e. in free
+#: fall. The object never fell -- it spawns exactly touching the table -- which
+#: is what isolated the cause to the overlap rather than to missing collisions.
+_BASE_CYLINDER_BOTTOM_M = 0.02
 
 
 def object_pose_from_scenario(scenario: ScenarioConfig) -> tuple[float, float, float]:
@@ -70,19 +87,32 @@ def object_pose_from_scenario(scenario: ScenarioConfig) -> tuple[float, float, f
 
     from robot_ci.core.seeding import make_numpy_rng
 
+    table_z = float(scenario.environment.table_height_m)
+    # The resting height is derived from the object the scenario declares, not
+    # written down. A hard-coded 0.02 m here drew a 40 mm cube for a condition
+    # whose object is 16 mm, so the simulated object was 2.5x the size the task,
+    # the policy and the perception layer all reasoned about, and its centre sat
+    # 12 mm above the height the grasp geometry was derived for.
+    half_height = float(object_half_extents(scenario.target.category, scenario.target.size_m)[2])
+
     explicit = scenario.target.position
     if explicit is not None:
-        return (float(explicit.x), float(explicit.y), float(explicit.z))
+        # An explicit position wins, the same way ``simulation/mujoco_env.py``
+        # honours it. The z is only taken from it when it is positive: a
+        # scenario that names only (x, y) means "spawn it on the table", and the
+        # MJCF generator reads it the same way.
+        z = float(explicit.z) if float(explicit.z) > 0.0 else table_z + half_height
+        return (float(explicit.x), float(explicit.y), z)
 
     rng = make_numpy_rng(scenario.seed, "gazebo-scene", scenario.scenario_id)
     centre = np.asarray(scenario.environment.workspace_center, dtype=np.float64)
+    inner, outer = (float(v) for v in scenario.environment.object_spawn_radius_m)
     angle = float(rng.uniform(0.0, 2.0 * np.pi))
-    radius = float(rng.uniform(0.14, 0.22))
-    table_z = float(scenario.environment.table_height_m)
+    radius = float(rng.uniform(inner, outer))
     return (
         float(centre[0] + radius * np.cos(angle)),
         float(centre[1] + radius * np.sin(angle)),
-        table_z + 0.02,
+        table_z + half_height,
     )
 
 
@@ -162,15 +192,79 @@ def _joint_controller_plugin() -> str:
     # label: suffixing it makes the loader fail with "library does not contain
     # requested plugin". Nine instances therefore share one name, which is how
     # Gazebo worlds configure several controllers of the same type.
+    #
+    # Gains
+    # -----
+    # The controller is Gazebo's ``JointPositionController``, which applies
+    # ``gz::math::PID``. Its law (verified against the gz-sim8 and gz-math7
+    # sources, not assumed) is, with ``error = jointPosition - jointPositionCmd``:
+    #
+    #     pTerm = p_gain * error
+    #     iErr += i_gain * dt * error        (clamped to [i_min, i_max])
+    #     cmd   = -pTerm - iErr - d_gain * errorRate   (clamped to [cmd_min, cmd_max])
+    #
+    # Two consequences drove the values below, both measured on this robot:
+    #
+    # * **The integral term exists and is bounded by default to nothing.** With
+    #   ``i_gain = 0`` the controller is pure PD, so a constant load leaves a
+    #   steady-state error of ``load / p_gain``. Measured at the home
+    #   configuration, that was 15.0 mrad on joint2, 17.9 on joint4 and 31.5 on
+    #   joint7. ``i_gain`` removes it: the accumulator supplies exactly the force
+    #   the proportional term is short of. ``i_min``/``i_max`` are set
+    #   explicitly because the library's own defaults (``i_max = -1``,
+    #   ``i_min = 0``) leave ``iMax >= iMin`` false, which *disables* the clamp
+    #   and makes the integral unbounded -- windup against a stop.
+    # * **The output clamp defaults to off too** (``cmdMax = -1``,
+    #   ``cmdMin = 0``). Each controller is bounded to its own joint's effort
+    #   limit, from ``RobotConfig.limits.max_effort``, so the controller can
+    #   never ask for a force the actuator cannot produce.
+    #
+    # The fingers get a bounded integral term, and the bound was set from a
+    # measurement rather than a preference. With ``i_gain = 0`` the jaws rest
+    # ~2 mm short of command; the pads are 0.011 m apart at rest, so 2 mm of
+    # travel each is 4 mm of pad separation, and against a 16 mm object that is
+    # the difference between squeezing it and merely touching it. A live episode
+    # with ``i_max = 0.5`` N measured exactly that: the aperture during transit
+    # read 0.005 m, a pad separation of 0.016 m on a 0.016 m object, zero
+    # interference -- the object was lifted 55.7 mm and then dropped on the
+    # first transit move. The accumulator needs ~2.2 N to close that gap, so
+    # ``i_max`` is 4 N: enough to trim the residual, and still small against
+    # the 100 N finger limit and the 0.49 N object, so it cannot crush what it
+    # is holding.
+    gains = {
+        # joint name -> (p, i, d, i_max, i_min, cmd_max)
+        # ``i_max`` is 10 N, not the 50 first tried. The steady-state integral
+        # that cancels gravity here is tiny -- the settled joint errors are
+        # 0.2-4.0 mrad, i.e. under 4 N of commanded force -- so 10 N is ample.
+        # At 50 N the accumulator wound up across the set-point change from the
+        # grasp waypoint to the lift waypoint and a live episode measured the
+        # arm overshooting the lift pose by 17 mm and oscillating +/-20 mm until
+        # the object shook out of the jaws. The bound is the anti-windup, and it
+        # has to be sized against the load, not chosen generously.
+        "joint1": (1000.0, 100.0, 50.0, 10.0, -10.0, 87.0),
+        "joint2": (1000.0, 100.0, 50.0, 10.0, -10.0, 87.0),
+        "joint3": (1000.0, 100.0, 50.0, 10.0, -10.0, 87.0),
+        "joint4": (1000.0, 100.0, 50.0, 10.0, -10.0, 87.0),
+        "joint5": (1000.0, 100.0, 50.0, 10.0, -10.0, 12.0),
+        "joint6": (1000.0, 100.0, 50.0, 10.0, -10.0, 12.0),
+        "joint7": (1000.0, 100.0, 50.0, 10.0, -10.0, 12.0),
+        "left_finger": (1000.0, 100.0, 50.0, 4.0, -4.0, 100.0),
+        "right_finger": (1000.0, 100.0, 50.0, 4.0, -4.0, 100.0),
+    }
     blocks = []
     for name in names:
+        p_gain, i_gain, d_gain, i_max, i_min, cmd_max = gains[name]
         blocks.append(
             '    <plugin filename="gz-sim-joint-position-controller-system"\n'
             '            name="gz::sim::systems::JointPositionController">\n'
             f"      <joint_name>{name}</joint_name>\n"
-            "      <p_gain>1000.0</p_gain>\n"
-            "      <i_gain>0.0</i_gain>\n"
-            "      <d_gain>50.0</d_gain>\n"
+            f"      <p_gain>{p_gain:g}</p_gain>\n"
+            f"      <i_gain>{i_gain:g}</i_gain>\n"
+            f"      <d_gain>{d_gain:g}</d_gain>\n"
+            f"      <i_max>{i_max:g}</i_max>\n"
+            f"      <i_min>{i_min:g}</i_min>\n"
+            f"      <cmd_max>{cmd_max:g}</cmd_max>\n"
+            f"      <cmd_min>{-cmd_max:g}</cmd_min>\n"
             "    </plugin>"
         )
     # State feedback. The position controller consumes commands but publishes no
@@ -472,6 +566,74 @@ def _camera_pose(scenario: ScenarioConfig) -> str:
     return f"{eye[0]:.6f} {eye[1]:.6f} {eye[2]:.6f} 0.0 {pitch:.6f} {yaw:.6f}"
 
 
+def place_robot_model(model_xml: str, *, height: float) -> str:
+    """Return the robot's ``<model>`` block, renamed, placed and anchored.
+
+    Two things happen here that the previous string surgery silently failed to
+    do.
+
+    **Naming and placing.** It used to ``model_xml.replace("<model name='panda'>",
+    ...)``; :func:`robot_model_sdf` round-trips the block through
+    :mod:`xml.etree`, which emits double-quoted attributes, so the replacement
+    never matched. A ``str.replace`` that matches nothing is a no-op, so the
+    robot was emitted with no ``<pose>`` at all and spawned at the world origin.
+
+    **Anchoring.** The arm is bolted to the table, which is how a robot arm is
+    mounted and what keeps the arm's own base frame fixed in the world. Left
+    free, it fell out of the simulation entirely: the ``panda`` entity was
+    measured at ``z = -10162 m`` after one episode, i.e. in free fall, so every
+    joint reading, every tool pose and every grasp was being taken while the
+    robot was kilometres away. A fixed joint to ``world`` gives the base a
+    support reaction to stand on.
+
+    Raises:
+        RuntimeError: If the text is not a single ``<model>`` element, or the
+            pose could not be set. Refusing to return an unplaced model matters:
+            it would otherwise spawn at the origin and look like a physics bug.
+    """
+    element = ElementTree.fromstring(model_xml)
+    if element.tag != "model":
+        raise RuntimeError(f"expected a <model> element, got <{element.tag}>")
+    element.set("name", GAZEBO_ROBOT_NAME)
+    for existing in element.findall("pose"):
+        element.remove(existing)
+    pose = ElementTree.Element("pose")
+    pose.text = f"0 0 {height:.6f} 0 0 0"
+    # The pose and the anchor come first: SDF reads a model's pose from the
+    # element in the model's own frame, and the joint tree must reach the world
+    # before it branches into the arm.
+    element.insert(0, _world_anchor_joint())
+    element.insert(0, pose)
+    out = ElementTree.tostring(element, encoding="unicode")
+    if out.startswith("<?xml"):
+        out = out.split("?>", 1)[1]
+    if f'<pose>0 0 {height:.6f} 0 0 0</pose>' not in out:
+        raise RuntimeError(
+            f"robot model was not placed at z={height:.6f}; refusing to return an "
+            "unplaced model, which would spawn the arm at the world origin"
+        )
+    if "<parent>world</parent>" not in out:
+        raise RuntimeError("the robot model could not be anchored to the world")
+    return out
+
+
+def _world_anchor_joint() -> ElementTree.Element:
+    """Build the fixed joint that holds the robot base to the world.
+
+    ``<parent>world</parent>`` is the SDF name for the world link inside a
+    model, and the joint must precede the arm's own joints so the tree is rooted
+    at the world rather than at the floating base.
+    """
+    joint = ElementTree.Element("joint")
+    joint.set("name", "world_to_panda_base")
+    joint.set("type", "fixed")
+    parent = ElementTree.SubElement(joint, "parent")
+    parent.text = "world"
+    child = ElementTree.SubElement(joint, "child")
+    child.text = "panda_link0"
+    return joint
+
+
 def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str:
     """Render the pick-and-place world as SDF.
 
@@ -494,31 +656,49 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
     )
     table_z = float(scenario.environment.table_height_m)
     ox, oy, oz = object_pose_from_scenario(scenario)
+    # SDF sizes boxes by their full extent; ``table_extent_m`` is a half-extent,
+    # the same convention the MJCF generator uses. The previous hard-coded
+    # ``0.6 0.6`` was a 0.30 m half-extent table for a scenario declaring
+    # ``(0.50, 0.35)``, so the support surface was 20% smaller than the condition
+    # it claimed to represent.
+    table_size_x = 2.0 * float(scenario.environment.table_extent_m[0])
+    table_size_y = 2.0 * float(scenario.environment.table_extent_m[1])
+    half_extents = object_half_extents(scenario.target.category, scenario.target.size_m)
+    obj_size = " ".join(f"{2.0 * float(v):.6f}" for v in half_extents)
+    # Same mass rule as ``simulation/mujoco_env.py``: the object's volume at a
+    # plausible density, floored so the contact solver never sees a body whose
+    # mass has vanished. Mass and inertia are what make a grasp either hold or
+    # slide, so they are derived from the declared geometry rather than guessed.
+    obj_volume = 8.0 * float(half_extents[0]) * float(half_extents[1]) * float(half_extents[2])
+    obj_mass = float(min(2.0, max(5.0e-3, obj_volume * 250.0)))
+    # Solid-box inertia about a centre axis, I = m (b^2 + c^2) / 12. An inertia
+    # that does not match the collision box makes the object tumble under a
+    # load the box geometry says it should resist.
+    obj_inertia = (
+        obj_mass
+        * ((2.0 * float(half_extents[0])) ** 2 + (2.0 * float(half_extents[1])) ** 2)
+        / 12.0
+    )
+    friction = float(scenario.environment.object_friction)
+    # Where the task requires the object to end up. Read from the scenario, so
+    # the visual marker and the success criterion are the same quantity.
+    target = scenario.task.target_pose.position
     # The robot is embedded as a converted SDF model rather than <include>d.
     # An include loads fine, but leaves the joint controller unable to resolve
     # any joint, so the arm cannot be commanded -- which is the entire point of
     # the backend. Conversion is Gazebo's own, so geometry, inertias and joint
     # frames are exactly what Gazebo would have built itself.
     if robot_urdf:
-        robot_block = (
-            robot_model_sdf(robot_urdf)
-            .replace(
-                "<model name='panda'>",
-                f"<model name='{GAZEBO_ROBOT_NAME}'>",
-                1,
-            )
-            .replace(
-                f"<model name='{GAZEBO_ROBOT_NAME}'>",
-                f"<model name='{GAZEBO_ROBOT_NAME}'>\n      <pose>0 0 {table_z} 0 0 0</pose>",
-                1,
-            )
+        robot_block = place_robot_model(
+            robot_model_sdf(robot_urdf),
+            height=table_z + _BASE_CYLINDER_BOTTOM_M,
         )
     else:
         robot_block = (
             "    <include>\n"
             f"      <uri>{GAZEBO_ROBOT_NAME}</uri>\n"
             f"      <name>{GAZEBO_ROBOT_NAME}</name>\n"
-            f"      <pose>0 0 {table_z} 0 0 0</pose>\n"
+            f"      <pose>0 0 {table_z + _BASE_CYLINDER_BOTTOM_M:.6f} 0 0 0</pose>\n"
             "    </include>"
         )
 
@@ -556,8 +736,11 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       <static>true</static>
       <pose>{cx} {cy} {table_z - 0.02} 0 0 0</pose>
       <link name="link">
-        <collision name="collision"><geometry><box><size>0.6 0.6 0.04</size></box></geometry></collision>
-        <visual name="visual"><geometry><box><size>0.6 0.6 0.04</size></box></geometry>
+        <collision name="collision">
+          <geometry><box><size>{table_size_x} {table_size_y} 0.04</size></box></geometry>
+          <surface><friction><ode><mu>{friction}</mu><mu2>{friction}</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual"><geometry><box><size>{table_size_x} {table_size_y} 0.04</size></box></geometry>
           <!-- <ambient> alone leaves <diffuse> at its SDF default of 0 0 0 1,
                and diffuse is what the lights multiply. The first rendered frame
                of the table came back pure black for exactly this reason. -->
@@ -575,12 +758,19 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
       <static>false</static>
       <pose>{ox:.6f} {oy:.6f} {oz:.6f} 0 0 0</pose>
       <link name="link">
-        <inertial><mass>0.05</mass>
-          <inertia><ixx>1.6e-5</ixx><iyy>1.6e-5</iyy><izz>1.6e-5</izz>
+        <!-- Size, mass and inertia are the scenario's own numbers: a 16 mm cube
+             at 50 g with a 40 mm bounding box would have been a different body
+             from the one the policy, the task and the detector reason about. -->
+        <inertial><mass>{obj_mass:.6f}</mass>
+          <inertia><ixx>{obj_inertia:.6e}</ixx><iyy>{obj_inertia:.6e}</iyy>
+                   <izz>{obj_inertia:.6e}</izz>
                    <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz></inertia>
         </inertial>
-        <collision name="collision"><geometry><box><size>0.04 0.04 0.04</size></box></geometry></collision>
-        <visual name="visual"><geometry><box><size>0.04 0.04 0.04</size></box></geometry>
+        <collision name="collision">
+          <geometry><box><size>{obj_size}</size></box></geometry>
+          <surface><friction><ode><mu>{friction}</mu><mu2>{friction}</mu2></ode></friction></surface>
+        </collision>
+        <visual name="visual"><geometry><box><size>{obj_size}</size></box></geometry>
           <material>
             <ambient>0.9 0.2 0.2 1</ambient>
             <diffuse>0.9 0.2 0.2 1</diffuse>
@@ -591,7 +781,11 @@ def world_sdf(scenario: ScenarioConfig, *, robot_urdf: str | None = None) -> str
 
     <model name="target_zone">
       <static>true</static>
-      <pose>{cx + 0.18:.6f} {cy - 0.12:.6f} {table_z + 0.001:.6f} 0 0 0</pose>
+      <!-- Where the task requires the object to end up, read from the scenario
+           rather than chosen here. The marker and the success criterion are the
+           same quantity, so a frame that shows the object on the marker is a
+           frame in which the task succeeded. -->
+      <pose>{target.x:.6f} {target.y:.6f} {table_z + 0.001:.6f} 0 0 0</pose>
       <link name="link">
         <visual name="visual"><geometry><cylinder><radius>0.06</radius><length>0.002</length></cylinder></geometry>
           <material>

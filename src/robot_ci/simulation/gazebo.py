@@ -46,7 +46,7 @@ from robot_ci.core.errors import BackendUnavailableError, SimulationError
 from robot_ci.core.logging import get_logger
 from robot_ci.gazebo.live import JOINT_NAMES, JointStateReader
 from robot_ci.gazebo.world import GAZEBO_ROBOT_NAME, world_sdf
-from robot_ci.models.environment import TaskName
+from robot_ci.models.environment import TaskName, object_half_extents
 from robot_ci.models.geometry import Covariance, Pose, Quaternion, Vec3
 from robot_ci.models.scenario import ScenarioConfig
 from robot_ci.models.state import (
@@ -82,8 +82,13 @@ OBJECT_MODEL = "target_cube"
 
 #: Smallest height above the fitted support plane for a point to count as off
 #: the surface at all. Just above the tabletop's own back-projection residual,
-#: measured at 0.004 m on a real 160x120 frame.
-_SURFACE_MIN_HEIGHT_M = 0.012
+#: measured at 0.004 m on a real 160x120 frame, and below the object's own
+#: half-height (0.008 m). Both bounds are needed now that the world draws the
+#: object the scenario declares: the previous value of 0.012 m was calibrated
+#: against a 40 mm cube the scenario never asked for, and it sits *above* the
+#: 8 mm half-height of the real one, so the detector rejected the object it was
+#: supposed to find.
+_SURFACE_MIN_HEIGHT_M = 0.006
 
 #: How far above the support plane a candidate may still count as *resting* on
 #: it. Measured on a real frame: the cube's lowest point sits 0.0137 m above the
@@ -133,12 +138,76 @@ def _indices_of(
     return [index for index, voxel in enumerate(voxels) if tuple(int(v) for v in voxel) in members]
 
 
+class _WorldFrameProvider:
+    """Wraps a :class:`UrdfJacobianProvider` and reports poses in the world.
+
+    The URDF tree is relative to the robot's own base, but everything the policy
+    and the task speak in is the world frame: the waypoints are built from the
+    object's world pose, ``Observation`` carries the tool's world pose, and
+    MuJoCo's provider answers in the world (it reads ``site_xpos`` from the live
+    model). Leaving the Gazebo provider in the base frame therefore made the
+    policy solve for a world-frame target in the wrong frame, and the arm came
+    to rest a fixed offset away: measured, exactly the 20 mm the base sits above
+    the world origin, in z, while the IK reported a 0.26 mm residual.
+
+    The base pose is read from the simulator on every call rather than cached,
+    because a backend that assumes its robot never moves is the same mistake one
+    layer down.
+    """
+
+    def __init__(self, provider: Any, base_transform: Any) -> None:
+        self._provider = provider
+        self._base_transform = base_transform
+
+    def forward(self, q: Any) -> tuple[np.ndarray, np.ndarray]:
+        """Return the tool-centre-point position and rotation in the world."""
+        position, rotation = self._provider.forward(q)
+        base_rotation, base_position = self._base_transform()
+        return (
+            base_position + base_rotation @ position,
+            base_rotation @ rotation,
+        )
+
+    def jacobian(self, q: Any) -> np.ndarray:
+        """Return the task-space Jacobian, unchanged by a rigid base offset."""
+        return self._provider.jacobian(q)
+
+
+def _quaternion_matrix(w: float, x: float, y: float, z: float) -> np.ndarray:
+    """Return the 3x3 rotation for a ``(w, x, y, z)`` quaternion.
+
+    Written out here rather than pulled from a helper because it is the only
+    place the backend converts an *orientation it did not compute*. The unit
+    vector is normalised first: ``/world/<name>/pose/info`` publishes a
+    quaternion and a non-unit one would silently scale the frame it is applied
+    to.
+    """
+    norm = float(np.sqrt(w * w + x * x + y * y + z * z))
+    if norm < 1e-12:
+        return np.eye(3, dtype=np.float64)
+    w, x, y, z = w / norm, x / norm, y / norm, z / norm
+    return np.array(
+        [
+            [1 - 2 * (y * y + z * z), 2 * (x * y - z * w), 2 * (x * z + y * w)],
+            [2 * (x * y + z * w), 1 - 2 * (x * x + z * z), 2 * (y * z - x * w)],
+            [2 * (x * z - y * w), 2 * (y * z + x * w), 1 - 2 * (x * x + y * y)],
+        ],
+        dtype=np.float64,
+    )
+
+
 class _PoseStream:
     """Latest world poses of every model and link, straight from Gazebo.
 
     ``/world/<name>/pose/info`` is the simulator's own statement of where things
-    are. Reading it is what keeps the end-effector pose honest: it is a measured
-    pose, not a forward-kinematics estimate of one.
+    are. Reading it is what keeps every pose this backend reports honest: they
+    are measured, not estimated and not written.
+
+    Position *and* orientation are kept. An earlier version retained only the
+    position and answered ``orientation`` with the identity quaternion, which is
+    a fabricated reading: a tumbled object would have been reported as upright,
+    and the task's orientation criterion would have been evaluated against a
+    number the simulator never produced.
     """
 
     def __init__(self, world: str) -> None:
@@ -146,27 +215,43 @@ class _PoseStream:
         from gz.transport13 import Node
 
         self._lock = threading.Lock()
-        self._poses: dict[str, tuple[float, float, float]] = {}
+        self._poses: dict[str, tuple[tuple[float, float, float], tuple[float, float, float, float]]] = {}
         node = Node()
         node.subscribe(Pose_V, f"/world/{world}/pose/info", self._on_pose)
         self._node = node
 
     def _on_pose(self, msg: Any) -> None:
-        snapshot: dict[str, tuple[float, float, float]] = {}
+        snapshot: dict[str, tuple[tuple[float, float, float], tuple[float, float, float, float]]] = {}
         for entity in msg.pose:
             if entity.name:
+                orientation = entity.orientation
                 snapshot[entity.name] = (
-                    float(entity.position.x),
-                    float(entity.position.y),
-                    float(entity.position.z),
+                    (
+                        float(entity.position.x),
+                        float(entity.position.y),
+                        float(entity.position.z),
+                    ),
+                    (
+                        float(orientation.w),
+                        float(orientation.x),
+                        float(orientation.y),
+                        float(orientation.z),
+                    ),
                 )
         with self._lock:
             self._poses = snapshot
 
-    def position(self, name: str) -> tuple[float, float, float] | None:
-        """Return the world position of ``name``, or ``None`` if unreported."""
+    def pose(
+        self, name: str
+    ) -> tuple[tuple[float, float, float], tuple[float, float, float, float]] | None:
+        """Return ``(position, orientation)`` for ``name``, or ``None``."""
         with self._lock:
             return self._poses.get(name)
+
+    def position(self, name: str) -> tuple[float, float, float] | None:
+        """Return the world position of ``name``, or ``None`` if unreported."""
+        pose = self.pose(name)
+        return None if pose is None else pose[0]
 
 
 class _DepthStream:
@@ -379,7 +464,6 @@ class GazeboBackend(SimulatorBackend):
             "publishers": self._make_publishers(),
             "sdf": sdf,
             "urdf_path": str(self._robot_urdf),
-            "grasp": {"held": False, "offset": (0.0, 0.0, 0.0)},
         }
         joints.start()
         # Hold the arm still while the reader attaches, so the first observation
@@ -439,7 +523,13 @@ class GazeboBackend(SimulatorBackend):
         """Hold the current configuration while physics catches up."""
         positions, _ = self._state(handle)["joints"].latest()
         target = [positions.get(joint, 0.0) for joint in ARM_JOINTS]
-        width = positions.get("left_finger", 0.04)
+        # The aperture the fingers are *currently* at, so holding them means
+        # holding where they are. Reading one finger and passing it as an
+        # aperture halved the commanded opening and let the jaws drift closed
+        # while the arm was still settling at reset.
+        width = float(positions.get("left_finger", 0.0)) + float(
+            positions.get("right_finger", 0.0)
+        )
         self._publish(handle, target, width)
         deadline = time.monotonic() + seconds
         start = self._sim_time(handle)
@@ -508,10 +598,6 @@ class GazeboBackend(SimulatorBackend):
 
         handle.step_index += 1
         handle.sim_time_s = self._sim_time(handle)
-        # The grasp latch is evaluated from the commanded aperture and the
-        # poses Gazebo reported this tick (see the adapter note above).
-        ee_now = state["poses"].position(EE_LINK) or (0.0, 0.0, 0.0)
-        self._update_grasp(handle, ee_now, float(width))
         robot_state = self._robot_state(handle)
         truth = self.ground_truth(handle)
         observation = self._observation(handle, robot_state, frame=None)
@@ -524,86 +610,144 @@ class GazeboBackend(SimulatorBackend):
             info={"simulator": "gazebo", "sim_time_s": handle.sim_time_s},
         )
 
+    def _base_transform(self, handle: EpisodeHandle) -> tuple[np.ndarray, np.ndarray]:
+        """Return the robot base's ``(rotation, translation)`` in the world.
+
+        Read from the simulator rather than assumed. The URDF's kinematics are
+        relative to the model frame, and the model sits on a table rather than
+        at the world origin: raising the base so it rests on the tabletop (see
+        ``robot_ci.gazebo.world``) moves every link, and a tool pose that ignored
+        that would be 20 mm off in z for the whole episode.
+
+        Before the first pose message arrives this returns the identity rather
+        than the configured mount height, because the identity is the one value
+        whose error cannot be mistaken for a measurement: it is simply "not yet
+        known", and it disappears the moment Gazebo reports the base.
+        """
+        measured = self._state(handle)["poses"].pose(GAZEBO_ROBOT_NAME)
+        if measured is None:
+            return np.eye(3, dtype=np.float64), np.zeros(3, dtype=np.float64)
+        position, orientation = measured
+        return (
+            _quaternion_matrix(*orientation),
+            np.asarray(position, dtype=np.float64),
+        )
+
+    def _tcp(self, handle: EpisodeHandle, arm_positions: list[float]) -> Pose:
+        """Return the tool-centre-point pose in the **world** frame.
+
+        This is proprioceptive forward kinematics over the URDF that generated
+        the world -- the same chain, the same tool frame, and the same frame the
+        policy's IK solves against -- evaluated at the joint angles Gazebo
+        measured.
+
+        Deriving the pose this way is not a convenience. Reporting
+        ``panda_link7`` instead put the observed end effector 0.2104 m behind
+        the frame the policy was commanding, so the policy's own "have I reached
+        the waypoint" test could never become true, the waypoint cursor never
+        advanced, and the arm stalled.
+
+        The alternative -- reading a link pose out of Gazebo's pose stream -- is
+        not available for this frame: ``/world/<w>/pose/info`` carries link poses
+        *relative to their model*, and there is no link at all for the space
+        between the pads. Forward kinematics over measured joint angles is what
+        a real controller does, and it is measurably consistent with the
+        simulator (``scripts/gazebo_stage_check.py``, stage 4).
+
+        Reading the pose through :meth:`jacobian_provider` rather than through
+        the bare URDF provider is deliberate: it guarantees the pose the policy
+        is *shown* and the pose its IK solves in are produced by exactly the
+        same code, in exactly the same frame.
+        """
+        from robot_ci.planning.kinematics import matrix_to_pose
+
+        provider = self.jacobian_provider(handle)
+        position, rotation = provider.forward(np.asarray(arm_positions, dtype=np.float64))
+        return matrix_to_pose(position, rotation)
+
     def _robot_state(self, handle: EpisodeHandle) -> RobotState:
         """Read proprioception from Gazebo's own joint-state topic."""
         positions, _sim_time = self._state(handle)["joints"].latest()
         arm = [positions.get(joint, 0.0) for joint in ARM_JOINTS]
-        ee = self._state(handle)["poses"].position(EE_LINK) or (0.0, 0.0, 0.0)
-        finger = positions.get("left_finger", 0.0)
+        # The aperture is the measured finger travel, the same convention
+        # ``simulation/mujoco.py`` uses: both official finger joints run from 0
+        # (closed) to 0.04 (open), so the opening beyond the jaw's rest position
+        # is their sum. It is the *measured* sum, not the commanded one, so a pad
+        # blocked by the object reads narrower than the command -- which is
+        # exactly the signal that says the jaws have closed onto something.
+        measured_width = float(positions.get("left_finger", 0.0)) + float(
+            positions.get("right_finger", 0.0)
+        )
         return RobotState(
             joint_positions=tuple(arm),
             joint_names=tuple(ARM_JOINTS),
-            end_effector_pose=Pose(
-                position=Vec3(x=ee[0], y=ee[1], z=ee[2]),
-                orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0),
+            end_effector_pose=self._tcp(handle, arm),
+            gripper=GripperState(
+                width_m=max(0.0, measured_width),
+                max_width_m=float(handle.scenario.robot.max_gripper_width_m),
             ),
-            gripper=GripperState(width_m=2.0 * finger, max_width_m=0.08),
             timestamp_s=handle.sim_time_s,
         )
 
-    # -- grasp latch -------------------------------------------------------
-    # Contact fidelity differs from MuJoCo (see the module docstring), so the
-    # proximity latch below is an *adapter behaviour*, not a physics
-    # measurement, and ground truth records it as such. When the policy
-    # commands a closing gripper and the end effector is within grasp range of
-    # the object, the object is kinematically attached to the gripper until a
-    # release is commanded. This is what lets the existing PickAndPlace task --
-    # grasp, lift, carry, place -- execute end to end on this backend without
-    # re-implementing the task or the policy.
-    _GRASP_RADIUS_M = 0.05
-    _RELEASE_WIDTH_M = 0.03
+    # -- measured grasp -----------------------------------------------------
+    # The backend never moves the object, and this section is where that is
+    # enforced rather than promised. Every pose reported by :meth:`ground_truth`
+    # is the pose Gazebo's physics engine put the object in. What is *derived*
+    # here is one boolean -- is the gripper currently supporting the object --
+    # and it is defined so that a gripper which closed on empty air cannot
+    # satisfy it.
+    #:
+    #: Largest distance from the tool centre point to the object's centre for the
+    #: jaws to count as being around it, in metres. The pads are 17 mm tall and
+    #: the object is 16 mm, so a seated grasp leaves the object centre within a
+    #: few millimetres of the pad centre, which itself sits 0.5 mm behind the TCP.
+    _GRASP_RADIUS_M = 0.03
+    #: How far past the object's own width the measured aperture may be before the
+    #: jaws have demonstrably not closed onto it, in metres.
+    _GRASP_APERTURE_TOLERANCE_M = 0.004
+    #: How far above its resting height the object must have risen, in metres,
+    #: before it counts as supported by the gripper rather than resting on the
+    #: table. Well above the contact solver's own settling noise and far below
+    #: the task's 50 mm lift requirement, so this can never decide the outcome.
+    _LIFT_EPSILON_M = 0.002
 
-    def _grasp_state(self, handle: EpisodeHandle) -> dict[str, Any]:
-        """Return (creating when absent) this episode's grasp-latch state."""
-        state = self._state(handle)
-        grasp = state.get("grasp")
-        if grasp is None:
-            grasp = {"held": False, "offset": (0.0, 0.0, 0.0)}
-            state["grasp"] = grasp
-        return grasp
+    def _supported_by_gripper(
+        self,
+        scenario: ScenarioConfig,
+        object_position: tuple[float, float, float],
+        object_half_height: float,
+        tcp: tuple[float, float, float],
+        measured_width_m: float,
+    ) -> bool:
+        """Whether the gripper is *physically* holding the object.
 
-    def _update_grasp(
-        self, handle: EpisodeHandle, ee: tuple[float, float, float], width_m: float
-    ) -> None:
-        """Update the grasp latch from the commanded gripper and poses.
+        Three measured conditions, all of which a gripper that missed the object
+        fails:
 
-        Args:
-            handle: The episode being stepped.
-            ee: End-effector position in the world frame.
-            width_m: Commanded gripper aperture for this tick.
+        * the jaws have closed to within the object's own width, so the pads can
+          have come into contact with it instead of passing either side of it;
+        * the object's centre lies inside the jaw envelope around the tool centre
+          point, so the object is between the pads and not merely nearby;
+        * the object is clear of the support surface, so it is being carried
+          rather than resting on the table while the gripper hovers over it.
+
+        The last condition is what makes this a statement about physics rather
+        than about geometry. An object still sitting on the table has not been
+        grasped, whatever the jaws are doing -- and there is no code path in this
+        backend that writes the object's pose, so if the object rose, Gazebo's
+        contact solver raised it.
+
+        Returns:
+            ``True`` only when all three hold.
         """
-        state = self._state(handle)
-        grasp = self._grasp_state(handle)
-        object_pos = state["poses"].position(OBJECT_MODEL)
-        if object_pos is None:
-            grasp["held"] = False
-            return
-        if grasp["held"]:
-            if width_m >= self._RELEASE_WIDTH_M:
-                grasp["held"] = False
-            else:
-                grasp["offset"] = (
-                    object_pos[0] - ee[0],
-                    object_pos[1] - ee[1],
-                    object_pos[2] - ee[2],
-                )
-            return
-        if width_m < self._RELEASE_WIDTH_M:
-            distance = float(
-                (
-                    (object_pos[0] - ee[0]) ** 2
-                    + (object_pos[1] - ee[1]) ** 2
-                    + (object_pos[2] - ee[2]) ** 2
-                )
-                ** 0.5
-            )
-            if distance <= self._GRASP_RADIUS_M:
-                grasp["held"] = True
-                grasp["offset"] = (
-                    object_pos[0] - ee[0],
-                    object_pos[1] - ee[1],
-                    object_pos[2] - ee[2],
-                )
+        object_width = 2.0 * float(scenario.target.size_m)
+        if measured_width_m > object_width + self._GRASP_APERTURE_TOLERANCE_M:
+            return False
+        distance = float(np.linalg.norm(np.asarray(object_position) - np.asarray(tcp)))
+        if distance > self._GRASP_RADIUS_M:
+            return False
+        resting_centre_z = float(scenario.environment.table_height_m) + object_half_height
+        return float(object_position[2]) > resting_centre_z + self._LIFT_EPSILON_M
 
     # -- Jacobian provider ---------------------------------------------------
     # The policy solves IK through the ``JacobianProvider`` interface
@@ -618,58 +762,78 @@ class GazeboBackend(SimulatorBackend):
         """Return a URDF forward-kinematics provider for this episode.
 
         The provider is stateless with respect to the simulation: it evaluates
-        the URDF tree at whatever configuration it is asked about, so policy
-        IK queries never disturb the running Gazebo process.
+        the URDF tree at whatever configuration it is asked about, so policy IK
+        queries never disturb the running Gazebo process. It reports poses in
+        the **world** frame -- see :class:`_WorldFrameProvider` for why that is
+        the frame the policy needs, and what it cost to get wrong.
         """
         from robot_ci.gazebo.kinematics import UrdfJacobianProvider
 
         state = self._state(handle)
         provider = state.get("jacobian")
         if provider is None:
-            provider = UrdfJacobianProvider(state["urdf_path"])
+            urdf = UrdfJacobianProvider(state["urdf_path"])
+            provider = _WorldFrameProvider(
+                urdf, lambda: self._base_transform(handle)
+            )
             state["jacobian"] = provider
         return provider
 
     def ground_truth(self, handle: EpisodeHandle) -> GroundTruthState:
-        """Return the hidden object state, read from Gazebo's pose stream.
+        """Return the hidden object state, *measured* by Gazebo.
 
-        When the grasp latch is engaged the reported object pose is the latched
-        one (end effector plus the offset captured at grasp time) rather than
-        the stream's own pose: Gazebo's contact fidelity on this model cannot
-        hold the cube in the fingers, so without the latch the object would
-        stay on the table while the arm carries empty air, and the task would
-        score a carry that visibly happened as a failure. The latch is an
-        adapter behaviour and is labelled as such in ``info``; it is not
-        presented as contact physics.
+        The position and orientation are the simulator's own, read from
+        ``/world/<w>/pose/info``, which the physics engine writes. Nothing here
+        moves the object, and nothing here reports a pose the simulation did not
+        produce: an object that has not been grasped is reported on the table,
+        where it is.
+
+        ``grasped`` is derived by :meth:`_supported_by_gripper` from measured
+        quantities -- the aperture actually reached, the object's measured
+        position, and its measured height above the support surface. It is not
+        set by the command and it is not latched.
         """
         state = self._state(handle)
-        position = state["poses"].position(OBJECT_MODEL) or (0.0, 0.0, 0.0)
-        grasp = state.get("grasp") or {"held": False, "offset": (0.0, 0.0, 0.0)}
-        grasped = bool(grasp.get("held", False))
-        if grasped:
-            ee = state["poses"].position(EE_LINK) or (0.0, 0.0, 0.0)
-            offset = grasp.get("offset", (0.0, 0.0, 0.0))
-            position = (ee[0] + offset[0], ee[1] + offset[1], ee[2] + offset[2])
+        scenario = handle.scenario
+        measured = state["poses"].pose(OBJECT_MODEL)
+        robot_state = self._robot_state(handle)
+        tcp = robot_state.end_effector_pose.position
+        half_height = float(
+            object_half_extents(scenario.target.category, scenario.target.size_m)[2]
+        )
+        if measured is None:
+            # No pose has arrived yet. A default here would be a fabricated
+            # measurement, so the object is reported at the world origin and
+            # explicitly *not* grasped; the task then reads a large position
+            # error, which is the honest description of "the simulator has not
+            # said where the object is".
+            position = (0.0, 0.0, 0.0)
+            orientation = (1.0, 0.0, 0.0, 0.0)
+            grasped = False
+        else:
+            position, orientation = measured
+            grasped = self._supported_by_gripper(
+                scenario,
+                position,
+                half_height,
+                (tcp.x, tcp.y, tcp.z),
+                robot_state.gripper.width_m,
+            )
         obj = GroundTruthObject(
             id=OBJECT_MODEL,
             is_target=True,
             pose=Pose(
                 position=Vec3(x=position[0], y=position[1], z=position[2]),
-                orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0),
+                orientation=Quaternion(
+                    w=orientation[0], x=orientation[1], y=orientation[2], z=orientation[3]
+                ),
             ),
             grasped=grasped,
         )
-        ee = self._state(handle)["poses"].position(EE_LINK) or (0.0, 0.0, 0.0)
-        robot_pose = Pose(
-            position=Vec3(x=ee[0], y=ee[1], z=ee[2]),
-            orientation=Quaternion(x=0.0, y=0.0, z=0.0, w=1.0),
-        )
         return GroundTruthState(
             objects=(obj,),
-            true_joint_positions=tuple(
-                self._state(handle)["joints"].latest()[0].get(joint, 0.0) for joint in ARM_JOINTS
-            ),
-            true_ee_pose=robot_pose,
+            true_joint_positions=tuple(robot_state.joint_positions),
+            true_ee_pose=robot_state.end_effector_pose,
             sim_time_s=handle.sim_time_s,
         )
 
@@ -925,6 +1089,85 @@ class GazeboBackend(SimulatorBackend):
             ),
         )
 
+    def _pose_beliefs(self, handle: EpisodeHandle) -> tuple[ObjectState, ...]:
+        """Believe the target where the simulation measured it.
+
+        This is the *same convention* ``simulation/mujoco.py`` uses: the object
+        belief is the simulator's own body pose, published with an explicit
+        covariance floor, ``source=Source.SIMULATOR`` and full visibility. It
+        makes no perception claim, and the provenance field says so rather than
+        implying a camera produced it.
+
+        It exists because depth alone cannot drive this condition. The declared
+        object is 16 mm across; at the generated camera pose (0.75 m away,
+        ``fx=140``, 160x120) it subtends about 3 px, and the tabletop's own
+        back-projection residual is 4 mm against an object 8 mm tall. Measured,
+        the depth detector recovers the cube on some frames and not others, so an
+        episode driven *only* by depth stalls whenever a frame misses it -- which
+        is what the first live trace showed.
+
+        Keeping the belief source identical across backends is also what makes a
+        paired baseline/candidate comparison mean anything. MuJoCo hands the
+        policy the simulator pose; a Gazebo comparison against a different
+        quantity would be measuring the perception pipelines against each other,
+        not the policies. The measured error of the depth path is recorded
+        separately (:meth:`perceive_from_depth`) instead of being smuggled into
+        the policy's input.
+
+        Returns:
+            One belief per scenario object, with the simulator's own pose.
+        """
+        state = self._state(handle)
+        scenario = handle.scenario
+        beliefs: list[ObjectState] = []
+        for spec in scenario.objects:
+            if spec.id != OBJECT_MODEL:
+                continue
+            measured = state["poses"].pose(OBJECT_MODEL)
+            if measured is None:
+                continue
+            position, orientation = measured
+            beliefs.append(
+                ObjectState(
+                    id=spec.id,
+                    category=spec.category,
+                    pose=Pose(
+                        position=Vec3(x=position[0], y=position[1], z=position[2]),
+                        orientation=Quaternion(
+                            w=orientation[0],
+                            x=orientation[1],
+                            y=orientation[2],
+                            z=orientation[3],
+                        ),
+                    ),
+                    covariance=Covariance.isotropic(0.002, dimension=6),
+                    confidence=1.0,
+                    source=Source.SIMULATOR,
+                    timestamp_s=handle.sim_time_s,
+                    visible=True,
+                    last_seen_s=handle.sim_time_s,
+                    estimated_size_m=spec.size_m,
+                )
+            )
+        return tuple(beliefs)
+
+    def perceive_from_depth(self, handle: EpisodeHandle) -> tuple[ObjectState, ...]:
+        """Recover object belief from the live depth image alone.
+
+        A real perception capability, exposed and measured rather than used as
+        the policy's input -- see :meth:`_pose_beliefs` for why the input is the
+        simulator pose instead. ``Source.DEPTH`` on every returned belief records
+        which channel produced it, so a caller can never mistake one for the
+        other. ``scripts/gazebo_perception_evidence.py`` measures this path
+        against ground truth on the live simulation and writes the result to
+        ``experiments/results/gazebo/``.
+        """
+        return self._detect_objects(handle)
+
+    def _object_beliefs(self, handle: EpisodeHandle) -> tuple[ObjectState, ...]:
+        """Return the object beliefs the policy is given."""
+        return self._pose_beliefs(handle)
+
     def _observation(
         self, handle: EpisodeHandle, robot_state: RobotState, frame: SensorFrame | None
     ) -> Observation:
@@ -933,7 +1176,7 @@ class GazeboBackend(SimulatorBackend):
             step_index=handle.step_index,
             timestamp_s=handle.sim_time_s,
             robot=robot_state,
-            objects=self._detect_objects(handle),
+            objects=self._object_beliefs(handle),
             sensor_frame=frame,
             seed=handle.seed,
             scenario_id=handle.scenario.scenario_id,

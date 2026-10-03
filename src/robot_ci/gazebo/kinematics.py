@@ -26,7 +26,28 @@ import numpy as np
 from robot_ci.planning.kinematics import JacobianProvider, rotation_error
 from robot_ci.recording.render3d import load_kinematics
 
-__all__ = ["UrdfJacobianProvider", "urdf_forward"]
+__all__ = ["TCP_SITE_IN_HAND_M", "UrdfJacobianProvider", "urdf_forward"]
+
+#: Where the tool centre point sits in the hand frame, in metres along the hand's
+#: approach axis (local +z).
+#:
+#: This is the number MuJoCo uses. ``simulation/mujoco_env.py`` injects
+#: ``<site name="tcp" pos="0 0 0.1034">`` **inside the ``hand`` body** and the
+#: policy solves IK for that site. Gazebo has no such local model, so the URDF
+#: provider must reconstruct exactly the same frame; anything else means the two
+#: backends command different points on the same robot.
+#:
+#: Deriving it rather than copying it is not possible -- MuJoCo's number is
+#: itself measured from the vendored MJCF -- so it is stated once, here, with its
+#: provenance, and pinned against the MJCF by
+#: ``tests/unit/test_gazebo_backend.py``.
+TCP_SITE_IN_HAND_M = 0.1034
+
+#: The pad centre, in the hand frame. 0.5 mm behind the TCP along the approach
+#: axis, which is exactly ``RobotConfig.pad_offset_from_tcp_m``. The task adds
+#: that offset to the object's centre to choose the aim height, so the pad centre
+#: and the commanded point must differ by it and no more.
+PAD_CENTRE_IN_HAND_M = 0.1029
 
 
 def urdf_forward(urdf_path: str | Path, q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -63,9 +84,13 @@ class UrdfJacobianProvider(JacobianProvider):
         self.urdf_path = str(urdf_path)
         self.step = float(step)
         kin = load_kinematics(self.urdf_path)
-        # The arm chain is the first seven joints of this URDF (joint1..joint7);
-        # the eighth is the fixed hand_joint and the rest are the fingers. The
-        # backend's EE_LINK is panda_link7, so the chain stops there.
+        # The arm chain is the first seven joints of this URDF (joint1..joint7).
+        # The chain does **not** stop at panda_link7: that is the wrist, and the
+        # policy's IK targets the tool centre point between the pads, 0.2104 m
+        # further along the approach axis. Solving for the wrist instead commands
+        # the wrist to where the pads belong, which drives the hand through the
+        # table and stalls the arm about 0.13 m short of the object -- measured
+        # on a live episode before this fix.
         self._chain: list[tuple[np.ndarray, np.ndarray, str, np.ndarray]] = []
         for joint in kin.joints[:7]:
             rotation = _rpy_matrix(*[float(v) for v in joint["rpy"]])
@@ -76,11 +101,22 @@ class UrdfJacobianProvider(JacobianProvider):
             raise ValueError(
                 f"expected a 7-joint arm chain in {self.urdf_path}, found {len(self._chain)}"
             )
+        # The flange-to-TCP offset, read from the URDF's own fixed hand joint so
+        # it cannot drift from the model Gazebo loads, plus the site offset that
+        # matches MuJoCo's injected ``tcp`` site.
+        hand = kin.joints[7] if len(kin.joints) > 7 else None
+        if hand is None:
+            raise ValueError(f"{self.urdf_path} has no hand joint after the 7-joint arm")
+        hand_rotation = _rpy_matrix(*[float(v) for v in hand["rpy"]])
+        hand_translation = np.asarray(hand["xyz"], dtype=np.float64)
+        self._tcp = _homogeneous(hand_rotation, hand_translation) @ _homogeneous(
+            np.eye(3), np.array([0.0, 0.0, TCP_SITE_IN_HAND_M])
+        )
         self._axis_matrix = _axis_matrix
         self._homogeneous = _homogeneous
 
     def forward(self, q: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Return the end-effector position and rotation at ``q``."""
+        """Return the tool-centre-point position and rotation at ``q``."""
         values = np.asarray(q, dtype=np.float64).reshape(-1)
         transform = np.eye(4)
         for index, (rotation, translation, kind, axis) in enumerate(self._chain):
@@ -94,6 +130,7 @@ class UrdfJacobianProvider(JacobianProvider):
                 norm = float(np.linalg.norm(axis))
                 direction = axis / norm if norm > 1e-12 else axis
                 transform = transform @ self._homogeneous(np.eye(3), direction * value)
+        transform = transform @ self._tcp
         return transform[:3, 3].copy(), transform[:3, :3].copy()
 
     def jacobian(self, q: np.ndarray) -> np.ndarray:

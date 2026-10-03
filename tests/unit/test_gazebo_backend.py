@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import shutil
 from pathlib import Path
+from xml.etree import ElementTree
 
 import numpy as np
 import pytest
@@ -350,8 +351,16 @@ def test_detector_prefers_the_cube_over_a_bigger_arm_link() -> None:
 
 # ------------------------------------------------------------- IK provider
 def test_urdf_jacobian_fk_matches_the_recording_renderer() -> None:
-    """The IK provider and the recorded 3-D view must describe the same robot."""
-    from robot_ci.gazebo.kinematics import UrdfJacobianProvider
+    """The IK provider and the recorded 3-D view must describe the same robot.
+
+    The provider's ``forward`` returns the **tool centre point**, not
+    ``panda_link7``: it is the frame the policy solves IK for, and the frame
+    MuJoCo's injected ``tcp`` site sits in. The renderer is an independent
+    implementation of the same URDF, so it is what the TCP is checked against:
+    the TCP must be rigidly attached to the hand, ``TCP_SITE_IN_HAND_M`` beyond
+    the hand frame and nothing else.
+    """
+    from robot_ci.gazebo.kinematics import TCP_SITE_IN_HAND_M, UrdfJacobianProvider
     from robot_ci.recording.render3d import forward_kinematics, load_kinematics
 
     provider = UrdfJacobianProvider(URDF)
@@ -361,9 +370,121 @@ def test_urdf_jacobian_fk_matches_the_recording_renderer() -> None:
         full = np.concatenate([q, np.zeros(len(kin.joints) - 7)])
         position, rotation = provider.forward(q)
         frames = forward_kinematics(kin, full)
-        assert frames["panda_link7"] == pytest.approx(position, abs=1e-9)
+        # The wrist-to-hand link is fixed at 0.107 m in this URDF.
+        assert np.linalg.norm(frames["panda_hand"] - frames["panda_link7"]) == pytest.approx(
+            0.107, abs=1e-9
+        )
+        # The TCP is exactly the site offset beyond the hand, for every
+        # configuration. A provider that stopped at the wrist was 0.2104 m out.
+        assert np.linalg.norm(position - frames["panda_hand"]) == pytest.approx(
+            TCP_SITE_IN_HAND_M, abs=1e-9
+        )
         # A rotation matrix must stay orthonormal through the cached chain.
         assert rotation @ rotation.T == pytest.approx(np.eye(3), abs=1e-9)
+
+
+def test_tcp_constant_matches_the_site_mujoco_injects() -> None:
+    """The Gazebo tool frame and MuJoCo's ``tcp`` site must be the same frame.
+
+    The two backends are compared against each other, so the point they command
+    has to be the same point. MuJoCo injects the site with a literal position;
+    if the two numbers drift apart the policy quietly drives different parts of
+    the robot in the two simulators.
+    """
+    from robot_ci.gazebo.kinematics import TCP_SITE_IN_HAND_M
+    from robot_ci.simulation.mujoco_env import _inject_tcp_site
+
+    patched = _inject_tcp_site('<body name="hand"><geom name="g"/></body>')
+    assert f'pos="0 0 {TCP_SITE_IN_HAND_M}"' in patched, (
+        "MuJoCo's injected tcp site and the Gazebo URDF provider's TCP must be "
+        f"the same offset; MuJoCo injects {patched!r}"
+    )
+
+
+def test_urdf_gripper_geometry_matches_the_robot_config() -> None:
+    """The jaw Gazebo loads must be the jaw the config says it is.
+
+    ``RobotConfig`` derives the grasp aim and the feasibility check from
+    ``pad_half_height_m``, ``pad_offset_from_tcp_m`` and
+    ``gripper_closed_separation_m``, measured from the MuJoCo model. The Gazebo
+    URDF is hand-written primitive geometry, so those three quantities are
+    recomputed here from the URDF itself and pinned against the config.
+    """
+    from robot_ci.gazebo.kinematics import TCP_SITE_IN_HAND_M
+
+    robot = default_scenario().robot
+    root = ElementTree.parse(URDF).getroot()
+    links = {link.get("name"): link for link in root.findall("link")}
+    joints = {joint.get("name"): joint for joint in root.findall("joint")}
+
+    axes = {
+        name: [float(v) for v in joints[name].find("axis").get("xyz").split()]
+        for name in ("left_finger", "right_finger")
+    }
+    assert axes["left_finger"] == [0.0, 1.0, 0.0]
+    assert axes["right_finger"] == [0.0, -1.0, 0.0], "the jaws must be mirror images"
+
+    centres: dict[str, tuple[float, float, float]] = {}
+    # Finger-joint origins in the hand frame: these are the points the
+    # prismatic axes pass through, and the closed separation is measured from
+    # them.
+    joint_origin = {
+        link_name: [
+            float(v) for v in joints[joint_name].find("origin").get("xyz").split()
+        ]
+        for link_name, joint_name in (
+            ("panda_left_finger", "left_finger"),
+            ("panda_right_finger", "right_finger"),
+        )
+    }
+    half_height = 0.0
+    # Pad-centre y in the hand frame, measured through the fixture: finger
+    # joint y + prismatic displacement at q = 0 + pad y in the link.
+    centres = {
+        link_name: joint_origin[link_name][1]
+        + float(links[link_name].find("collision/origin").get("xyz").split()[1])
+        for link_name in ("panda_left_finger", "panda_right_finger")
+    }
+    for link_name in ("panda_left_finger", "panda_right_finger"):
+        box = links[link_name].find("collision/geometry/box")
+        size = [float(v) for v in box.get("size").split()]
+        assert half_height in (0.0, size[2] / 2.0)
+        half_height = size[2] / 2.0
+    # Pad-centre z in the hand frame: finger joint z + pad z in the link.
+    # (0.0445 + 0.0584 = 0.1029, 0.5 mm behind the 0.1034 TCP -- exactly the
+    # measured pad_offset_from_tcp_m the shared task uses as its aim offset.)
+    pad_centre_hand_z = {
+        link_name: joint_origin[link_name][2]
+        + float(links[link_name].find("collision/origin").get("xyz").split()[2])
+        for link_name in ("panda_left_finger", "panda_right_finger")
+    }
+
+    # Pad half-height, measured from the URDF's own collision boxes.
+    assert half_height == pytest.approx(float(robot.pad_half_height_m), abs=1e-6)
+    # Closed separation: the inner faces at q = 0. The pads' hand-frame y
+    # origins place the pad centres at y = +/-0.013 (measured), and each pad
+    # extends thickness/2 inboard, so the faces sit at +/-0.0055 and the
+    # separation is 0.011 m. The pad centres are asserted symmetric about the
+    # hand axis first: a test that asserts on a quantity it never derived is
+    # a tautology.
+    pad_half = 0.015 / 2.0
+    left_face = centres["panda_left_finger"] - pad_half
+    right_face = centres["panda_right_finger"] + pad_half
+    assert left_face == pytest.approx(-right_face, abs=1e-9), (
+        "the jaw must be symmetric about the hand axis; "
+        f"faces at {left_face:+.4f} and {right_face:+.4f}"
+    )
+    separation = left_face - right_face
+    assert separation == pytest.approx(float(robot.gripper_closed_separation_m), abs=1e-4)
+    # Pad centres in the hand frame are measured through the same fixture, so
+    # the composition must agree with the raw recomputation below, and must sit
+    # ``pad_offset_from_tcp_m`` behind the TCP -- the aim offset the task adds.
+    tcp_behind_pad_left = TCP_SITE_IN_HAND_M - pad_centre_hand_z["panda_left_finger"]
+    tcp_behind_pad_right = TCP_SITE_IN_HAND_M - pad_centre_hand_z["panda_right_finger"]
+    assert tcp_behind_pad_left == pytest.approx(tcp_behind_pad_right, abs=1e-9)
+    assert tcp_behind_pad_left == pytest.approx(
+        float(robot.pad_offset_from_tcp_m), abs=1e-4
+    )
 
 
 def test_urdf_jacobian_position_rows_match_central_differences() -> None:

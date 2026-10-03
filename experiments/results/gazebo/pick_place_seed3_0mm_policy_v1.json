@@ -1,0 +1,8966 @@
+{
+  "conditions": {
+    "camera_latency_ms": 0.0,
+    "clutter_count": 0,
+    "depth_bias_mm": 0.0,
+    "depth_dropout_percent": 0.0,
+    "depth_noise_mm": 0.0,
+    "family": "nominal",
+    "joint_noise_std_rad": 0.0,
+    "joint_offset_rad": 0.0,
+    "lighting_lux": 500.0,
+    "object_friction": 0.6,
+    "obstacle_count": 0,
+    "rgb_blur_px": 0.0,
+    "rgb_brightness_percent": 100.0,
+    "rgb_occlusion_percent": 0.0,
+    "scenario_id": "nominal",
+    "seed": 3,
+    "task": "pick_and_place"
+  },
+  "depth_noise_mm": 0.0,
+  "metrics": {
+    "collision": 0.0,
+    "collision_count": 0.0,
+    "completion_time_s": 18.662,
+    "final_distance_m": 0.12454432179196975,
+    "grasp_error_m": 0.0042523163338037935,
+    "grasp_success": 1.0,
+    "ik_converged": 1.0,
+    "object_lift_m": 0.056333547144842705,
+    "orientation_error_rad": 2.126654161736545,
+    "perception_confidence": 1.0,
+    "placement_error_m": 0.12454432179196975,
+    "placement_success": 0.0,
+    "planning_time_ms": 5453.438464005558,
+    "pose_sigma_m": 0.0020000000000000005,
+    "position_error_m": 0.12454432179196975,
+    "recovery_count": 0.0,
+    "safety_violation": 0.0,
+    "sensor_consistency": 0.8333333333333334,
+    "steps": 174.0,
+    "task_success": 0.0,
+    "timeout": 0.0,
+    "trajectory_deviation_m": 2.1519745393455514,
+    "trajectory_length_m": 1.5242122889455967
+  },
+  "policy": "policy_v1",
+  "rows": [
+    {
+      "aperture_m": 0.07316,
+      "commanded": [
+        0.83519,
+        0.27279,
+        1.22541,
+        -2.29454,
+        -0.69331,
+        1.59031,
+        -0.80499
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.94394,
+        0.38154,
+        1.33416,
+        -2.18579,
+        -0.82381,
+        1.45981,
+        -0.93549
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.35679,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 6.641,
+      "step": 0,
+      "tcp": [
+        -0.15449,
+        0.40258,
+        0.26218
+      ]
+    },
+    {
+      "aperture_m": 0.05549,
+      "commanded": [
+        0.78633,
+        0.19983,
+        1.17402,
+        -2.37145,
+        -0.61446,
+        1.67819,
+        -0.74206
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.89508,
+        0.30858,
+        1.28277,
+        -2.2627,
+        -0.74496,
+        1.54769,
+        -0.87256
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.3182,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 6.693,
+      "step": 1,
+      "tcp": [
+        -0.12195,
+        0.38834,
+        0.24009
+      ]
+    },
+    {
+      "aperture_m": 0.05029,
+      "commanded": [
+        0.71818,
+        0.19242,
+        1.1271,
+        -2.45994,
+        -0.53562,
+        1.76571,
+        -0.67479
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.82693,
+        0.24286,
+        1.2112,
+        -2.35119,
+        -0.66612,
+        1.63521,
+        -0.80529
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.26938,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 6.746,
+      "step": 2,
+      "tcp": [
+        -0.07323,
+        0.36967,
+        0.21444
+      ]
+    },
+    {
+      "aperture_m": 0.04931,
+      "commanded": [
+        0.64648,
+        0.19242,
+        1.1271,
+        -2.54239,
+        -0.45743,
+        1.85323,
+        -0.60796
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.75523,
+        0.21148,
+        1.15405,
+        -2.43364,
+        -0.58793,
+        1.72273,
+        -0.73846
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.22322,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 6.798,
+      "step": 3,
+      "tcp": [
+        -0.03596,
+        0.34455,
+        0.18756
+      ]
+    },
+    {
+      "aperture_m": 0.0489,
+      "commanded": [
+        0.57142,
+        0.19242,
+        1.1271,
+        -2.62579,
+        -0.37973,
+        1.93988,
+        -0.54013
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.68017,
+        0.20459,
+        1.13021,
+        -2.51704,
+        -0.51023,
+        1.80938,
+        -0.67063
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.18056,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 6.851,
+      "step": 4,
+      "tcp": [
+        -0.01688,
+        0.31297,
+        0.161
+      ]
+    },
+    {
+      "aperture_m": 0.04797,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.71033,
+        -0.30132,
+        2.02724,
+        -0.47316
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.60819,
+        0.20191,
+        1.12567,
+        -2.60158,
+        -0.43182,
+        1.89674,
+        -0.60366
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.14464,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 6.902,
+      "step": 5,
+      "tcp": [
+        -0.01004,
+        0.27973,
+        0.13809
+      ]
+    },
+    {
+      "aperture_m": 0.04767,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        -0.22274,
+        2.11472,
+        -0.4084
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.54714,
+        0.19999,
+        1.1256,
+        -2.68516,
+        -0.35324,
+        1.98422,
+        -0.5389
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11785,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 6.956,
+      "step": 6,
+      "tcp": [
+        -0.01061,
+        0.24729,
+        0.11898
+      ]
+    },
+    {
+      "aperture_m": 0.04799,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        -0.14447,
+        2.2018,
+        -0.3433
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.52288,
+        0.20027,
+        1.12406,
+        -2.74974,
+        -0.27497,
+        2.0713,
+        -0.4738
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.10645,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.008,
+      "step": 7,
+      "tcp": [
+        -0.02136,
+        0.22533,
+        0.10496
+      ]
+    },
+    {
+      "aperture_m": 0.04796,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        -0.0666,
+        2.28782,
+        -0.28033
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51958,
+        0.20003,
+        1.12824,
+        -2.7737,
+        -0.1971,
+        2.15732,
+        -0.41083
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.10775,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.06,
+      "step": 8,
+      "tcp": [
+        -0.03719,
+        0.22682,
+        0.09764
+      ]
+    },
+    {
+      "aperture_m": 0.04793,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.00973,
+        2.37418,
+        -0.21744
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.5193,
+        0.19795,
+        1.13125,
+        -2.77665,
+        -0.12077,
+        2.24368,
+        -0.34794
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11442,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.113,
+      "step": 9,
+      "tcp": [
+        -0.05095,
+        0.24193,
+        0.09412
+      ]
+    },
+    {
+      "aperture_m": 0.04746,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.08725,
+        2.46153,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51875,
+        0.19661,
+        1.13211,
+        -2.77572,
+        -0.04325,
+        2.33103,
+        -0.28508
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12447,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.166,
+      "step": 10,
+      "tcp": [
+        -0.06186,
+        0.26082,
+        0.09238
+      ]
+    },
+    {
+      "aperture_m": 0.04785,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.16129,
+        2.54848,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51819,
+        0.19624,
+        1.13207,
+        -2.77535,
+        0.03079,
+        2.41798,
+        -0.26069
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.13599,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.219,
+      "step": 11,
+      "tcp": [
+        -0.06946,
+        0.28029,
+        0.09182
+      ]
+    },
+    {
+      "aperture_m": 0.04742,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.23455,
+        2.6353,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51792,
+        0.19627,
+        1.13197,
+        -2.77546,
+        0.10405,
+        2.5048,
+        -0.24841
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.14839,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.272,
+      "step": 12,
+      "tcp": [
+        -0.07412,
+        0.3,
+        0.09242
+      ]
+    },
+    {
+      "aperture_m": 0.04781,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.30644,
+        2.7216,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51779,
+        0.19639,
+        1.1319,
+        -2.77562,
+        0.17594,
+        2.5911,
+        -0.24099
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.16104,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.323,
+      "step": 13,
+      "tcp": [
+        -0.07568,
+        0.31968,
+        0.09415
+      ]
+    },
+    {
+      "aperture_m": 0.04741,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.37558,
+        2.8057,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51779,
+        0.19655,
+        1.13172,
+        -2.77581,
+        0.24508,
+        2.6752,
+        -0.23201
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.17329,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.375,
+      "step": 14,
+      "tcp": [
+        -0.07422,
+        0.33855,
+        0.09685
+      ]
+    },
+    {
+      "aperture_m": 0.04741,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.44475,
+        2.89157,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.5176,
+        0.19663,
+        1.1315,
+        -2.77577,
+        0.31425,
+        2.76107,
+        -0.22337
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.18555,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.427,
+      "step": 15,
+      "tcp": [
+        -0.06966,
+        0.35727,
+        0.10061
+      ]
+    },
+    {
+      "aperture_m": 0.04741,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.51304,
+        2.97744,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.5175,
+        0.19679,
+        1.13134,
+        -2.77588,
+        0.38254,
+        2.84694,
+        -0.22193
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1973,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.48,
+      "step": 16,
+      "tcp": [
+        -0.06233,
+        0.37478,
+        0.10524
+      ]
+    },
+    {
+      "aperture_m": 0.04781,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.58239,
+        3.06475,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51724,
+        0.19698,
+        1.13146,
+        -2.77598,
+        0.45189,
+        2.93425,
+        -0.22246
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.20868,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.532,
+      "step": 17,
+      "tcp": [
+        -0.05221,
+        0.39106,
+        0.11079
+      ]
+    },
+    {
+      "aperture_m": 0.04781,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.6501,
+        3.15057,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51724,
+        0.19724,
+        1.13147,
+        -2.77615,
+        0.5196,
+        3.02007,
+        -0.22181
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.21917,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.583,
+      "step": 18,
+      "tcp": [
+        -0.03991,
+        0.40518,
+        0.11696
+      ]
+    },
+    {
+      "aperture_m": 0.04741,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.7171,
+        3.23558,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51741,
+        0.1974,
+        1.13115,
+        -2.77619,
+        0.5866,
+        3.10508,
+        -0.22018
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.22894,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.636,
+      "step": 19,
+      "tcp": [
+        -0.0255,
+        0.41714,
+        0.12377
+      ]
+    },
+    {
+      "aperture_m": 0.04781,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.78789,
+        3.32232,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51707,
+        0.19758,
+        1.13137,
+        -2.7761,
+        0.65739,
+        3.19182,
+        -0.2213
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.23816,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.687,
+      "step": 20,
+      "tcp": [
+        -0.00877,
+        0.42689,
+        0.13134
+      ]
+    },
+    {
+      "aperture_m": 0.04741,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.8583,
+        3.40747,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.5173,
+        0.19775,
+        1.13105,
+        -2.7761,
+        0.7278,
+        3.27697,
+        -0.21969
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.24635,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.738,
+      "step": 21,
+      "tcp": [
+        0.00924,
+        0.43365,
+        0.13921
+      ]
+    },
+    {
+      "aperture_m": 0.04779,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        0.93266,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51697,
+        0.19793,
+        1.13133,
+        -2.77596,
+        0.80216,
+        3.36234,
+        -0.22074
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.25367,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.789,
+      "step": 22,
+      "tcp": [
+        0.02876,
+        0.43735,
+        0.14751
+      ]
+    },
+    {
+      "aperture_m": 0.04737,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.00795,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51709,
+        0.19798,
+        1.13092,
+        -2.7758,
+        0.87745,
+        3.4435,
+        -0.21913
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.25957,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.84,
+      "step": 23,
+      "tcp": [
+        0.04856,
+        0.43754,
+        0.15556
+      ]
+    },
+    {
+      "aperture_m": 0.04777,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.08743,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51638,
+        0.19755,
+        1.13093,
+        -2.77503,
+        0.95693,
+        3.4752,
+        -0.22078
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.25699,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.892,
+      "step": 24,
+      "tcp": [
+        0.0613,
+        0.43158,
+        0.15668
+      ]
+    },
+    {
+      "aperture_m": 0.04777,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.16917,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51659,
+        0.19815,
+        1.13105,
+        -2.77543,
+        1.03867,
+        3.48682,
+        -0.22033
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.24955,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.945,
+      "step": 25,
+      "tcp": [
+        0.06982,
+        0.42237,
+        0.154
+      ]
+    },
+    {
+      "aperture_m": 0.04737,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.25296,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.517,
+        0.19864,
+        1.13096,
+        -2.77578,
+        1.12246,
+        3.49103,
+        -0.2182
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.24041,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 7.997,
+      "step": 26,
+      "tcp": [
+        0.0765,
+        0.41181,
+        0.15016
+      ]
+    },
+    {
+      "aperture_m": 0.04737,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.33728,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51707,
+        0.19885,
+        1.13107,
+        -2.77574,
+        1.20678,
+        3.49247,
+        -0.21732
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.23079,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.049,
+      "step": 27,
+      "tcp": [
+        0.08191,
+        0.40069,
+        0.14613
+      ]
+    },
+    {
+      "aperture_m": 0.04737,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.42247,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51706,
+        0.19893,
+        1.13112,
+        -2.77556,
+        1.29197,
+        3.49298,
+        -0.21639
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.22079,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.099,
+      "step": 28,
+      "tcp": [
+        0.08629,
+        0.38902,
+        0.14208
+      ]
+    },
+    {
+      "aperture_m": 0.04737,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.50561,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51705,
+        0.19893,
+        1.13118,
+        -2.77531,
+        1.37511,
+        3.49315,
+        -0.21559
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.21084,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.151,
+      "step": 29,
+      "tcp": [
+        0.0895,
+        0.37731,
+        0.13821
+      ]
+    },
+    {
+      "aperture_m": 0.04737,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.59047,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.517,
+        0.19893,
+        1.1312,
+        -2.77509,
+        1.45997,
+        3.4932,
+        -0.21467
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.2005,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.202,
+      "step": 30,
+      "tcp": [
+        0.09172,
+        0.36504,
+        0.13437
+      ]
+    },
+    {
+      "aperture_m": 0.04773,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.67615,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51696,
+        0.19888,
+        1.13131,
+        -2.77478,
+        1.54565,
+        3.49318,
+        -0.21507
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.19001,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.253,
+      "step": 31,
+      "tcp": [
+        0.09282,
+        0.35254,
+        0.13069
+      ]
+    },
+    {
+      "aperture_m": 0.04769,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.76257,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51696,
+        0.19882,
+        1.13131,
+        -2.77453,
+        1.63207,
+        3.49317,
+        -0.21418
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.17935,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.304,
+      "step": 32,
+      "tcp": [
+        0.09283,
+        0.33977,
+        0.12714
+      ]
+    },
+    {
+      "aperture_m": 0.04765,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.84649,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51698,
+        0.19872,
+        1.13135,
+        -2.77423,
+        1.71599,
+        3.49316,
+        -0.21351
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.16908,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.355,
+      "step": 33,
+      "tcp": [
+        0.09173,
+        0.3274,
+        0.12393
+      ]
+    },
+    {
+      "aperture_m": 0.04721,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        1.93155,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51691,
+        0.19863,
+        1.13142,
+        -2.77408,
+        1.80105,
+        3.49317,
+        -0.21136
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.15874,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.407,
+      "step": 34,
+      "tcp": [
+        0.08956,
+        0.31487,
+        0.12088
+      ]
+    },
+    {
+      "aperture_m": 0.04716,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.01875,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51688,
+        0.19852,
+        1.13147,
+        -2.77386,
+        1.88825,
+        3.49315,
+        -0.21029
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.14843,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.458,
+      "step": 35,
+      "tcp": [
+        0.08621,
+        0.30223,
+        0.11803
+      ]
+    },
+    {
+      "aperture_m": 0.04752,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.105,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51701,
+        0.19836,
+        1.13139,
+        -2.7735,
+        1.9745,
+        3.4931,
+        -0.20854
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.13868,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.51,
+      "step": 36,
+      "tcp": [
+        0.08181,
+        0.29009,
+        0.11553
+      ]
+    },
+    {
+      "aperture_m": 0.04747,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.1913,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51704,
+        0.19821,
+        1.13141,
+        -2.77325,
+        2.0608,
+        3.49307,
+        -0.20752
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12945,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.562,
+      "step": 37,
+      "tcp": [
+        0.07636,
+        0.27826,
+        0.11332
+      ]
+    },
+    {
+      "aperture_m": 0.04743,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.27728,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51708,
+        0.19803,
+        1.13145,
+        -2.77297,
+        2.14678,
+        3.49305,
+        -0.20602
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12104,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.613,
+      "step": 38,
+      "tcp": [
+        0.06992,
+        0.26693,
+        0.11144
+      ]
+    },
+    {
+      "aperture_m": 0.04698,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.36114,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51688,
+        0.19785,
+        1.13176,
+        -2.77276,
+        2.23064,
+        3.49304,
+        -0.20393
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1138,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.666,
+      "step": 39,
+      "tcp": [
+        0.06271,
+        0.25638,
+        0.10994
+      ]
+    },
+    {
+      "aperture_m": 0.04734,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.44813,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51715,
+        0.19765,
+        1.13151,
+        -2.7725,
+        2.31763,
+        3.49299,
+        -0.20413
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.10757,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.718,
+      "step": 40,
+      "tcp": [
+        0.05436,
+        0.24606,
+        0.10871
+      ]
+    },
+    {
+      "aperture_m": 0.04729,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.53219,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51719,
+        0.19742,
+        1.13154,
+        -2.77218,
+        2.40169,
+        3.49296,
+        -0.20357
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1031,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.768,
+      "step": 41,
+      "tcp": [
+        0.04548,
+        0.23681,
+        0.1079
+      ]
+    },
+    {
+      "aperture_m": 0.04725,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.60462,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51722,
+        0.19718,
+        1.13156,
+        -2.77188,
+        2.48289,
+        3.49293,
+        -0.20322
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.10041,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 1,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.82,
+      "step": 42,
+      "tcp": [
+        0.03619,
+        0.22856,
+        0.10744
+      ]
+    },
+    {
+      "aperture_m": 0.0468,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.60462,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51693,
+        0.19706,
+        1.13205,
+        -2.77185,
+        2.56117,
+        3.49289,
+        -0.2008
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.09945,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 2,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.872,
+      "step": 43,
+      "tcp": [
+        0.02659,
+        0.22116,
+        0.10727
+      ]
+    },
+    {
+      "aperture_m": 0.04714,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.60462,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51742,
+        0.19699,
+        1.13171,
+        -2.7718,
+        2.59883,
+        3.49286,
+        -0.19864
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.09959,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 3,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.923,
+      "step": 44,
+      "tcp": [
+        0.02178,
+        0.21787,
+        0.10729
+      ]
+    },
+    {
+      "aperture_m": 0.04671,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.60462,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51703,
+        0.19677,
+        1.13218,
+        -2.77142,
+        2.61597,
+        3.4928,
+        -0.19495
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.09984,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 4,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 8.974,
+      "step": 45,
+      "tcp": [
+        0.01956,
+        0.21667,
+        0.10739
+      ]
+    },
+    {
+      "aperture_m": 0.04708,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.60462,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51734,
+        0.1965,
+        1.13166,
+        -2.77091,
+        2.62285,
+        3.49278,
+        -0.19528
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.09997,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 5,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 9.025,
+      "step": 46,
+      "tcp": [
+        0.01877,
+        0.21638,
+        0.10748
+      ]
+    },
+    {
+      "aperture_m": 0.04666,
+      "commanded": [
+        0.51339,
+        0.19242,
+        1.1271,
+        -2.75924,
+        2.60462,
+        3.48582,
+        -0.2122
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51688,
+        0.1964,
+        1.13206,
+        -2.7707,
+        2.62468,
+        3.49272,
+        -0.19359
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.10003,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 0,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.4,
+        "ik_orientation_error_rad": 0.0001,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 0,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.1085
+        ]
+      },
+      "sim_t": 9.076,
+      "step": 47,
+      "tcp": [
+        0.01854,
+        0.21638,
+        0.10752
+      ]
+    },
+    {
+      "aperture_m": 0.04704,
+      "commanded": [
+        0.62598,
+        0.30504,
+        1.02279,
+        -2.71793,
+        2.49543,
+        3.36221,
+        -0.06431
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.51723,
+        0.19629,
+        1.13154,
+        -2.77048,
+        2.62593,
+        3.49271,
+        -0.19481
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.10005,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 9.901,
+      "step": 48,
+      "tcp": [
+        0.01844,
+        0.21639,
+        0.10754
+      ]
+    },
+    {
+      "aperture_m": 0.04571,
+      "commanded": [
+        0.69648,
+        0.37163,
+        0.95769,
+        -2.71793,
+        2.42615,
+        3.29387,
+        -0.00964
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.58773,
+        0.26288,
+        1.06644,
+        -2.74317,
+        2.55558,
+        3.42437,
+        -0.14014
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.08784,
+      "phase": "Phase.APPROACH",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 9.953,
+      "step": 49,
+      "tcp": [
+        0.00441,
+        0.23721,
+        0.09315
+      ]
+    },
+    {
+      "aperture_m": 0.04567,
+      "commanded": [
+        0.76751,
+        0.43715,
+        0.89029,
+        -2.71793,
+        2.42615,
+        3.21547,
+        0.04865
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.65876,
+        0.33964,
+        0.99904,
+        -2.7289,
+        2.48096,
+        3.34597,
+        -0.08185
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.07894,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.004,
+      "step": 50,
+      "tcp": [
+        -0.01386,
+        0.24819,
+        0.07427
+      ]
+    },
+    {
+      "aperture_m": 0.04597,
+      "commanded": [
+        0.83829,
+        0.43715,
+        0.82178,
+        -2.71793,
+        2.42615,
+        3.13791,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.72954,
+        0.41039,
+        0.93053,
+        -2.72497,
+        2.44865,
+        3.26841,
+        -0.02707
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.07782,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.057,
+      "step": 51,
+      "tcp": [
+        -0.03545,
+        0.24687,
+        0.05526
+      ]
+    },
+    {
+      "aperture_m": 0.04553,
+      "commanded": [
+        0.91159,
+        0.43715,
+        0.75067,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.80284,
+        0.44272,
+        0.85942,
+        -2.72747,
+        2.44385,
+        3.18817,
+        0.02019
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.0828,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.11,
+      "step": 52,
+      "tcp": [
+        -0.05064,
+        0.24505,
+        0.04139
+      ]
+    },
+    {
+      "aperture_m": 0.04593,
+      "commanded": [
+        0.98585,
+        0.43715,
+        0.68053,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.8771,
+        0.45054,
+        0.78928,
+        -2.72696,
+        2.4396,
+        3.14974,
+        0.03512
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.08207,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.162,
+      "step": 53,
+      "tcp": [
+        -0.05364,
+        0.24301,
+        0.0329
+      ]
+    },
+    {
+      "aperture_m": 0.04591,
+      "commanded": [
+        1.05937,
+        0.43715,
+        0.61113,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.95062,
+        0.45166,
+        0.71988,
+        -2.72562,
+        2.42858,
+        3.13634,
+        0.04487
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.07649,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.214,
+      "step": 54,
+      "tcp": [
+        -0.05026,
+        0.23976,
+        0.0265
+      ]
+    },
+    {
+      "aperture_m": 0.04591,
+      "commanded": [
+        1.13294,
+        0.43715,
+        0.54187,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.02419,
+        0.45189,
+        0.65062,
+        -2.72466,
+        2.42279,
+        3.13152,
+        0.05468
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.06965,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.265,
+      "step": 55,
+      "tcp": [
+        -0.04512,
+        0.23535,
+        0.02109
+      ]
+    },
+    {
+      "aperture_m": 0.0455,
+      "commanded": [
+        1.2058,
+        0.43715,
+        0.47356,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.09705,
+        0.45234,
+        0.58231,
+        -2.72436,
+        2.42085,
+        3.12971,
+        0.0561
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.06268,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.316,
+      "step": 56,
+      "tcp": [
+        -0.03934,
+        0.23044,
+        0.01642
+      ]
+    },
+    {
+      "aperture_m": 0.04589,
+      "commanded": [
+        1.2784,
+        0.43715,
+        0.40576,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.16965,
+        0.45289,
+        0.51451,
+        -2.72407,
+        2.42099,
+        3.12906,
+        0.05452
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.05586,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.367,
+      "step": 57,
+      "tcp": [
+        -0.0331,
+        0.22585,
+        0.01246
+      ]
+    },
+    {
+      "aperture_m": 0.0452,
+      "commanded": [
+        1.35357,
+        0.43715,
+        0.34038,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.24482,
+        0.4495,
+        0.44913,
+        -2.72277,
+        2.4266,
+        3.12805,
+        0.05677
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.05047,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.419,
+      "step": 58,
+      "tcp": [
+        -0.0278,
+        0.22356,
+        0.01009
+      ]
+    },
+    {
+      "aperture_m": 0.04333,
+      "commanded": [
+        1.43323,
+        0.43715,
+        0.28254,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.32448,
+        0.44143,
+        0.39129,
+        -2.71803,
+        2.43364,
+        3.12605,
+        0.05654
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.04859,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.47,
+      "step": 59,
+      "tcp": [
+        -0.02597,
+        0.22573,
+        0.00962
+      ]
+    },
+    {
+      "aperture_m": 0.04132,
+      "commanded": [
+        1.51336,
+        0.43715,
+        0.22574,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.40461,
+        0.43523,
+        0.33449,
+        -2.7169,
+        2.43997,
+        3.12715,
+        0.06277
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.04677,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.521,
+      "step": 60,
+      "tcp": [
+        -0.02416,
+        0.22551,
+        0.0094
+      ]
+    },
+    {
+      "aperture_m": 0.04022,
+      "commanded": [
+        1.59332,
+        0.43715,
+        0.16949,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.48457,
+        0.43109,
+        0.27824,
+        -2.71628,
+        2.44185,
+        3.128,
+        0.06856
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.04506,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.574,
+      "step": 61,
+      "tcp": [
+        -0.02246,
+        0.22536,
+        0.00919
+      ]
+    },
+    {
+      "aperture_m": 0.03976,
+      "commanded": [
+        1.67675,
+        0.43715,
+        0.10971,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.568,
+        0.42899,
+        0.21846,
+        -2.71585,
+        2.4433,
+        3.12893,
+        0.06801
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.04298,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.626,
+      "step": 62,
+      "tcp": [
+        -0.02038,
+        0.22511,
+        0.00896
+      ]
+    },
+    {
+      "aperture_m": 0.03945,
+      "commanded": [
+        1.75624,
+        0.43715,
+        0.05067,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.64821,
+        0.42887,
+        0.15942,
+        -2.71551,
+        2.44316,
+        3.12893,
+        0.0679
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.04054,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.676,
+      "step": 63,
+      "tcp": [
+        -0.01794,
+        0.22516,
+        0.00872
+      ]
+    },
+    {
+      "aperture_m": 0.03918,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.00901,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.72641,
+        0.43074,
+        0.09974,
+        -2.71569,
+        2.44092,
+        3.12867,
+        0.06919
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.03725,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.727,
+      "step": 64,
+      "tcp": [
+        -0.01466,
+        0.22521,
+        0.00852
+      ]
+    },
+    {
+      "aperture_m": 0.03924,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76092,
+        0.4346,
+        0.04188,
+        -2.71568,
+        2.44046,
+        3.12804,
+        0.06928
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.02481,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.778,
+      "step": 65,
+      "tcp": [
+        -0.00222,
+        0.22561,
+        0.00834
+      ]
+    },
+    {
+      "aperture_m": 0.03909,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76447,
+        0.4386,
+        0.00093,
+        -2.71747,
+        2.44044,
+        3.12847,
+        0.06346
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.01094,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 1,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.829,
+      "step": 66,
+      "tcp": [
+        0.01174,
+        0.22414,
+        0.00831
+      ]
+    },
+    {
+      "aperture_m": 0.03895,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76478,
+        0.44035,
+        -0.01482,
+        -2.71904,
+        2.44187,
+        3.12882,
+        0.05778
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.00593,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 2,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.881,
+      "step": 67,
+      "tcp": [
+        0.0174,
+        0.22272,
+        0.00833
+      ]
+    },
+    {
+      "aperture_m": 0.03904,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76653,
+        0.44073,
+        -0.01901,
+        -2.71922,
+        2.4415,
+        3.12862,
+        0.05957
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.00506,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 3,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.932,
+      "step": 68,
+      "tcp": [
+        0.01849,
+        0.22262,
+        0.00834
+      ]
+    },
+    {
+      "aperture_m": 0.03868,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76755,
+        0.44084,
+        -0.02008,
+        -2.71912,
+        2.4408,
+        3.12852,
+        0.06262
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.00487,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 4,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 10.984,
+      "step": 69,
+      "tcp": [
+        0.01865,
+        0.22274,
+        0.00834
+      ]
+    },
+    {
+      "aperture_m": 0.02129,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76758,
+        0.44126,
+        -0.02091,
+        -2.71812,
+        2.44169,
+        3.12821,
+        0.05694
+      ],
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ],
+      "object_to_tcp_m": 0.00453,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 5,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 11.034,
+      "step": 70,
+      "tcp": [
+        0.01875,
+        0.22318,
+        0.00825
+      ]
+    },
+    {
+      "aperture_m": 0.01046,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76789,
+        0.44138,
+        -0.02067,
+        -2.71848,
+        2.44185,
+        3.12825,
+        0.05698
+      ],
+      "object": [
+        0.0232,
+        0.22251,
+        0.00806
+      ],
+      "object_to_tcp_m": 0.00457,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 6,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 11.086,
+      "step": 71,
+      "tcp": [
+        0.01864,
+        0.22291,
+        0.00821
+      ]
+    },
+    {
+      "aperture_m": 0.00519,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76843,
+        0.44134,
+        -0.01989,
+        -2.71931,
+        2.44246,
+        3.12832,
+        0.05707
+      ],
+      "object": [
+        0.02258,
+        0.22154,
+        0.00801
+      ],
+      "object_to_tcp_m": 0.00435,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 7,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 11.138,
+      "step": 72,
+      "tcp": [
+        0.01832,
+        0.22239,
+        0.0082
+      ]
+    },
+    {
+      "aperture_m": 0.00486,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.76856,
+        0.44136,
+        -0.01985,
+        -2.71953,
+        2.44318,
+        3.12849,
+        0.05474
+      ],
+      "object": [
+        0.02279,
+        0.22201,
+        0.00804
+      ],
+      "object_to_tcp_m": 0.0045,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 8,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 11.19,
+      "step": 73,
+      "tcp": [
+        0.01829,
+        0.22218,
+        0.00822
+      ]
+    },
+    {
+      "aperture_m": 0.00492,
+      "commanded": [
+        1.75624,
+        0.43715,
+        -0.02621,
+        -2.71793,
+        2.42615,
+        3.12411,
+        0.09165
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.7682,
+        0.44143,
+        -0.02028,
+        -2.71962,
+        2.44344,
+        3.12864,
+        0.0539
+      ],
+      "object": [
+        0.02295,
+        0.22224,
+        0.00807
+      ],
+      "object_to_tcp_m": 0.00441,
+      "phase": "Phase.DESCEND",
+      "policy": {
+        "drive_waypoint": 1,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.77,
+        "ik_orientation_error_rad": 0.0004,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 1,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.0085
+        ]
+      },
+      "sim_t": 11.24,
+      "step": 74,
+      "tcp": [
+        0.01854,
+        0.22207,
+        0.00822
+      ]
+    },
+    {
+      "aperture_m": 0.00495,
+      "commanded": [
+        1.65931,
+        0.3327,
+        0.0882,
+        -2.75968,
+        2.44874,
+        3.25911,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.76806,
+        0.44145,
+        -0.02055,
+        -2.71953,
+        2.44399,
+        3.12861,
+        0.05179
+      ],
+      "object": [
+        0.02487,
+        0.21069,
+        0.02248
+      ],
+      "object_to_tcp_m": 0.01929,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.417,
+      "step": 75,
+      "tcp": [
+        0.01863,
+        0.22209,
+        0.00822
+      ]
+    },
+    {
+      "aperture_m": 0.00499,
+      "commanded": [
+        1.59725,
+        0.28266,
+        0.15737,
+        -2.75968,
+        2.44874,
+        3.30742,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.706,
+        0.39141,
+        0.04862,
+        -2.74866,
+        2.45121,
+        3.20419,
+        0.03991
+      ],
+      "object": [
+        0.02713,
+        0.21033,
+        0.04116
+      ],
+      "object_to_tcp_m": 0.01814,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.468,
+      "step": 76,
+      "tcp": [
+        0.021,
+        0.20964,
+        0.0241
+      ]
+    },
+    {
+      "aperture_m": 0.00499,
+      "commanded": [
+        1.53227,
+        0.27456,
+        0.22536,
+        -2.75968,
+        2.44874,
+        3.30742,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.64102,
+        0.33001,
+        0.11661,
+        -2.76237,
+        2.46125,
+        3.27202,
+        0.03922
+      ],
+      "object": [
+        0.02454,
+        0.21726,
+        0.05401
+      ],
+      "object_to_tcp_m": 0.01349,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.519,
+      "step": 77,
+      "tcp": [
+        0.02297,
+        0.21065,
+        0.04235
+      ]
+    },
+    {
+      "aperture_m": 0.005,
+      "commanded": [
+        1.46757,
+        0.27456,
+        0.29429,
+        -2.75968,
+        2.44874,
+        3.30742,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.57632,
+        0.29613,
+        0.18554,
+        -2.76276,
+        2.45842,
+        3.29751,
+        0.04128
+      ],
+      "object": [
+        0.02242,
+        0.21969,
+        0.05633
+      ],
+      "object_to_tcp_m": 0.00584,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 1,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.57,
+      "step": 78,
+      "tcp": [
+        0.0201,
+        0.21739,
+        0.05149
+      ]
+    },
+    {
+      "aperture_m": 0.005,
+      "commanded": [
+        1.40333,
+        0.27456,
+        0.36282,
+        -2.75968,
+        2.44874,
+        3.30742,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.51208,
+        0.28743,
+        0.25407,
+        -2.76343,
+        2.45327,
+        3.30661,
+        0.03931
+      ],
+      "object": [
+        0.01812,
+        0.21878,
+        0.05602
+      ],
+      "object_to_tcp_m": 0.00305,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 2,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.623,
+      "step": 79,
+      "tcp": [
+        0.01584,
+        0.21905,
+        0.05402
+      ]
+    },
+    {
+      "aperture_m": 0.00501,
+      "commanded": [
+        1.33676,
+        0.27456,
+        0.39976,
+        -2.75968,
+        2.44874,
+        3.30742,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.44551,
+        0.28697,
+        0.32452,
+        -2.76521,
+        2.45692,
+        3.3101,
+        0.03874
+      ],
+      "object": [
+        0.01641,
+        0.21776,
+        0.05576
+      ],
+      "object_to_tcp_m": 0.00639,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 3,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.674,
+      "step": 80,
+      "tcp": [
+        0.01015,
+        0.21794,
+        0.05451
+      ]
+    },
+    {
+      "aperture_m": 0.005,
+      "commanded": [
+        1.29032,
+        0.27456,
+        0.39976,
+        -2.75968,
+        2.44874,
+        3.30742,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.38173,
+        0.28707,
+        0.37402,
+        -2.76594,
+        2.46302,
+        3.31107,
+        0.03487
+      ],
+      "object": [
+        0.02201,
+        0.2174,
+        0.05559
+      ],
+      "object_to_tcp_m": 0.01273,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 4,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.725,
+      "step": 81,
+      "tcp": [
+        0.0093,
+        0.21729,
+        0.0549
+      ]
+    },
+    {
+      "aperture_m": 0.00498,
+      "commanded": [
+        1.29032,
+        0.27456,
+        0.39976,
+        -2.75968,
+        2.44874,
+        3.30742,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.32775,
+        0.28676,
+        0.39176,
+        -2.76602,
+        2.46412,
+        3.31158,
+        0.03493
+      ],
+      "object": [
+        0.02733,
+        0.21634,
+        0.05512
+      ],
+      "object_to_tcp_m": 0.01147,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 5,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.776,
+      "step": 82,
+      "tcp": [
+        0.01588,
+        0.21702,
+        0.05518
+      ]
+    },
+    {
+      "aperture_m": 0.00498,
+      "commanded": [
+        1.29032,
+        0.27456,
+        0.39976,
+        -2.75968,
+        2.44874,
+        3.30742,
+        0.00633
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.30437,
+        0.28692,
+        0.39427,
+        -2.76659,
+        2.4629,
+        3.31191,
+        0.03676
+      ],
+      "object": [
+        0.02829,
+        0.21628,
+        0.05465
+      ],
+      "object_to_tcp_m": 0.00791,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 2,
+        "dwell": 0,
+        "ik_converged": true,
+        "ik_error_mm": 0.48,
+        "ik_orientation_error_rad": 0.0002,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 2,
+        "waypoint_target": [
+          0.0226,
+          0.2256,
+          0.058
+        ]
+      },
+      "sim_t": 11.826,
+      "step": 83,
+      "tcp": [
+        0.0204,
+        0.21638,
+        0.05517
+      ]
+    },
+    {
+      "aperture_m": 0.00498,
+      "commanded": [
+        1.18883,
+        0.1782,
+        0.42703,
+        -2.87555,
+        2.33212,
+        3.21823,
+        0.16958
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.29758,
+        0.28695,
+        0.3975,
+        -2.7668,
+        2.46262,
+        3.31203,
+        0.03908
+      ],
+      "object": [
+        0.03874,
+        0.20899,
+        0.04774
+      ],
+      "object_to_tcp_m": 0.02058,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 12.71,
+      "step": 84,
+      "tcp": [
+        0.02099,
+        0.21626,
+        0.0552
+      ]
+    },
+    {
+      "aperture_m": 0.00499,
+      "commanded": [
+        1.12914,
+        0.13617,
+        0.42703,
+        -2.94122,
+        2.26228,
+        3.21823,
+        0.22509
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.23789,
+        0.23084,
+        0.42182,
+        -2.83247,
+        2.39278,
+        3.25748,
+        0.09459
+      ],
+      "object": [
+        0.06077,
+        0.18866,
+        0.05168
+      ],
+      "object_to_tcp_m": 0.0349,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 12.763,
+      "step": 85,
+      "tcp": [
+        0.03245,
+        0.20774,
+        0.05886
+      ]
+    },
+    {
+      "aperture_m": 0.00499,
+      "commanded": [
+        1.06171,
+        0.13617,
+        0.42703,
+        -3.01714,
+        2.18916,
+        3.21823,
+        0.2792
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.17046,
+        0.17007,
+        0.42378,
+        -2.90839,
+        2.31966,
+        3.23522,
+        0.1487
+      ],
+      "object": [
+        0.077,
+        0.15777,
+        0.0505
+      ],
+      "object_to_tcp_m": 0.0387,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 12.814,
+      "step": 86,
+      "tcp": [
+        0.05533,
+        0.18639,
+        0.06492
+      ]
+    },
+    {
+      "aperture_m": 0.00499,
+      "commanded": [
+        1.00575,
+        0.13617,
+        0.42703,
+        -3.06996,
+        2.11524,
+        3.21823,
+        0.33095
+      ],
+      "grasped": true,
+      "measured_joints": [
+        1.1145,
+        0.14735,
+        0.42367,
+        -2.98006,
+        2.24574,
+        3.22415,
+        0.20045
+      ],
+      "object": [
+        0.08951,
+        0.12083,
+        0.04146
+      ],
+      "object_to_tcp_m": 0.04512,
+      "phase": "Phase.TRANSIT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 12.865,
+      "step": 87,
+      "tcp": [
+        0.07046,
+        0.15435,
+        0.0649
+      ]
+    },
+    {
+      "aperture_m": 0.00474,
+      "commanded": [
+        0.94682,
+        0.13617,
+        0.42703,
+        -3.06996,
+        2.04002,
+        3.21823,
+        0.38684
+      ],
+      "grasped": false,
+      "measured_joints": [
+        1.05557,
+        0.14395,
+        0.42494,
+        -3.04529,
+        2.17052,
+        3.22032,
+        0.25634
+      ],
+      "object": [
+        0.10237,
+        0.08428,
+        0.01146
+      ],
+      "object_to_tcp_m": 0.0664,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 12.917,
+      "step": 88,
+      "tcp": [
+        0.08065,
+        0.11921,
+        0.06359
+      ]
+    },
+    {
+      "aperture_m": 0.00471,
+      "commanded": [
+        0.88815,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.96453,
+        3.21823,
+        0.44518
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.9969,
+        0.1449,
+        0.42459,
+        -3.07073,
+        2.09503,
+        3.21787,
+        0.31468
+      ],
+      "object": [
+        0.10514,
+        0.07066,
+        0.00864
+      ],
+      "object_to_tcp_m": 0.06607,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 12.968,
+      "step": 89,
+      "tcp": [
+        0.08985,
+        0.10546,
+        0.06268
+      ]
+    },
+    {
+      "aperture_m": 0.00466,
+      "commanded": [
+        0.83006,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.88718,
+        3.21823,
+        0.50135
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.93881,
+        0.14328,
+        0.42551,
+        -3.0718,
+        2.01768,
+        3.21681,
+        0.37085
+      ],
+      "object": [
+        0.10546,
+        0.06895,
+        0.00794
+      ],
+      "object_to_tcp_m": 0.06596,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.019,
+      "step": 90,
+      "tcp": [
+        0.10078,
+        0.10622,
+        0.06215
+      ]
+    },
+    {
+      "aperture_m": 0.0046,
+      "commanded": [
+        0.77599,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.81,
+        3.21823,
+        0.55684
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.88474,
+        0.14159,
+        0.42506,
+        -3.07138,
+        1.9405,
+        3.21545,
+        0.42634
+      ],
+      "object": [
+        0.10545,
+        0.06896,
+        0.00796
+      ],
+      "object_to_tcp_m": 0.06642,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.07,
+      "step": 91,
+      "tcp": [
+        0.11152,
+        0.10758,
+        0.06165
+      ]
+    },
+    {
+      "aperture_m": 0.00459,
+      "commanded": [
+        0.72013,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.73802,
+        3.21823,
+        0.61717
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.82888,
+        0.14124,
+        0.42486,
+        -3.07171,
+        1.86852,
+        3.21321,
+        0.48667
+      ],
+      "object": [
+        0.10543,
+        0.06898,
+        0.00798
+      ],
+      "object_to_tcp_m": 0.06726,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.122,
+      "step": 92,
+      "tcp": [
+        0.1215,
+        0.1072,
+        0.06094
+      ]
+    },
+    {
+      "aperture_m": 0.00456,
+      "commanded": [
+        0.66039,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.65813,
+        3.21823,
+        0.67757
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.76914,
+        0.14168,
+        0.42648,
+        -3.0718,
+        1.78863,
+        3.21395,
+        0.54707
+      ],
+      "object": [
+        0.1054,
+        0.069,
+        0.00799
+      ],
+      "object_to_tcp_m": 0.06974,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.174,
+      "step": 93,
+      "tcp": [
+        0.13234,
+        0.10639,
+        0.06034
+      ]
+    },
+    {
+      "aperture_m": 0.00452,
+      "commanded": [
+        0.60265,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.57786,
+        3.21823,
+        0.73897
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.7114,
+        0.1417,
+        0.42712,
+        -3.0718,
+        1.70836,
+        3.21376,
+        0.60847
+      ],
+      "object": [
+        0.10539,
+        0.06901,
+        0.00799
+      ],
+      "object_to_tcp_m": 0.07356,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.224,
+      "step": 94,
+      "tcp": [
+        0.14287,
+        0.10546,
+        0.05975
+      ]
+    },
+    {
+      "aperture_m": 0.0042,
+      "commanded": [
+        0.54865,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.51,
+        3.21823,
+        0.79609
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.6574,
+        0.14174,
+        0.42717,
+        -3.07156,
+        1.6405,
+        3.21312,
+        0.66559
+      ],
+      "object": [
+        0.10538,
+        0.06902,
+        0.008
+      ],
+      "object_to_tcp_m": 0.07752,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.275,
+      "step": 95,
+      "tcp": [
+        0.15217,
+        0.10358,
+        0.05924
+      ]
+    },
+    {
+      "aperture_m": 0.00415,
+      "commanded": [
+        0.49222,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.43227,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.60097,
+        0.14204,
+        0.42478,
+        -3.07151,
+        1.56277,
+        3.21264,
+        0.73203
+      ],
+      "object": [
+        0.10537,
+        0.06902,
+        0.008
+      ],
+      "object_to_tcp_m": 0.08263,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.326,
+      "step": 96,
+      "tcp": [
+        0.16225,
+        0.10108,
+        0.05865
+      ]
+    },
+    {
+      "aperture_m": 0.00414,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.36726,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.54325,
+        0.14223,
+        0.42572,
+        -3.07165,
+        1.49776,
+        3.21262,
+        0.77899
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.08746,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.378,
+      "step": 97,
+      "tcp": [
+        0.17116,
+        0.09729,
+        0.05823
+      ]
+    },
+    {
+      "aperture_m": 0.00414,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.30146,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.50071,
+        0.1425,
+        0.4231,
+        -3.07173,
+        1.43196,
+        3.21076,
+        0.79678
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.09216,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.429,
+      "step": 98,
+      "tcp": [
+        0.17845,
+        0.09526,
+        0.05765
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.24309,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.48099,
+        0.1428,
+        0.41584,
+        -3.0718,
+        1.37359,
+        3.20829,
+        0.80023
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.09592,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.48,
+      "step": 99,
+      "tcp": [
+        0.18341,
+        0.09553,
+        0.05707
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.18695,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.46555,
+        0.14295,
+        0.41751,
+        -3.07174,
+        1.31745,
+        3.20789,
+        0.79709
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.09956,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.531,
+      "step": 100,
+      "tcp": [
+        0.18714,
+        0.09821,
+        0.05674
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.12927,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.45693,
+        0.14284,
+        0.41521,
+        -3.0718,
+        1.25977,
+        3.20737,
+        0.79716
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1032,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.582,
+      "step": 101,
+      "tcp": [
+        0.19052,
+        0.10146,
+        0.05646
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.07478,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.45101,
+        0.14301,
+        0.4172,
+        -3.07175,
+        1.20528,
+        3.20817,
+        0.79356
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.10662,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.635,
+      "step": 102,
+      "tcp": [
+        0.19299,
+        0.1059,
+        0.05629
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        1.01746,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.45304,
+        0.14295,
+        0.41495,
+        -3.0718,
+        1.14796,
+        3.20818,
+        0.79248
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11002,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.686,
+      "step": 103,
+      "tcp": [
+        0.19483,
+        0.11131,
+        0.0561
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.96352,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.45216,
+        0.14307,
+        0.41711,
+        -3.07175,
+        1.09402,
+        3.20915,
+        0.791
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11335,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.738,
+      "step": 104,
+      "tcp": [
+        0.1962,
+        0.11692,
+        0.056
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.90983,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.45336,
+        0.14311,
+        0.4171,
+        -3.07176,
+        1.04033,
+        3.20972,
+        0.78914
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11659,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.788,
+      "step": 105,
+      "tcp": [
+        0.19725,
+        0.12249,
+        0.05589
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.85701,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.45395,
+        0.14316,
+        0.4171,
+        -3.07176,
+        0.98751,
+        3.2103,
+        0.78851
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11977,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.839,
+      "step": 106,
+      "tcp": [
+        0.19805,
+        0.12792,
+        0.05582
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.8206,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.45615,
+        0.14313,
+        0.41493,
+        -3.0718,
+        0.93314,
+        3.21051,
+        0.78948
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12294,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 1,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.89,
+      "step": 107,
+      "tcp": [
+        0.19863,
+        0.13337,
+        0.05573
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.8206,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4562,
+        0.14324,
+        0.4171,
+        -3.07177,
+        0.8922,
+        3.21151,
+        0.78706
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12549,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 2,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.943,
+      "step": 108,
+      "tcp": [
+        0.19866,
+        0.13807,
+        0.05575
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.8206,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4617,
+        0.14313,
+        0.41493,
+        -3.0718,
+        0.87466,
+        3.21147,
+        0.78563
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12653,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 3,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 13.994,
+      "step": 109,
+      "tcp": [
+        0.19826,
+        0.14045,
+        0.05574
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.8206,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4606,
+        0.14325,
+        0.4171,
+        -3.07177,
+        0.87023,
+        3.21209,
+        0.78302
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1269,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 4,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 14.045,
+      "step": 110,
+      "tcp": [
+        0.19818,
+        0.14119,
+        0.05578
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.8206,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.46219,
+        0.14323,
+        0.41493,
+        -3.0718,
+        0.86701,
+        3.21184,
+        0.78454
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.127,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 5,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 14.096,
+      "step": 111,
+      "tcp": [
+        0.19824,
+        0.14132,
+        0.05574
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.45741,
+        0.13617,
+        0.42703,
+        -3.06996,
+        0.8206,
+        3.21823,
+        0.84714
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.46014,
+        0.14334,
+        0.4171,
+        -3.07178,
+        0.8675,
+        3.21232,
+        0.78274
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12706,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 3,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 3,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.058
+        ]
+      },
+      "sim_t": 14.147,
+      "step": 112,
+      "tcp": [
+        0.19826,
+        0.14137,
+        0.05577
+      ]
+    },
+    {
+      "aperture_m": 0.00413,
+      "commanded": [
+        0.4358,
+        0.25202,
+        0.30618,
+        -3.02766,
+        0.73522,
+        3.34247,
+        0.91494
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4617,
+        0.14327,
+        0.41493,
+        -3.0718,
+        0.86572,
+        3.21197,
+        0.78444
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12708,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.579,
+      "step": 113,
+      "tcp": [
+        0.19832,
+        0.14135,
+        0.05574
+      ]
+    },
+    {
+      "aperture_m": 0.00393,
+      "commanded": [
+        0.4358,
+        0.31963,
+        0.29298,
+        -3.02766,
+        0.66171,
+        3.42167,
+        0.97012
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.44548,
+        0.21088,
+        0.36321,
+        -3.04551,
+        0.79221,
+        3.29117,
+        0.83962
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.13684,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.63,
+      "step": 114,
+      "tcp": [
+        0.21768,
+        0.1359,
+        0.0485
+      ]
+    },
+    {
+      "aperture_m": 0.00387,
+      "commanded": [
+        0.4358,
+        0.39801,
+        0.29298,
+        -3.02766,
+        0.59694,
+        3.46441,
+        1.02611
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43634,
+        0.28926,
+        0.31687,
+        -3.03415,
+        0.72744,
+        3.37398,
+        0.89561
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.13563,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.681,
+      "step": 115,
+      "tcp": [
+        0.22608,
+        0.1237,
+        0.0369
+      ]
+    },
+    {
+      "aperture_m": 0.00338,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.52492,
+        3.46441,
+        1.08712
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43273,
+        0.36683,
+        0.30075,
+        -3.03152,
+        0.65542,
+        3.43426,
+        0.95662
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12552,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.734,
+      "step": 116,
+      "tcp": [
+        0.21939,
+        0.11942,
+        0.02264
+      ]
+    },
+    {
+      "aperture_m": 0.00303,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.44929,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43348,
+        0.42306,
+        0.29667,
+        -3.03284,
+        0.57979,
+        3.45729,
+        1.01929
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11325,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.786,
+      "step": 117,
+      "tcp": [
+        0.20567,
+        0.12156,
+        0.01029
+      ]
+    },
+    {
+      "aperture_m": 0.0015,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43105,
+        0.43069,
+        0.29011,
+        -3.03604,
+        0.50332,
+        3.47099,
+        1.07116
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11517,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 0,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": false,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.837,
+      "step": 118,
+      "tcp": [
+        0.20397,
+        0.12853,
+        0.00891
+      ]
+    },
+    {
+      "aperture_m": 0.0013,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.42747,
+        0.43205,
+        0.28529,
+        -3.03511,
+        0.44203,
+        3.47408,
+        1.08276
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.11876,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 1,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.889,
+      "step": 119,
+      "tcp": [
+        0.20371,
+        0.13561,
+        0.00852
+      ]
+    },
+    {
+      "aperture_m": 0.0013,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.42847,
+        0.4332,
+        0.28623,
+        -3.03302,
+        0.41757,
+        3.47464,
+        1.082
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12097,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 2,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.939,
+      "step": 120,
+      "tcp": [
+        0.20309,
+        0.14033,
+        0.00832
+      ]
+    },
+    {
+      "aperture_m": 0.0015,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.42965,
+        0.43355,
+        0.28729,
+        -3.03278,
+        0.40801,
+        3.47457,
+        1.08194
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12152,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 3,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 15.99,
+      "step": 121,
+      "tcp": [
+        0.20228,
+        0.14233,
+        0.00824
+      ]
+    },
+    {
+      "aperture_m": 0.0015,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43118,
+        0.43381,
+        0.28942,
+        -3.03257,
+        0.40423,
+        3.47422,
+        1.08097
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12178,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 4,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.041,
+      "step": 122,
+      "tcp": [
+        0.20143,
+        0.14388,
+        0.00819
+      ]
+    },
+    {
+      "aperture_m": 0.00132,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43214,
+        0.43379,
+        0.29127,
+        -3.03329,
+        0.40323,
+        3.47387,
+        1.08176
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12143,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 5,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.092,
+      "step": 123,
+      "tcp": [
+        0.20049,
+        0.14451,
+        0.00817
+      ]
+    },
+    {
+      "aperture_m": 0.01396,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43332,
+        0.43371,
+        0.2928,
+        -3.03375,
+        0.40288,
+        3.47353,
+        1.07984
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12122,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 6,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.142,
+      "step": 124,
+      "tcp": [
+        0.19976,
+        0.14509,
+        0.00817
+      ]
+    },
+    {
+      "aperture_m": 0.01976,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43482,
+        0.43371,
+        0.29496,
+        -3.03404,
+        0.40227,
+        3.47313,
+        1.07993
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12112,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 7,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.192,
+      "step": 125,
+      "tcp": [
+        0.19888,
+        0.14601,
+        0.00817
+      ]
+    },
+    {
+      "aperture_m": 0.02142,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43569,
+        0.43359,
+        0.29622,
+        -3.035,
+        0.40134,
+        3.4729,
+        1.08117
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12067,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 8,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.244,
+      "step": 126,
+      "tcp": [
+        0.19802,
+        0.14634,
+        0.00816
+      ]
+    },
+    {
+      "aperture_m": 0.02168,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4359,
+        0.43356,
+        0.29639,
+        -3.0354,
+        0.40216,
+        3.4731,
+        1.08072
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12045,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 9,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.295,
+      "step": 127,
+      "tcp": [
+        0.19786,
+        0.14618,
+        0.00817
+      ]
+    },
+    {
+      "aperture_m": 0.02207,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4357,
+        0.43358,
+        0.29671,
+        -3.03534,
+        0.40253,
+        3.47307,
+        1.08181
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12047,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 10,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.348,
+      "step": 128,
+      "tcp": [
+        0.19786,
+        0.14621,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02228,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4359,
+        0.43354,
+        0.2964,
+        -3.03537,
+        0.40206,
+        3.47306,
+        1.08203
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12047,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 11,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.398,
+      "step": 129,
+      "tcp": [
+        0.19787,
+        0.14621,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02218,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4359,
+        0.43352,
+        0.29636,
+        -3.03542,
+        0.4023,
+        3.47306,
+        1.08095
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12043,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 12,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.449,
+      "step": 130,
+      "tcp": [
+        0.19787,
+        0.14615,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02227,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43569,
+        0.43353,
+        0.29667,
+        -3.03536,
+        0.40298,
+        3.473,
+        1.07989
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12043,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 13,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.5,
+      "step": 131,
+      "tcp": [
+        0.19789,
+        0.14613,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02232,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43587,
+        0.43349,
+        0.29632,
+        -3.03536,
+        0.4024,
+        3.47297,
+        1.08102
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12045,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 14,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.55,
+      "step": 132,
+      "tcp": [
+        0.19791,
+        0.14614,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02252,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43594,
+        0.43351,
+        0.29643,
+        -3.03531,
+        0.40216,
+        3.47291,
+        1.08138
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12048,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 15,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.601,
+      "step": 133,
+      "tcp": [
+        0.19787,
+        0.14623,
+        0.00817
+      ]
+    },
+    {
+      "aperture_m": 0.0223,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43577,
+        0.4335,
+        0.29664,
+        -3.03534,
+        0.40287,
+        3.47292,
+        1.08166
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12044,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 16,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.651,
+      "step": 134,
+      "tcp": [
+        0.19787,
+        0.14615,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02219,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43569,
+        0.43347,
+        0.29651,
+        -3.03534,
+        0.40297,
+        3.47288,
+        1.08109
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12043,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 17,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.702,
+      "step": 135,
+      "tcp": [
+        0.19792,
+        0.14608,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02223,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43579,
+        0.43342,
+        0.29607,
+        -3.03535,
+        0.4023,
+        3.47284,
+        1.08214
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12045,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 18,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.754,
+      "step": 136,
+      "tcp": [
+        0.19796,
+        0.14606,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02221,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43573,
+        0.43341,
+        0.29602,
+        -3.03533,
+        0.40236,
+        3.47281,
+        1.08282
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12045,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 19,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.805,
+      "step": 137,
+      "tcp": [
+        0.19799,
+        0.14604,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02207,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43555,
+        0.43341,
+        0.2963,
+        -3.03527,
+        0.40306,
+        3.47274,
+        1.08104
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12044,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 20,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.857,
+      "step": 138,
+      "tcp": [
+        0.19801,
+        0.146,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02239,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43568,
+        0.43343,
+        0.29593,
+        -3.03511,
+        0.40229,
+        3.4727,
+        1.08243
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12055,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 21,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.909,
+      "step": 139,
+      "tcp": [
+        0.19808,
+        0.14608,
+        0.00817
+      ]
+    },
+    {
+      "aperture_m": 0.02218,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43565,
+        0.43338,
+        0.29637,
+        -3.03534,
+        0.40299,
+        3.47266,
+        1.0812
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12041,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 22,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 16.96,
+      "step": 140,
+      "tcp": [
+        0.19794,
+        0.14603,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02233,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43574,
+        0.43334,
+        0.29593,
+        -3.03527,
+        0.40239,
+        3.47262,
+        1.08254
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12047,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 23,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.012,
+      "step": 141,
+      "tcp": [
+        0.19802,
+        0.14603,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02205,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43551,
+        0.43333,
+        0.29611,
+        -3.03524,
+        0.40329,
+        3.4726,
+        1.07975
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12044,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 24,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.064,
+      "step": 142,
+      "tcp": [
+        0.19807,
+        0.14592,
+        0.00819
+      ]
+    },
+    {
+      "aperture_m": 0.02233,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43564,
+        0.43331,
+        0.29578,
+        -3.03518,
+        0.40248,
+        3.47254,
+        1.08205
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1205,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 25,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.114,
+      "step": 143,
+      "tcp": [
+        0.1981,
+        0.14598,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02251,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43564,
+        0.43335,
+        0.2958,
+        -3.03503,
+        0.40224,
+        3.47247,
+        1.08253
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12058,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 26,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.167,
+      "step": 144,
+      "tcp": [
+        0.19813,
+        0.14607,
+        0.00817
+      ]
+    },
+    {
+      "aperture_m": 0.02224,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43559,
+        0.43329,
+        0.29614,
+        -3.03523,
+        0.40317,
+        3.47246,
+        1.08016
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12044,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 27,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.218,
+      "step": 145,
+      "tcp": [
+        0.19804,
+        0.14596,
+        0.00819
+      ]
+    },
+    {
+      "aperture_m": 0.02241,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43564,
+        0.43326,
+        0.29574,
+        -3.03519,
+        0.40246,
+        3.47241,
+        1.08262
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12049,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 28,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.268,
+      "step": 146,
+      "tcp": [
+        0.19809,
+        0.14597,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02239,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4356,
+        0.43325,
+        0.29565,
+        -3.03513,
+        0.4025,
+        3.47239,
+        1.08279
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12051,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 29,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.32,
+      "step": 147,
+      "tcp": [
+        0.19814,
+        0.14594,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02227,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43553,
+        0.43322,
+        0.29554,
+        -3.03511,
+        0.40265,
+        3.47235,
+        1.08115
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12051,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 30,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.372,
+      "step": 148,
+      "tcp": [
+        0.19819,
+        0.14588,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02225,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43551,
+        0.4332,
+        0.29549,
+        -3.0351,
+        0.40275,
+        3.47232,
+        1.08087
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12051,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 31,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.424,
+      "step": 149,
+      "tcp": [
+        0.19821,
+        0.14585,
+        0.00819
+      ]
+    },
+    {
+      "aperture_m": 0.02242,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43551,
+        0.43321,
+        0.29552,
+        -3.03506,
+        0.40241,
+        3.47224,
+        1.08257
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12053,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 32,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.477,
+      "step": 150,
+      "tcp": [
+        0.19819,
+        0.14592,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02234,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43543,
+        0.43321,
+        0.29583,
+        -3.03505,
+        0.40314,
+        3.47223,
+        1.08117
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12051,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 33,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.531,
+      "step": 151,
+      "tcp": [
+        0.19818,
+        0.1459,
+        0.00819
+      ]
+    },
+    {
+      "aperture_m": 0.02235,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43539,
+        0.4332,
+        0.29575,
+        -3.035,
+        0.40323,
+        3.4722,
+        1.08119
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12053,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 34,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.583,
+      "step": 152,
+      "tcp": [
+        0.19823,
+        0.14588,
+        0.00819
+      ]
+    },
+    {
+      "aperture_m": 0.02274,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43534,
+        0.43319,
+        0.29576,
+        -3.03488,
+        0.40317,
+        3.47212,
+        1.08141
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12059,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 35,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.636,
+      "step": 153,
+      "tcp": [
+        0.19827,
+        0.14592,
+        0.00819
+      ]
+    },
+    {
+      "aperture_m": 0.02326,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43564,
+        0.4332,
+        0.29561,
+        -3.03472,
+        0.40238,
+        3.47204,
+        1.08246
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12071,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 36,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.688,
+      "step": 154,
+      "tcp": [
+        0.19828,
+        0.1461,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02328,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43567,
+        0.43318,
+        0.29561,
+        -3.03474,
+        0.40251,
+        3.47201,
+        1.08149
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12069,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 37,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.739,
+      "step": 155,
+      "tcp": [
+        0.19827,
+        0.14608,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02347,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43548,
+        0.43319,
+        0.29591,
+        -3.03463,
+        0.40305,
+        3.47195,
+        1.08063
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12072,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 38,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.79,
+      "step": 156,
+      "tcp": [
+        0.19829,
+        0.14609,
+        0.00819
+      ]
+    },
+    {
+      "aperture_m": 0.02419,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43576,
+        0.43322,
+        0.29577,
+        -3.0344,
+        0.40212,
+        3.47188,
+        1.08298
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12089,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 39,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.84,
+      "step": 157,
+      "tcp": [
+        0.19832,
+        0.14632,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02457,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43588,
+        0.43323,
+        0.29587,
+        -3.03429,
+        0.40193,
+        3.47181,
+        1.08309
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12095,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 40,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.894,
+      "step": 158,
+      "tcp": [
+        0.19831,
+        0.14644,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02472,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43584,
+        0.43319,
+        0.29584,
+        -3.03437,
+        0.40209,
+        3.47178,
+        1.08215
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1209,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 41,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.944,
+      "step": 159,
+      "tcp": [
+        0.1983,
+        0.14637,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02459,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43587,
+        0.4332,
+        0.29584,
+        -3.03433,
+        0.40228,
+        3.47179,
+        1.08179
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12092,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 42,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 17.996,
+      "step": 160,
+      "tcp": [
+        0.19832,
+        0.14636,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02471,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43596,
+        0.43319,
+        0.29593,
+        -3.03441,
+        0.40203,
+        3.47174,
+        1.08218
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12088,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 43,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.047,
+      "step": 161,
+      "tcp": [
+        0.19824,
+        0.14641,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02456,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43572,
+        0.4332,
+        0.29612,
+        -3.03433,
+        0.40273,
+        3.47174,
+        1.08208
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12089,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 44,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.098,
+      "step": 162,
+      "tcp": [
+        0.1983,
+        0.14635,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02465,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43583,
+        0.43316,
+        0.29572,
+        -3.03431,
+        0.40211,
+        3.4717,
+        1.08332
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12092,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 45,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.148,
+      "step": 163,
+      "tcp": [
+        0.19834,
+        0.14635,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.0249,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43582,
+        0.43316,
+        0.29573,
+        -3.03419,
+        0.40215,
+        3.47163,
+        1.08307
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12098,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 46,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.199,
+      "step": 164,
+      "tcp": [
+        0.19839,
+        0.14639,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02485,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43573,
+        0.43318,
+        0.29612,
+        -3.03414,
+        0.40297,
+        3.47159,
+        1.08044
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12097,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 47,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.251,
+      "step": 165,
+      "tcp": [
+        0.19837,
+        0.14639,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02482,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43568,
+        0.43316,
+        0.29601,
+        -3.03415,
+        0.40295,
+        3.47159,
+        1.08164
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12096,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 48,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.303,
+      "step": 166,
+      "tcp": [
+        0.1984,
+        0.14634,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02535,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43571,
+        0.43319,
+        0.29612,
+        -3.0339,
+        0.40255,
+        3.47148,
+        1.0836
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12111,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 49,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.354,
+      "step": 167,
+      "tcp": [
+        0.19844,
+        0.14652,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.0257,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43598,
+        0.43317,
+        0.29589,
+        -3.03385,
+        0.4019,
+        3.47141,
+        1.08286
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12116,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 50,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.405,
+      "step": 168,
+      "tcp": [
+        0.19843,
+        0.14662,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02582,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43581,
+        0.43318,
+        0.29619,
+        -3.0338,
+        0.40247,
+        3.47138,
+        1.08148
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12116,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 51,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.457,
+      "step": 169,
+      "tcp": [
+        0.19843,
+        0.14661,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02576,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.4358,
+        0.43318,
+        0.29616,
+        -3.03383,
+        0.40256,
+        3.4714,
+        1.08145
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.12114,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 52,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.508,
+      "step": 170,
+      "tcp": [
+        0.19844,
+        0.14657,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02602,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43595,
+        0.43314,
+        0.2958,
+        -3.03377,
+        0.40181,
+        3.47131,
+        1.08234
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1212,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 53,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.56,
+      "step": 171,
+      "tcp": [
+        0.19847,
+        0.14663,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.0261,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43593,
+        0.43312,
+        0.29582,
+        -3.03374,
+        0.40196,
+        3.47126,
+        1.08162
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1212,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 54,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.61,
+      "step": 172,
+      "tcp": [
+        0.19849,
+        0.14661,
+        0.00818
+      ]
+    },
+    {
+      "aperture_m": 0.02612,
+      "commanded": [
+        0.4358,
+        0.43054,
+        0.29298,
+        -3.02766,
+        0.38899,
+        3.46441,
+        1.11797
+      ],
+      "grasped": false,
+      "measured_joints": [
+        0.43596,
+        0.43311,
+        0.29579,
+        -3.03374,
+        0.40195,
+        3.47123,
+        1.08151
+      ],
+      "object": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "object_to_tcp_m": 0.1212,
+      "phase": "Phase.RETREAT",
+      "policy": {
+        "drive_waypoint": 4,
+        "dwell": 55,
+        "ik_converged": false,
+        "ik_error_mm": 0.8,
+        "ik_orientation_error_rad": 0.0003,
+        "reached_waypoint": true,
+        "reason": null,
+        "waypoint": 4,
+        "waypoint_target": [
+          0.2,
+          0.15,
+          0.008
+        ]
+      },
+      "sim_t": 18.662,
+      "step": 173,
+      "tcp": [
+        0.19848,
+        0.14661,
+        0.00818
+      ]
+    }
+  ],
+  "scenario_id": "nominal",
+  "seed": 3,
+  "stages": {
+    "1_world_and_control": {
+      "ok": true,
+      "steps": 174,
+      "ticks_with_a_measured_object": 174
+    },
+    "2_gripper_enclosed_the_object": {
+      "bound_m": 0.03,
+      "closest_tcp_to_object_m": 0.00305,
+      "minimum_measured_aperture_m": 0.0013,
+      "ok": true
+    },
+    "3_object_lifted_by_contact": {
+      "max_object_height_above_table_m": 0.05633,
+      "ok": "True",
+      "required_lift_m": 0.05,
+      "ticks_the_task_counted_as_grasped": 13
+    },
+    "4_object_released_into_the_target": {
+      "final_object_pose": [
+        0.10537,
+        0.06903,
+        0.008
+      ],
+      "measured_placement_error_m": 0.12454432179196975,
+      "ok": false,
+      "tolerance_m": 0.05
+    },
+    "5_task_outcome": {
+      "grasp_error_m": 0.0042523163338037935,
+      "measured_object_lift_m": 0.056333547144842705,
+      "ok": false,
+      "placement_error_m": 0.12454432179196975,
+      "status": "failure"
+    }
+  },
+  "status": "failure",
+  "steps": 174,
+  "success": false,
+  "wall_clock_s": 21.19
+}

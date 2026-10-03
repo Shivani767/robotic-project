@@ -1,0 +1,23 @@
+scenario=nominal policy=policy_v1
+status=failure success=False steps=174
+  1_world_and_control: PASS
+      steps: 174
+      ticks_with_a_measured_object: 174
+  2_gripper_enclosed_the_object: PASS
+      closest_tcp_to_object_m: 0.00305
+      bound_m: 0.03
+      minimum_measured_aperture_m: 0.0013
+  3_object_lifted_by_contact: PASS
+      ticks_the_task_counted_as_grasped: 13
+      max_object_height_above_table_m: 0.05633
+      required_lift_m: 0.05
+  4_object_released_into_the_target: FAIL
+      final_object_pose: [np.float64(0.10537), np.float64(0.06903), np.float64(0.008)]
+      measured_placement_error_m: 0.12454432179196975
+      tolerance_m: 0.05
+  5_task_outcome: FAIL
+      status: failure
+      placement_error_m: 0.12454432179196975
+      grasp_error_m: 0.0042523163338037935
+      measured_object_lift_m: 0.056333547144842705
+wrote experiments/results/gazebo/pick_place_seed3_0mm_policy_v1.json

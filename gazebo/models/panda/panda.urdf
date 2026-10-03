@@ -271,29 +271,49 @@
   </link>
 
   <!-- Parallel jaw: two prismatic fingers, mirroring the MJCF's slide joints
-       with range 0..0.04 along +Y. -->
+       with range 0..0.04 along +Y.
+
+       Geometry is measured from the compiled MJCF, not drawn by eye, and is
+       expressed so the gripper is *symmetric by construction*. Each finger
+       joint's origin sits at the pad's inner face
+       (y = +/-0.0055, z = 0.0445): closing the joint to q narrows the pad
+       separation by exactly 2q, so closed separation + commanded aperture is
+       the true pad separation with no hidden asymmetry. The pads themselves sit
+       0.0584 along the finger bodies to land their centres at hand-frame
+       z = 0.0445 + 0.0584 = 0.1029, which is 0.5 mm behind the injected "tcp"
+       site at 0.1034, and each collision box is 0.02 x 0.015 x 0.017, giving a
+       pad half-height of 8.5 mm and a closed separation of 2 * 0.0055 = 0.011 m.
+       Both values are the ones RobotConfig derives its grasp geometry from
+       (pad_half_height_m and gripper_closed_separation_m).
+
+       The previous geometry put the pad centre at z = 0.0834 with a 50 mm tall
+       box and made the two jaws asymmetric (inner faces at y = +0.0025 and
+       -0.0125, so the midpoint sat 5 mm off the hand axis and prismatic travel
+       moved each face twice as far as the jaw's own model claims). Both are
+       corrected here; tests/unit/test_gazebo_backend.py pins the corrected
+       values against the config so they cannot drift apart again. -->
   <joint name="left_finger" type="prismatic">
     <parent link="panda_hand"/>
     <child link="panda_left_finger"/>
-    <origin xyz="0 0 0.0584" rpy="0 0 0"/>
+    <origin xyz="0 0.0055 0.0445" rpy="0 0 0"/>
     <axis xyz="0 1 0"/>
     <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
     <dynamics damping="1.0"/>
   </joint>
   <link name="panda_left_finger">
     <inertial>
-      <origin xyz="0 0.01 0.02" rpy="0 0 0"/>
+      <origin xyz="0 0.0075 0.0584" rpy="0 0 0"/>
             <mass value="0.015"/>
-      <inertia ixx="2.375e-06" ixy="0" ixz="0"
-               iyy="2.375e-06" iyz="0" izz="7.5e-07"/>
+      <inertia ixx="1.559e-06" ixy="0" ixz="0"
+               iyy="1.336e-06" iyz="0" izz="9.543e-07"/>
 </inertial>
     <collision>
-      <origin xyz="0 0.01 0.025" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.05"/></geometry>
+      <origin xyz="0 0.0075 0.0584" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.015 0.017"/></geometry>
     </collision>
     <visual>
-      <origin xyz="0 0.01 0.025" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.05"/></geometry>
+      <origin xyz="0 0.0075 0.0584" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.015 0.017"/></geometry>
       <material name="black"/>
     </visual>
   </link>
@@ -301,25 +321,25 @@
   <joint name="right_finger" type="prismatic">
     <parent link="panda_hand"/>
     <child link="panda_right_finger"/>
-    <origin xyz="0 -0.01 0.0584" rpy="0 0 0"/>
+    <origin xyz="0 -0.0055 0.0445" rpy="0 0 0"/>
     <axis xyz="0 -1 0"/>
     <limit lower="0.0" upper="0.04" effort="100" velocity="0.2"/>
     <dynamics damping="1.0"/>
   </joint>
   <link name="panda_right_finger">
     <inertial>
-      <origin xyz="0 -0.01 0.02" rpy="0 0 0"/>
+      <origin xyz="0 -0.0075 0.0584" rpy="0 0 0"/>
             <mass value="0.015"/>
-      <inertia ixx="2.375e-06" ixy="0" ixz="0"
-               iyy="2.375e-06" iyz="0" izz="7.5e-07"/>
+      <inertia ixx="1.559e-06" ixy="0" ixz="0"
+               iyy="1.336e-06" iyz="0" izz="9.543e-07"/>
 </inertial>
     <collision>
-      <origin xyz="0 -0.01 0.025" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.05"/></geometry>
+      <origin xyz="0 -0.0075 0.0584" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.015 0.017"/></geometry>
     </collision>
     <visual>
-      <origin xyz="0 -0.01 0.025" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.05"/></geometry>
+      <origin xyz="0 -0.0075 0.0584" rpy="0 0 0"/>
+      <geometry><box size="0.02 0.015 0.017"/></geometry>
       <material name="black"/>
     </visual>
   </link>
