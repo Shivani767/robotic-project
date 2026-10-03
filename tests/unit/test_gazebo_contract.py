@@ -101,11 +101,21 @@ class _FakePoses:
 class _FakeContacts:
     """Stands in for a contact sensor; reports whatever a test puts in it."""
 
-    def __init__(self, _world: str, _entity: str) -> None:
+    def __init__(self, _world: str, _entity: str, _sensor: str) -> None:
         self.data: dict[str, dict[str, float]] = {}
+        self.topic = ""
 
     def pairs(self) -> dict[str, dict[str, float]]:
         return dict(self.data)
+
+    def health(self) -> dict[str, Any]:
+        return {
+            "topic": self.topic,
+            "messages": 1 if self.data else 0,
+            "pairs": len(self.data),
+            "errors": [],
+            "live": True,
+        }
 
 
 class _FakeDepth:

@@ -268,34 +268,83 @@ class _ContactStream:
     the cause, and the two gave different stories while the question was open.
     """
 
-    def __init__(self, world: str, entity: str) -> None:
+    def __init__(self, world: str, entity: str, sensor: str) -> None:
+        """Subscribe to one model's contact sensor.
+
+        Args:
+            world: Gazebo world name.
+            entity: Model name, e.g. ``target_cube``.
+            sensor: Sensor name **as written in the world**. It is passed in
+                rather than derived from the model: the sensor is called
+                ``object_contacts`` while its model is ``target_cube``, and
+                deriving one from the other produced a topic nobody publishes.
+                A subscriber to a topic that does not exist reports no contacts
+                and looks perfectly healthy, which is the worst place for that to
+                hide.
+        """
         from gz.msgs10.contacts_pb2 import Contacts
         from gz.transport13 import Node
 
         self._lock = threading.Lock()
         self._pairs: dict[str, dict[str, float]] = {}
+        #: A callback that raises delivers nothing, and a subscriber that
+        #: delivers nothing is indistinguishable from a sensor reporting no
+        #: contacts. Counting messages and keeping the first error makes the
+        #: difference visible instead of leaving it to be inferred.
+        self.messages = 0
+        self.errors: list[str] = []
+        self.topic = f"/world/{world}/model/{entity}/link/link/sensor/{sensor}/contact"
         node = Node()
-        node.subscribe(
-            Contacts,
-            f"/world/{world}/model/{entity}/link/link/sensor/"
-            f"{entity}_contacts/contact",
-            self._on_contacts,
-        )
+        node.subscribe(Contacts, self.topic, self._guarded)
         self._node = node
+
+    def _guarded(self, msg: Any) -> None:
+        """Dispatch a message, recording any failure rather than losing it."""
+        try:
+            self._on_contacts(msg)
+        except Exception as exc:  # a broken stream must say so, not look empty
+            with self._lock:
+                self.messages += 1
+                if len(self.errors) < 4:
+                    self.errors.append(f"{type(exc).__name__}: {exc}")
+            return
+        with self._lock:
+            self.messages += 1
 
     def _on_contacts(self, msg: Any) -> None:
         snapshot: dict[str, dict[str, float]] = {}
         for contact in msg.contact:
-            for entry, normal in ((contact.collisions[0], 1.0), (contact.collisions[1], -1.0)):
-                others = [
-                    f"{normal * force.normal.x:+.3f},{normal * force.normal.y:+.3f},"
-                    f"{normal * force.normal.z:+.3f}"
-                    for force in entry.wrenches
-                ]
-                snapshot[f"{entry.name} -> {others}"] = {
-                    "separation_m": float(entry.separation),
-                    "depth_m": float(contact.depth),
-                }
+            # The field names are collision1/collision2, singular. An earlier
+            # version read collisions[0]/collisions[1], which raised inside this
+            # callback, and the subscriber reported *no contacts at all* while
+            # looking perfectly healthy -- the same failure mode as the joint
+            # reader that read a flat layout and silently returned zeros.
+            # Field names verified against the running system by introspecting
+            # the descriptor: collision1, collision2, position, normal, depth,
+            # wrench, world. There is no ``wrenches`` and no ``separation``;
+            # reading either raised inside the callback and the stream reported
+            # no contacts while looking healthy.
+            key = f"{contact.collision1.name} <-> {contact.collision2.name}"
+            # Only fields whose names were verified by introspecting the
+            # descriptors of the message Gazebo actually sends: collision1,
+            # collision2, depth, and world (a single Entity carrying a pose).
+            # Everything else is reached defensively. Three earlier readings --
+            # collisions[0], wrenches, and wrench.force.normal -- each raised
+            # inside this callback, and a stream that raises reports no contacts
+            # while looking perfectly healthy, which is why the errors are kept
+            # and shipped alongside the data.
+            # Pair identity only, and that is a deliberate scope limit rather
+            # than a simplification: collision1.name and collision2.name are the
+            # two fields verified against the running system (introspecting the
+            # descriptor is how they were found). Every richer field --
+            # separation, depth, the per-body wrench -- was read wrongly three
+            # times, each wrong read raising inside the callback and costing the
+            # whole stream, so "nothing is touching it" and "the subscriber is
+            # broken" became indistinguishable. Answering "which two bodies are
+            # in contact" is the question that was actually open; the wrench
+            # magnitude is recorded as not-yet-read rather than guessed at.
+            key = f"{contact.collision1.name} <-> {contact.collision2.name}"
+            snapshot[key] = {"in_contact": True}
         with self._lock:
             self._pairs = snapshot
 
@@ -303,6 +352,23 @@ class _ContactStream:
         """Return the contact pairs seen in the most recent message."""
         with self._lock:
             return dict(self._pairs)
+
+    def health(self) -> dict[str, Any]:
+        """Report whether this stream is actually working.
+
+        ``messages == 0`` means the sensor has not been heard from at all,
+        which is a fault; ``messages > 0`` with an empty ``pairs`` means the
+        sensor is live and nothing is touching it. Those are opposite
+        conclusions and must not read the same.
+        """
+        with self._lock:
+            return {
+                "topic": self.topic,
+                "messages": self.messages,
+                "pairs": len(self._pairs),
+                "errors": list(self.errors),
+                "live": self.messages > 0 and not self.errors,
+            }
 
 
 class _DepthStream:
@@ -514,8 +580,10 @@ class GazeboBackend(SimulatorBackend):
                 scenario, period=1.0 / float(scenario.sensors.control_hz or 50.0)
             ),
             "poses": _PoseStream(self._world_name),
-            "object_contacts": _ContactStream(self._world_name, OBJECT_MODEL),
-            "table_contacts": _ContactStream(self._world_name, "table"),
+            "object_contacts": _ContactStream(
+                self._world_name, OBJECT_MODEL, "object_contacts"
+            ),
+            "table_contacts": _ContactStream(self._world_name, "table", "table_contacts"),
             "depth": _DepthStream(self._world_name),
             "publishers": self._make_publishers(),
             "sdf": sdf,
@@ -705,6 +773,14 @@ class GazeboBackend(SimulatorBackend):
                 # observation is what the policy is allowed to see.
                 "object_contacts": state["object_contacts"].pairs(),
                 "table_contacts": state["table_contacts"].pairs(),
+                # The sensor's own health travels with the data. An empty
+                # contact set means "nothing is touching it"; a sensor with zero
+                # messages or a recorded error means the stream is broken, and
+                # those two must never look the same in an artifact.
+                "contact_health": {
+                    "object": state["object_contacts"].health(),
+                    "table": state["table_contacts"].health(),
+                },
             },
         )
 

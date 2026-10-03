@@ -336,9 +336,55 @@ contact. The **grasp is not reproducible**: the same configuration held it for
   0.5 mm **above** the tabletop. There is no table penetration to squeeze
   against.
 
-### The remaining failure: squeeze ejection
+### What the contact sensors settled
 
-The trace shows what happens. The pads command 11.2 mm of separation against a
+Everything above about the grasp was inferred from the object's velocity. It is
+now measured. Contact sensors sit on the object and on the table, and both pair
+sets ride on `Transition.info` -- simulator facts, deliberately kept out of the
+`Observation` the policy reads. Building them was itself instructive: the first
+three versions of the subscriber read field names that turned out to be wrong
+(`collisions[0]`, `wrenches`, `wrench.force.normal`), each raised inside the
+callback, and the stream reported **no contacts at all while looking perfectly
+healthy**. The fix was not the third guess but a `health()` that counts messages
+and keeps the first error, so a broken subscriber and a quiet sensor stopped
+looking the same.
+
+What it says, over a full 149-tick episode:
+
+| Pair | Ticks in contact |
+|---|---|
+| cube <-> table | 149 |
+| cube <-> **finger** | **0** |
+| finger <-> table | 149 (before the pad change), 2 (after) |
+
+So the jaws were **closing on the tabletop and missing the object entirely**,
+and they were doing it because the pads' lower edge grazed the surface. That is
+also why no gain change ever removed the finger residual: the pads were pressed
+against the table and physically could not close.
+
+### The remaining failure, as measured
+
+Shortening the pads to 6.5 mm half-height (2.0 mm of nominal clearance, against
+the arm's measured 1.4 mm sag) stopped the table contact: it fell from every
+tick to 2. The cube is still never touched, and now the contacts prove the
+blocker is not the table either.
+
+At the grasp the pads stall at a **21.4 mm** separation on a **16 mm** cube,
+with the tool centre point 1.5 mm from the cube's centre and no contact
+anywhere. A ~5 N per-pad closing command that moves a 15 g finger at 0.0034 m/s
+cannot happen without a reaction, and the sensors report none -- so the blocker
+is neither the table, nor the cube, nor the pads meeting each other. What it is
+has not been established, and the honest statement is that it has been narrowed
+by elimination rather than identified.
+
+### Squeeze ejection, superseded
+
+This was the working hypothesis before the contact sensors existed, and the
+sensors replaced it: the pads were never in contact with the object at all, so
+nothing was being squeezed out. Recorded because a hypothesis that measurement
+overturned is worth keeping.
+
+The trace did show this. The pads command 11.2 mm of separation against a
 16 mm object, so each interferes by 4.8 mm. On the tick the waypoint cursor
 advances and the lift begins, the object is thrown **14 mm clear of the jaws in
 one control tick** -- about 0.28 m/s -- and falls back to the table. It is not

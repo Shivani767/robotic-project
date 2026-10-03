@@ -480,9 +480,15 @@ def test_urdf_gripper_geometry_matches_the_robot_config() -> None:
         "the Gazebo pads may be shorter than the MJCF's, never taller: a taller "
         "pad drives them further into the support surface"
     )
-    assert pad_lower_edge_z >= 0.0005, (
+    # The arm settles ~1.4 mm below the commanded tool height under load and ODE
+    # reports contact at a clearance of 0.1 mm, so 2 mm of nominal clearance is
+    # the smallest that survives the sag. Below this the pads close on the
+    # tabletop: measured over a full episode, the cube was in contact with the
+    # table on 149 of 149 ticks and with a finger on none.
+    assert pad_lower_edge_z >= 0.0020, (
         f"the pads clear the tabletop by only {pad_lower_edge_z * 1000:.2f} mm; "
-        "they must clear it by at least 0.5 mm or the jaw grazes the table"
+        "they need at least 2 mm to survive the arm's settling sag, or the jaw "
+        "closes on the table instead of the object"
     )
     # Closed separation: the inner faces at q = 0. The pads' hand-frame y
     # origins place the pad centres at y = +/-0.013 (measured), and each pad

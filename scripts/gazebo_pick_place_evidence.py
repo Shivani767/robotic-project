@@ -107,6 +107,7 @@ def run(seed: int, noise_mm: float, policy_name: str, max_steps: int | None) -> 
             # replaces inference from the object's velocity.
             "object_contacts": record.transition.info.get("object_contacts", {}),
             "table_contacts": record.transition.info.get("table_contacts", {}),
+            "contact_health": record.transition.info.get("contact_health", {}),
             # What was *commanded*, so a limit cycle in the controller can be
             # told apart from one in the plan: if the command is steady and the
             # joint state oscillates, the controller is the cause.

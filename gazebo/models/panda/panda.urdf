@@ -285,8 +285,28 @@
        closed separation of 2 * 0.0055 = 0.011 m, the value RobotConfig derives
        from gripper_closed_separation_m.
 
-       The pad half-height is 7.5 mm here, NOT RobotConfig's measured 8.5 mm,
-       and that is a deliberate, measured Gazebo-only difference. The task aims
+       The pad half-height is 6.5 mm here, NOT RobotConfig's measured 8.5 mm,
+       and that is a deliberate, measured Gazebo-only difference, driven by
+       contact evidence rather than by preference.
+
+       The contact sensors say what is actually touching. Over a full episode
+       the cube was in contact with the table on all 149 ticks and with a finger
+       on none, while both pads were in contact with the TABLE on every tick:
+       the jaws were closing on the tabletop and missing the object entirely.
+       That also explains the finger residual that no gain change removed, and the
+       pads were pressed against the table and physically could not close.
+
+       The clearance that follows from the shared task's aim is
+       ``object_half + pad_offset_from_tcp - pad_half_height``. The arm settles
+       about 1.4 mm below the commanded tool height under load, and ODE reports
+       contact at a clearance of 0.1 mm, so the clearance has to exceed the
+       measured sag with room to spare. At 6.5 mm it is 2.0 mm nominally and
+       0.6 mm even at the worst observed sag. 13 mm tall pads still span 13 mm of
+       a 16 mm cube, gripping it about its middle.
+
+       An earlier revision used 7.5 mm (1.0 mm of nominal clearance) on the
+       reasoning that the aim alone should suffice. The contact evidence says
+       it does not, and the contacts are what the number is now derived from. The task aims
        the tool centre point at the object's centre, so the pads' lower edge
        lands at object_centre + 0.0005 - pad_half_height. With an 8 mm half-object
        resting on the table, an 8.5 mm pad puts the lower edge 0.5 mm *below* the
@@ -324,11 +344,11 @@
 </inertial>
     <collision>
       <origin xyz="0 0.0075 0.0584" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.015"/></geometry>
+      <geometry><box size="0.02 0.015 0.013"/></geometry>
     </collision>
     <visual>
       <origin xyz="0 0.0075 0.0584" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.015"/></geometry>
+      <geometry><box size="0.02 0.015 0.013"/></geometry>
       <material name="black"/>
     </visual>
   </link>
@@ -350,11 +370,11 @@
 </inertial>
     <collision>
       <origin xyz="0 -0.0075 0.0584" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.015"/></geometry>
+      <geometry><box size="0.02 0.015 0.013"/></geometry>
     </collision>
     <visual>
       <origin xyz="0 -0.0075 0.0584" rpy="0 0 0"/>
-      <geometry><box size="0.02 0.015 0.015"/></geometry>
+      <geometry><box size="0.02 0.015 0.013"/></geometry>
       <material name="black"/>
     </visual>
   </link>
