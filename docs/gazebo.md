@@ -397,6 +397,18 @@ there with a force of the same order as the controller's command, and the
 ablations say it is not the object, the table, the pad collisions, the velocity
 limit, or the command rate.
 
+A force-torque sensor on each finger **joint** then measured the reaction
+directly. At the stall the sensor reads a steady **4.98 N** on each finger,
+against a commanded position error of 5.2 mm -- and the controller's proportional
+term for that error is 1000 * 0.0052 = **5.2 N**. The controller is applying
+exactly the force it intends, and the joint is not moving. So the command is not
+lost or mis-scaled, the reaction is not the cube or the table or the pads'
+collision geometry, and 5 N on a 15 g finger (an acceleration of ~330 m/s^2)
+cannot plausibly take seconds to cover 5 mm. What remains is a joint constraint
+in the engine rejecting that force; the joint velocity limit is the documented
+candidate, and raising it tenfold moved the stall into a limit cycle rather than
+removing it.
+
 For the grasp that is decisive whatever the reaction turns out to be. The policy
 advances past the grasp on `close_dwell >= 6` ticks -- 0.3 s at 20 Hz -- and the
 measured aperture at that moment is ~0.021 m against a 0.016 m object. **The

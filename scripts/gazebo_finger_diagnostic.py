@@ -199,6 +199,7 @@ def ablate(
     no_table: bool,
     no_finger_collision: bool,
     finger_velocity_limit: float | None = None,
+    finger_force_torque: bool = False,
 ) -> str:
     """Return the world with the requested parts removed, one variable at a time.
 
@@ -220,6 +221,37 @@ def ablate(
         name = model.get("name")
         if (name == "target_cube" and no_object) or (name == "table" and no_table):
             world.remove(model)
+    if finger_force_torque:
+        # A sensor does nothing without its system plugin: the world still
+        # loads, the sensor still appears in the SDF, and the topic simply never
+        # publishes. Same shape as a subscriber wired to a topic nobody serves.
+        world_el = root.find("world")
+        assert world_el is not None
+        plugin = ElementTree.Element("plugin")
+        plugin.set("filename", "gz-sim-forcetorque-system")
+        plugin.set("name", "gz::sim::systems::ForceTorque")
+        world_el.append(plugin)
+        # A force-torque sensor on each finger link is the only direct reading of
+        # the reaction the jaw is fighting. Everything so far infers it from how
+        # slowly the fingers creep, which cannot distinguish a contact force, a
+        # constraint, and a saturated controller.
+        # The sensor must be a child of the JOINT, not of the link. Gazebo
+        # refuses otherwise, and says so precisely: "Parent entity of sensor
+        # [...] must be a joint." Hanging it off the joint also measures the
+        # right thing -- the force the joint applies to the finger, which is
+        # where the reaction this investigation is chasing would show up.
+        robot = next(m for m in root.iter("model") if m.get("name") == GAZEBO_ROBOT_NAME)
+        for joint in robot.findall("joint"):
+            if "finger" not in (joint.get("name") or ""):
+                continue
+            sensor = ElementTree.SubElement(joint, "sensor")
+            sensor.set("name", "finger_ft")
+            sensor.set("type", "force_torque")  # SDF spells it with an underscore
+            force_torque = ElementTree.SubElement(sensor, "force_torque")
+            frame = ElementTree.SubElement(force_torque, "frame")
+            frame.text = "child"
+            rate = ElementTree.SubElement(sensor, "update_rate")
+            rate.text = "100"
     if no_finger_collision:
         robot = next(m for m in world.findall("model") if m.get("name") == GAZEBO_ROBOT_NAME)
         for link in robot.iter("link"):
@@ -384,6 +416,7 @@ def hold_trace(
     finger_velocity_limit: float | None = None,
     ramp_m_s: float | None = None,
     no_finger_collision: bool = False,
+    finger_force_torque: bool = False,
 ) -> dict[str, Any]:
     """Command one aperture and watch the fingers for a long time.
 
@@ -402,6 +435,7 @@ def hold_trace(
         no_table=no_table,
         no_finger_collision=no_finger_collision,
         finger_velocity_limit=finger_velocity_limit,
+        finger_force_torque=finger_force_torque,
     )
     world_file = Path(f"/tmp/finger_hold_{label}.sdf")
     world_file.write_text(sdf, encoding="utf-8")
@@ -420,6 +454,36 @@ def hold_trace(
         for joint in ("left_finger", "right_finger")
     }
     samples: list[dict[str, Any]] = []
+    # Field names taken from the live descriptor captured in
+    # message_schemas.json: Wrench has force/torque/force_offset, each with
+    # scalar x, y, z. It is NOT a nested `normal` vector, which is what the
+    # three earlier failed attempts assumed.
+    ft_node = None
+    ft_latest: dict[str, Any] = {}
+    ft_health: dict[str, Any] = {"messages": 0, "errors": []}
+    if finger_force_torque:
+        from gz.msgs10.wrench_pb2 import Wrench
+
+        ft_node = Node()
+        # The topic hangs off the JOINT and the suffix is spelled without the
+        # underscore, both read from `gz topic -l` on a running world rather
+        # than inferred: a subscriber wired to a topic nobody serves simply
+        # receives nothing and looks healthy.
+        for joint in ("left_finger", "right_finger"):
+            topic = (
+                f"/world/{GAZEBO_WORLD_NAME}/model/{GAZEBO_ROBOT_NAME}/joint/{joint}"
+                "/sensor/finger_ft/forcetorque"
+            )
+
+            def _on(msg: Any, link: str = joint) -> None:
+                ft_health["messages"] = int(ft_health["messages"]) + 1
+                ft_latest[link] = (
+                    round(float(msg.force.x), 4),
+                    round(float(msg.force.y), 4),
+                    round(float(msg.force.z), 4),
+                )
+
+            ft_node.subscribe(Wrench, topic, _on)
     try:
         if not _wait_for_topic(process, JOINT_STATE_TOPIC):
             return {"label": label, "error": "joint_state never appeared"}
@@ -490,6 +554,7 @@ def hold_trace(
                     "pad_separation_m": None
                     if left is None or right is None
                     else round(CLOSED_SEPARATION_M + left + right, 5),
+                    "finger_force_N": dict(sorted(ft_latest.items())),
                 }
             )
         payload = {
@@ -505,9 +570,11 @@ def hold_trace(
                 "no_table": no_table,
                 "finger_velocity_limit": finger_velocity_limit,
                 "no_finger_collision": no_finger_collision,
+                "finger_force_torque": finger_force_torque,
             },
             "samples": samples,
             "reader": {"messages": health.joint_messages, "errors": list(health.errors)},
+            "force_sensor": dict(ft_health),
         }
     finally:
         reader.stop()
@@ -533,6 +600,7 @@ def main() -> int:
     parser.add_argument("--finger-velocity-limit", type=float, default=None)
     parser.add_argument("--ramp-mps", type=float, default=None)
     parser.add_argument("--no-finger-collision", action="store_true")
+    parser.add_argument("--finger-ft", action="store_true")
     parser.add_argument("--no-object", action="store_true")
     parser.add_argument("--no-table", action="store_true")
     parser.add_argument("--only", choices=("left_finger", "right_finger"), default=None)
@@ -560,6 +628,8 @@ def main() -> int:
         label = f"{label}_ramp{args.ramp_mps:g}"
     if args.no_finger_collision:
         label = f"{label}_nocoll"
+    if args.finger_ft:
+        label = f"{label}_ft"
         result = hold_trace(
             label=label,
             aperture=args.aperture,
@@ -570,6 +640,7 @@ def main() -> int:
             finger_velocity_limit=args.finger_velocity_limit,
             ramp_m_s=args.ramp_mps,
             no_finger_collision=args.no_finger_collision,
+            finger_force_torque=args.finger_ft,
         )
         if "error" in result:
             print(f"hold: ERROR {result['error']}")
@@ -578,7 +649,7 @@ def main() -> int:
         for sample in result["samples"]:
             print(
                 f"  t={sample['t_s']:>5}s L {sample['left_m']} R {sample['right_m']} "
-                f"sep {sample['pad_separation_m']}"
+                f"sep {sample['pad_separation_m']} force {sample.get('finger_force_N')}"
             )
         print(f"wrote {RESULTS / ('finger_hold_' + label + '.json')}")
         return 0
@@ -598,6 +669,8 @@ def main() -> int:
         label = f"{label}_ramp{args.ramp_mps:g}"
     if args.no_finger_collision:
         label = f"{label}_nocoll"
+    if args.finger_ft:
+        label = f"{label}_ft"
     result = sweep(
         label=label,
         no_object=args.no_object,

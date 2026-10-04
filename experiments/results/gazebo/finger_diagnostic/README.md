@@ -101,6 +101,44 @@ wide. **The jaws are still 5 mm too wide to enclose it when the lift starts**,
 which is exactly what the contact sensors show: cube-to-finger contact on zero
 ticks of a 149-tick episode.
 
+## The reaction, measured rather than inferred
+
+`finger_hold_no_object_ft.json` puts a force-torque sensor on each finger **joint**
+and reads it while the jaw closes. (The sensor must hang off the joint: Gazebo
+refuses a link-parented one with "Parent entity of sensor [...] must be a joint."
+Its topic is `/world/<w>/model/panda/joint/<joint>/sensor/finger_ft/forcetorque`,
+read from `gz topic -l` rather than guessed.)
+
+    t=0.15 s   sep 26.4 mm   left force.y  2.46 N   right force.y  2.66 N
+    t=0.20 s   sep 22.5 mm   left force.y  4.93 N   right force.y  4.96 N
+    t=0.55 s   sep 22.1 mm   left force.y  4.96 N   right force.y  4.98 N
+    t=1.21 s   sep 21.4 mm   left force.y  5.01 N   right force.y  4.98 N
+
+Commanded position error at the stall is 0.0053 - 0.0001 = 5.2 mm, and the
+controller's proportional term is `p_gain * error` = 1000 * 0.0052 = **5.2 N**.
+
+**The reading is 4.98 N.** The sensor is confirming that the controller is
+applying exactly the force its position error implies -- and the joint still
+does not move.
+
+That is the sharpest statement available so far, and it eliminates several
+possibilities at once:
+
+* **Not a tracking or command error.** The applied force is exactly what the
+  command asks for; the command is not being lost or mis-scaled.
+* **Not an uncommanded reaction from the world.** 5 N is the controller's own
+  output. Whatever balances it is not pushing with more than 5 N.
+* **Not the object's inertia.** 5 N on a 15 g finger is an acceleration of
+  ~330 m/s^2; reaching 5 mm would take about 0.2 ms, not the observed seconds.
+* **Not the cube, the table, or the pads' collision geometry** -- all three are
+  excluded by ablation, including deleting the pad collisions outright.
+
+What is left is the engine or the joint model refusing to convert that force
+into motion: a joint constraint. The one documented mechanism is the joint
+velocity limit, which DART enforces by scaling the applied force. Raising it
+tenfold moved the stall into a limit cycle rather than removing it, which is
+consistent with that mechanism but does not confirm it.
+
 ## The fix this implies, and why it is not applied here
 
 Two candidate fixes, neither applied:
