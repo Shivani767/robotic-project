@@ -1,0 +1,428 @@
+{
+  "ablation": {
+    "finger_force_torque": true,
+    "finger_velocity_limit": null,
+    "no_finger_collision": false,
+    "no_object": true,
+    "no_table": false,
+    "only": "left_finger",
+    "remove_finger_velocity": false
+  },
+  "commanded_aperture_m": 0.0002,
+  "commanded_per_finger_m": 0.0001,
+  "force_sensor": {
+    "errors": [],
+    "messages": 1554
+  },
+  "hold_s": 1.0,
+  "label": "no_object_ft_left_finger",
+  "ramp_m_s": null,
+  "rate_hz": 20.0,
+  "reader": {
+    "errors": [],
+    "messages": 4915
+  },
+  "samples": [
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          0.0563,
+          -0.1837,
+          -0.1531
+        ],
+        "right_finger": [
+          2.2794,
+          5.4887,
+          -0.0463
+        ]
+      },
+      "left_m": 0.02626,
+      "pad_separation_m": 0.07391,
+      "right_m": 0.03665,
+      "sim_time_s": 6.81,
+      "t_s": 0.05
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          0.3186,
+          -0.1657,
+          -0.1576
+        ],
+        "right_finger": [
+          2.3126,
+          5.77,
+          -0.0539
+        ]
+      },
+      "left_m": 0.01626,
+      "pad_separation_m": 0.06412,
+      "right_m": 0.03686,
+      "sim_time_s": 6.86,
+      "t_s": 0.1
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          0.4784,
+          1.9782,
+          -0.0876
+        ],
+        "right_finger": [
+          2.236,
+          5.7854,
+          -0.0241
+        ]
+      },
+      "left_m": 0.00786,
+      "pad_separation_m": 0.05573,
+      "right_m": 0.03686,
+      "sim_time_s": 6.91,
+      "t_s": 0.151
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1939,
+          4.5136,
+          0.4772
+        ],
+        "right_finger": [
+          1.4271,
+          4.9949,
+          0.2714
+        ]
+      },
+      "left_m": 0.00618,
+      "pad_separation_m": 0.054,
+      "right_m": 0.03682,
+      "sim_time_s": 6.96,
+      "t_s": 0.201
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1864,
+          4.9116,
+          0.4778
+        ],
+        "right_finger": [
+          1.4285,
+          4.991,
+          0.2722
+        ]
+      },
+      "left_m": 0.00588,
+      "pad_separation_m": 0.0537,
+      "right_m": 0.03682,
+      "sim_time_s": 7.01,
+      "t_s": 0.251
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1835,
+          4.9474,
+          0.4773
+        ],
+        "right_finger": [
+          1.4163,
+          4.9921,
+          0.2725
+        ]
+      },
+      "left_m": 0.0058,
+      "pad_separation_m": 0.05362,
+      "right_m": 0.03682,
+      "sim_time_s": 7.06,
+      "t_s": 0.301
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.183,
+          5.0092,
+          0.4777
+        ],
+        "right_finger": [
+          1.4263,
+          4.9905,
+          0.2725
+        ]
+      },
+      "left_m": 0.00556,
+      "pad_separation_m": 0.05359,
+      "right_m": 0.03702,
+      "sim_time_s": 7.11,
+      "t_s": 0.352
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1813,
+          4.9866,
+          0.4774
+        ],
+        "right_finger": [
+          1.429,
+          4.9898,
+          0.2724
+        ]
+      },
+      "left_m": 0.00553,
+      "pad_separation_m": 0.05356,
+      "right_m": 0.03702,
+      "sim_time_s": 7.16,
+      "t_s": 0.402
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1829,
+          4.9169,
+          0.4774
+        ],
+        "right_finger": [
+          1.3955,
+          4.9974,
+          0.2726
+        ]
+      },
+      "left_m": 0.0055,
+      "pad_separation_m": 0.05352,
+      "right_m": 0.03702,
+      "sim_time_s": 7.21,
+      "t_s": 0.452
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1805,
+          4.9689,
+          0.4773
+        ],
+        "right_finger": [
+          1.417,
+          4.9924,
+          0.2725
+        ]
+      },
+      "left_m": 0.00548,
+      "pad_separation_m": 0.0535,
+      "right_m": 0.03702,
+      "sim_time_s": 7.26,
+      "t_s": 0.502
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1805,
+          4.9951,
+          0.4772
+        ],
+        "right_finger": [
+          1.4251,
+          4.9908,
+          0.2725
+        ]
+      },
+      "left_m": 0.00545,
+      "pad_separation_m": 0.05347,
+      "right_m": 0.03702,
+      "sim_time_s": 7.31,
+      "t_s": 0.552
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1793,
+          4.994,
+          0.4772
+        ],
+        "right_finger": [
+          1.4223,
+          4.9912,
+          0.2725
+        ]
+      },
+      "left_m": 0.00542,
+      "pad_separation_m": 0.05345,
+      "right_m": 0.03702,
+      "sim_time_s": 7.36,
+      "t_s": 0.603
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1791,
+          4.9788,
+          0.4771
+        ],
+        "right_finger": [
+          1.4062,
+          4.9949,
+          0.2725
+        ]
+      },
+      "left_m": 0.00559,
+      "pad_separation_m": 0.05342,
+      "right_m": 0.03682,
+      "sim_time_s": 7.41,
+      "t_s": 0.653
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1777,
+          4.9733,
+          0.4769
+        ],
+        "right_finger": [
+          1.4237,
+          4.9908,
+          0.2724
+        ]
+      },
+      "left_m": 0.00557,
+      "pad_separation_m": 0.05339,
+      "right_m": 0.03682,
+      "sim_time_s": 7.46,
+      "t_s": 0.703
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1778,
+          4.9891,
+          0.477
+        ],
+        "right_finger": [
+          1.4215,
+          4.991,
+          0.2725
+        ]
+      },
+      "left_m": 0.00554,
+      "pad_separation_m": 0.05336,
+      "right_m": 0.03682,
+      "sim_time_s": 7.51,
+      "t_s": 0.753
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1762,
+          4.9893,
+          0.4769
+        ],
+        "right_finger": [
+          1.4254,
+          4.9905,
+          0.2724
+        ]
+      },
+      "left_m": 0.00551,
+      "pad_separation_m": 0.05334,
+      "right_m": 0.03682,
+      "sim_time_s": 7.56,
+      "t_s": 0.803
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.176,
+          4.9344,
+          0.4762
+        ],
+        "right_finger": [
+          1.4267,
+          4.9918,
+          0.2722
+        ]
+      },
+      "left_m": 0.00549,
+      "pad_separation_m": 0.05331,
+      "right_m": 0.03682,
+      "sim_time_s": 7.61,
+      "t_s": 0.853
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1763,
+          4.9721,
+          0.4767
+        ],
+        "right_finger": [
+          1.4226,
+          4.9918,
+          0.2725
+        ]
+      },
+      "left_m": 0.00526,
+      "pad_separation_m": 0.05328,
+      "right_m": 0.03702,
+      "sim_time_s": 7.66,
+      "t_s": 0.904
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1738,
+          4.9633,
+          0.4765
+        ],
+        "right_finger": [
+          1.4195,
+          4.9921,
+          0.2724
+        ]
+      },
+      "left_m": 0.00524,
+      "pad_separation_m": 0.05326,
+      "right_m": 0.03702,
+      "sim_time_s": 7.71,
+      "t_s": 0.954
+    },
+    {
+      "commanded_aperture_m": 0.0002,
+      "finger_force_N": {
+        "left_finger": [
+          -0.1736,
+          4.9986,
+          0.4767
+        ],
+        "right_finger": [
+          1.4264,
+          4.9898,
+          0.2724
+        ]
+      },
+      "left_m": 0.00521,
+      "pad_separation_m": 0.05323,
+      "right_m": 0.03702,
+      "sim_time_s": 7.76,
+      "t_s": 1.004
+    }
+  ],
+  "stepped_from_aperture_m": 0.08
+}

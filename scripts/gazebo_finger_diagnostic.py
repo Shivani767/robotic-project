@@ -434,6 +434,7 @@ def hold_trace(
     no_finger_collision: bool = False,
     finger_force_torque: bool = False,
     remove_finger_velocity: bool = False,
+    only: str | None = None,
 ) -> dict[str, Any]:
     """Command one aperture and watch the fingers for a long time.
 
@@ -540,7 +541,9 @@ def hold_trace(
         commanded_aperture = aperture
         if controller is not None:
             commanded_aperture = controller.step(requested_width_m=aperture)
-        for publisher in publishers.values():
+        for name, publisher in publishers.items():
+            if only is not None and name != only:
+                continue
             message = Double()
             message.data = float(commanded_aperture / 2.0)
             publisher.publish(message)
@@ -555,7 +558,9 @@ def hold_trace(
                     measured_width_m=float(sensed.get("left_finger", 0.0))
                     + float(sensed.get("right_finger", 0.0)),
                 )
-                for publisher in publishers.values():
+                for name, publisher in publishers.items():
+                    if only is not None and name != only:
+                        continue
                     message = Double()
                     message.data = float(commanded_aperture / 2.0)
                     publisher.publish(message)
@@ -590,6 +595,7 @@ def hold_trace(
                 "no_finger_collision": no_finger_collision,
                 "finger_force_torque": finger_force_torque,
                 "remove_finger_velocity": remove_finger_velocity,
+                "only": only,
             },
             "samples": samples,
             "reader": {"messages": health.joint_messages, "errors": list(health.errors)},
@@ -652,6 +658,8 @@ def main() -> int:
         label = f"{label}_ft"
     if args.remove_finger_velocity:
         label = f"{label}_novel"
+    if args.only:
+        label = f"{label}_{args.only}"
         result = hold_trace(
             label=label,
             aperture=args.aperture,
@@ -664,6 +672,7 @@ def main() -> int:
             no_finger_collision=args.no_finger_collision,
             finger_force_torque=args.finger_ft,
             remove_finger_velocity=args.remove_finger_velocity,
+            only=args.only,
         )
         if "error" in result:
             print(f"hold: ERROR {result['error']}")

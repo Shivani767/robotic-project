@@ -166,6 +166,49 @@ exposes a second, larger problem underneath. Part 1B is **not complete** -- the
 root cause is still not identified, and two distinct defects are now on the
 record rather than one.
 
+## One finger at a time, and the retraction of the last commit
+
+`--only` now reaches `hold`, not just `sweep`. Commanding one finger at a time,
+each from 0.04 down to a commanded 0.0001:
+
+    only=left_finger    t=0.55  L 0.00545  R 0.03702
+                        t=1.00  L 0.00521  R 0.03702
+    only=right_finger   t=0.55  L 0.03711  R 0.00544
+                        t=1.00  L 0.03691  R 0.00540
+
+**This retracts the "the left finger is pinned" reading from the previous commit.**
+Neither joint is stuck. Each finger, driven alone, closes from 0.04 to about
+0.0052 and stops there; the uncommanded finger simply stays where it was, which
+is what produced the apparent 0.0400 asymmetry. That asymmetry was an artifact of
+commanding only one side, not a second defect. There is one defect, not two.
+
+And the stall is now shown to be per-joint: it reproduces with the other finger
+inert, with no cube, with no table, and with the pads' collision geometry
+deleted. A single prismatic joint, commanded over a 40 mm stroke, halts 5.2 mm
+in, every time.
+
+**A caveat that weakens part of this phase's instrumentation.** At t=0.05 s of
+the left-only run, the *commanded* finger's sensor reads -0.18 N while the
+*uncommanded* one reads 5.49 N. That is backwards, and it says the per-finger
+force attribution is not trustworthy at short timescales. The 4.98 N and 96.7 N
+steady-state figures are both-sided and consistent, so the force readings stand
+as evidence that a large force is applied and nothing moves -- but which sensor
+reports which finger's force should not be relied on.
+
+**A real inconsistency in the converted model, worth checking next.** In
+`model_sdf.txt` each finger *joint* pose is expressed relative to its parent --
+`<pose relative_to="panda_link7">`, with the -0.7854 yaw -- but each finger
+*link* pose is absolute in world coordinates and carries a 180 deg roll about x
+with the yaw sign flipped:
+
+    joint left_finger   pose relative_to="panda_link7"  0.003889 0.003889 0.1515  0 0 -0.7854
+    link  panda_left_finger  pose                       0.091889 -0.003889 0.8815  3.14159 0 0.7854
+
+The y components have opposite signs and the roll is inverted, so each pad sits
+mirrored across its own joint axis and inverted in z relative to the joint frame.
+Whether Gazebo reconciles this at load is exactly the kind of thing to confirm
+rather than assume, and it is the next thing to check.
+
 ## The fix this implies, and why it is not applied here
 
 Two candidate fixes, neither applied:
