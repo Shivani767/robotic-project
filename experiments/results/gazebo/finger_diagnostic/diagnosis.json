@@ -65,12 +65,61 @@
   },
   "section2_conclusion": "URDF->SDF joint-origin conversion is arithmetically correct to 1e-9 m: gz sdf -p collapsed panda_hand into panda_link7 and recomputed each finger joint origin as hand_xyz + Rz(hand_yaw) @ urdf_origin. Axis, limits, effort, velocity, damping, friction, mass and inertia also match the URDF exactly. Candidates 1 and 2 are falsified as conversion errors.",
   "section6_minimal_model": {
-    "status": "NOT_YET_RUNNING",
-    "why": "scripts/finger_minimal.py builds and launches the minimal world, and the controller advertises /model/minifinger/joint/slide/0/cmd_pos with no load errors. But no joint_state topic is published, so q cannot be read back and the model-level JointStatePublisher plugin is not producing /world/minifinger_world/model/minifinger/joint_state. Until that is fixed the minimal model has not answered section 6 and the branch is unknown.",
+    "status": "RAN \u2014 the minimal model tracks, so Gazebo prismatic semantics are sound",
+    "verdict": "Minimal model works. Per section 6 that puts the fault in the Panda finger conversion/configuration, not in Gazebo prismatic joints.",
     "hazebo_build": "gz-sim 8.15.0, aarch64",
-    "sdf_dialect_finding": "This build reads SDF values as ELEMENT TEXT, not attributes: pose, mass, ixx..izz, lower/upper/effort/velocity, damping/friction, gravity, box size, parent/child. Written as attributes it warns \"XML Attribute[..] not defined in SDF\" and then fails the world with Error Code 34, \"Empty string used when setting a required parameter\". Same form gz sdf -p emits.",
-    "plugin_placement_finding": "JointPositionController at world level is refused: \"should be attached to a model entity\". A <plugins> wrapper inside <joint> is \"not defined in SDF\". The controller must be a <plugin> child of <model>, with joint_name/p_gain/... as element text.",
-    "gui_finding": "gz sim without -s tries to open a GUI, dies with no display, and advertises zero topics while still producing a clean-looking result file full of nulls."
+    "variants": {
+      "base": {
+        "variant": "base",
+        "full_stroke": true,
+        "max_abs_error_m": 0.0,
+        "final_q_mm": 40.0
+      },
+      "parentcoll": {
+        "variant": "parentcoll",
+        "full_stroke": true,
+        "max_abs_error_m": 0.0,
+        "final_q_mm": 40.0
+      },
+      "pandalink": {
+        "variant": "pandalink",
+        "full_stroke": true,
+        "max_abs_error_m": 0.0,
+        "final_q_mm": 40.0
+      },
+      "pandagains": {
+        "variant": "pandagains",
+        "full_stroke": true,
+        "max_abs_error_m": 0.003621,
+        "final_q_mm": 38.439
+      }
+    },
+    "what_each_variant_rules_out": {
+      "base": "A plain prismatic joint with the finger mass, inertia, pad box, limits, damping and friction tracks the full 0..40 mm stroke with 0.000 m error. Gazebo prismatic joints are sound in isolation (candidates 5,6,7,8,9,10,14 not implicated by those values).",
+      "parentcoll": "Giving the parent panda_link7's real cylinder collision (r 0.045, l 0.1) changes nothing: still 0.000 m error. Falsifies 11 and 12.",
+      "pandalink": "Giving the joint the Panda's exact link7-relative pose AND the child link the Panda's exact absolute pose (180 deg roll, flipped y) changes nothing: still 0.000 m error. Falsifies 3 as a stall cause, even though removing those poses in the real Panda shifts the stall 5.2 -> 8.1 mm.",
+      "pandagains": "Replicating the finger gains exactly (p 1000, i 100, d 50, i_max +/-4, cmd_max 100) produces a 3.6 mm steady-state lag that shrinks monotonically (3.62 mm at cmd 0.005 down to 1.56 mm at cmd 0.040) and still reaches the full stroke. This is a SLOW integral, not a hard stall, because the finger here is loaded only by its own 0.147 N of gravity while the Panda finger carries about 5 N. Does NOT reproduce the Panda stall, so 15 is not supported by it."
+    },
+    "note_on_integral": "p_gain/i_gain = 1000/100 means the finger integral needs ~10 s of sustained error to cancel a proportional term. Against the Panda finger's ~5 N reaction that is far longer than any episode, which is why the Panda jaw creeps instead of closing."
   },
-  "root_cause": "NOT IDENTIFIED"
+  "root_cause": "NOT IDENTIFIED",
+  "section8_candidate_status": {
+    "1_incorrect_joint_axis": "FALSIFIED - axis (0,+-1,0) matches the URDF and section 2 recomputation.",
+    "2_incorrect_joint_pose": "FALSIFIED - recomputed origin matches the generated SDF to <1e-9 m on both fingers.",
+    "3_incorrect_child_link_pose": "FALSIFIED as a stall cause - the pandalink variant reproduces the exact poses in isolation and tracks perfectly.",
+    "4_incorrect_pad_collision_pose": "NOT_TESTED in the minimal model; removing pad collisions in the real Panda did not help.",
+    "5_joint_limit": "FALSIFIED - removing the velocity limit still stalled; limits match the URDF.",
+    "6_effort_limit": "FALSIFIED - 96.7 N applied with no stall.",
+    "7_velocity_limit": "FALSIFIED - removing it entirely still stalls.",
+    "8_joint_damping": "FALSIFIED - damping 1 with 0.000 m error in isolation.",
+    "9_joint_friction": "FALSIFIED - friction 0, and the free variant is unchanged.",
+    "10_joint_stiffness": "NOT_TESTED - no stiffness element exists in the generated SDF.",
+    "11_collision_self_interaction": "FALSIFIED - the parentcoll variant tracks perfectly.",
+    "12_hidden_collision_geometry": "FALSIFIED - panda_link7's cylinder reproduced in isolation, no effect.",
+    "13_parent_child_inertial_config": "NOT_TESTED - the Panda merges hand inertia into link7 via the collapsed fixed joint.",
+    "14_joint_generated_constraint": "FALSIFIED - identical joint config in isolation tracks perfectly.",
+    "15_controller_plugin_behaviour": "NOT SUPPORTED by pandagains (slow integral, not a stall). Still open for the multi-instance case: the Panda puts nine JointPositionController plugins on one model.",
+    "16_gazebo_sdf_conversion": "PARTLY FALSIFIED - joint origin/axis/limits convert correctly; the absolute child-link poses are odd but do not stall in isolation.",
+    "17_gazebo_arm64_behaviour": "FALSIFIED for prismatic joints in isolation - the same build tracks perfectly."
+  }
 }

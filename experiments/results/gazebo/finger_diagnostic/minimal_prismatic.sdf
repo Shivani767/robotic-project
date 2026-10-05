@@ -2,7 +2,6 @@
   <world name="minifinger_world">
     <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics" />
     <gravity>0 0 -9.8</gravity>
-    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher" />
     <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController" />
     <model name="minifinger">
       <static>false</static>
@@ -75,6 +74,7 @@
         <cmd_max>50</cmd_max>
         <cmd_min>-50</cmd_min>
       </plugin>
+      <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher" />
     </model>
   </world>
 </sdf>

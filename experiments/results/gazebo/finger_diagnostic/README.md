@@ -289,6 +289,36 @@ question, so it is not yet true that Gazebo's prismatic joints are sound in
 isolation -- and until it is, the search space still includes Gazebo's own
 joint handling rather than being confined to the Panda conversion.
 
+### Section 6, resolved: the minimal model tracks
+
+`JointStatePublisher` also belongs on the **model**, not the world -- with it
+there the topic appears and the sweep reads back. Four variants, all commanded
+across the full 0..40 mm stroke:
+
+| variant | what it reproduces | full stroke | max abs error |
+|---|---|---|---|
+| `base` | finger mass/inertia/pad/limits/damping/friction | yes | **0.000 m** |
+| `parentcoll` | panda_link7's real cylinder collision | yes | **0.000 m** |
+| `pandalink` | the Panda's exact joint pose *and* child-link pose | yes | **0.000 m** |
+| `pandagains` | the Panda's exact finger gains (p/i/d, i_max, cmd_max) | yes | 3.6 mm, converging |
+
+**Per section 6 this settles the branch: the minimal model works, so Gazebo's
+prismatic joints are sound and the fault is in the Panda finger
+conversion/configuration.** It also falsifies 11 and 12 (the parent's cylinder is
+irrelevant) and, notably, **3** -- reproducing the Panda's odd absolute
+child-link pose in isolation still tracks perfectly, even though removing those
+poses in the real Panda moves the stall from 5.2 mm to 8.1 mm.
+
+`pandagains` is the interesting near-miss. Replicating the finger gains exactly
+gives a lag that shrinks monotonically -- 3.62 mm at cmd 0.005 down to 1.56 mm at
+cmd 0.040 -- and still reaches the full stroke. That is a **slow integral, not a
+stall**: with p_gain 1000 and i_gain 100 the integral needs about ten seconds of
+sustained error to cancel the proportional term. Here the finger is loaded only
+by its own 0.147 N of gravity; in the Panda it carries about 5 N, so the same
+integral would need far longer than any episode. This is consistent with the jaw
+creeping at ~0.6 mm/s instead of closing, but it does not explain where the 5 N
+comes from.
+
 ## The fix this implies, and why it is not applied here
 
 Two candidate fixes, neither applied:

@@ -113,15 +113,12 @@ def build(variant: str, world_name: str = "minifinger_world") -> str:
     elif variant == "free":
         damping, friction = "0.0", "0.0"
 
+    parent_cylinder = variant == "parentcoll"
+
     sdf = ET.Element("sdf", {"version": "1.11"})
     world = _element(sdf, "world", {"name": world_name})
     _element(world, "plugin", {"filename": "gz-sim-physics-system", "name": "gz::sim::systems::Physics"})
     _text(world, "gravity", "0 0 -9.8")
-    _element(
-        world,
-        "plugin",
-        {"filename": "gz-sim-joint-state-publisher-system", "name": "gz::sim::systems::JointStatePublisher"},
-    )
     _element(world, "plugin", {"filename": "gz-sim-joint-position-controller-system", "name": "gz::sim::systems::JointPositionController"})
 
     model = _element(world, "model", {"name": "minifinger"})
@@ -136,6 +133,15 @@ def build(variant: str, world_name: str = "minifinger_world") -> str:
         ("0", "0", "0"),
     )
     _box(parent, ("0.05", "0.05", "0.05"), ("0", "0", "0"))
+    if parent_cylinder:
+        # panda_link7 carries a cylinder collision of radius 0.045 and length 0.1
+        # centred on its own origin, and both finger pads sit 44.5 mm above the
+        # finger joint origin on that same link. The minimal model starts with a
+        # small box that is nowhere near them; giving the parent that real
+        # cylinder is the isolated version of candidate 11/12, collision
+        # self-interaction against the parent's own geometry.
+        cylinder = _element(parent, "collision", {"name": "parent_cylinder"})
+        _text(_element(cylinder, "geometry"), "cylinder", "0.045 0.1")
 
     joint = _element(model, "joint", {"name": "slide", "type": "prismatic"})
     _pose(joint, "pose", " ".join(JOINT_ORIGIN))
@@ -153,6 +159,15 @@ def build(variant: str, world_name: str = "minifinger_world") -> str:
     _text(dynamics, "friction", friction)
 
     finger = _element(model, "link", {"name": "finger"})
+    if variant == "pandalink":
+        # Reproduce the Panda's own pair of poses verbatim, read out of
+        # model_sdf.txt: the joint is relative to panda_link7 with a -0.7854 yaw,
+        # and the child link carries an ABSOLUTE world pose with a 180 deg roll
+        # and the yaw sign flipped. The minimal model otherwise tracks perfectly,
+        # and this is the one structural difference between it and the finger.
+        joint.find("pose").text = "0.0038890874388765278 0.0038890871541754891 0.1515 0 0 -0.78539820000000005"
+        # Already six values; _pose would append "0 0 0" and make it nine.
+        _text(finger, "pose", "0.091889087 -0.003889093 0.881500000 3.141592616 0.000000038 0.785398200")
     _inertial(finger, mass, inertia, origin)
     if collision:
         _box(finger, PAD_SIZE, PAD_ORIGIN)
@@ -165,15 +180,28 @@ def build(variant: str, world_name: str = "minifinger_world") -> str:
         "plugin",
         {"filename": "gz-sim-joint-position-controller-system", "name": "gz::sim::systems::JointPositionController"},
     )
+    # State feedback lives on the MODEL too, alongside the controller, exactly as
+    # in gazebo/world.py. Put it in the world and no joint_state is ever
+    # published, which reads as "the joint does not move" rather than as a
+    # missing reader.
+    _element(
+        model,
+        "plugin",
+        {"filename": "gz-sim-joint-state-publisher-system", "name": "gz::sim::systems::JointStatePublisher"},
+    )
     for key, value in (
         ("joint_name", JOINT),
-        ("p_gain", "1000"),
-        ("i_gain", "0"),
-        ("d_gain", "0"),
-        ("i_max", "0.1"),
-        ("i_min", "-0.1"),
-        ("cmd_max", "50"),
-        ("cmd_min", "-50"),
+        *(
+            # The finger gains exactly as gazebo/world.py configures them --
+            # p 1000, i 100, d 50, integral clamped to +/-4, effort 100 -- while
+            # every other variant uses a plain proportional controller. This is
+            # replication for isolation, not tuning.
+            (("p_gain", "1000"), ("i_gain", "100"), ("d_gain", "50"),
+             ("i_max", "4"), ("i_min", "-4"), ("cmd_max", "100"), ("cmd_min", "-100"))
+            if variant == "pandagains"
+            else (("p_gain", "1000"), ("i_gain", "0"), ("d_gain", "0"),
+                  ("i_max", "0.1"), ("i_min", "-0.1"), ("cmd_max", "50"), ("cmd_min", "-50"))
+        ),
     ):
         _text(controller, key, value)
 
@@ -336,7 +364,7 @@ def main() -> int:
     """Write an SDF with --out, or run the sweep with --run."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--variant", default="base", choices=("base", "visual", "simple", "free")
+        "--variant", default="base", choices=("base", "visual", "simple", "free", "parentcoll", "pandalink", "pandagains")
     )
     parser.add_argument("--out")
     parser.add_argument("--run", action="store_true")
