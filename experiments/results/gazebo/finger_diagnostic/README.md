@@ -231,6 +231,64 @@ URDF poses to the finger links is a necessary correction on its own merits -- th
 converted geometry genuinely disagrees with the URDF it came from -- and it is
 not a fix for this stall.
 
+## Part 1C: mechanical isolation
+
+`diagnosis.json` holds the machine-readable version. Three results, in order of
+how much they settle.
+
+### The URDF -> SDF conversion is arithmetically correct
+
+The URDF parents both finger joints to `panda_hand`; the generated SDF parents
+them to `panda_link7`. That looked alarming until the arithmetic was done rather
+than eyeballed. `gz sdf -p` collapsed the `hand_joint` fixed joint into
+`panda_link7`, so the correct origin in the link7 frame is
+
+    hand_xyz + Rz(hand_yaw) @ urdf_origin
+
+    hand fixed joint:  xyz (0, 0, 0.107),  rpy (0, 0, -0.7853982)
+    left_finger:  (0, +0.0055, 0.0445) -> [ +0.0038890874 +0.0038890872 0.1515 ]
+    SDF says:                               [ +0.0038890874 +0.0038890872 0.1515 ]
+
+matching to better than 1e-9 m on both fingers. Axis, limits, effort, velocity,
+damping, friction, mass and inertia match the URDF exactly as well. URDF sha256
+`f88fe0a05f68984b18ee73129063856222dee6c5f7483f634e5542dce44c0f43`.
+
+Candidates 1 (wrong axis) and 2 (wrong joint origin) are **falsified**.
+
+### Three Gazebo-8.15 behaviours that had to be discovered by reading errors
+
+None of these are guesses; each was read out of the server's own output after a
+wrong guess, and each is now encoded in `scripts/finger_minimal.py`:
+
+  * **`gz sim` needs `-s`.** Without it the server tries to open a GUI, dies with
+    no display, and advertises *zero* topics -- while still writing a
+    clean-looking result file with every reading `null`.
+  * **SDF values are element text here, not attributes.** `pose`, `mass`,
+    `ixx..izz`, `lower/upper/effort/velocity`, `damping/friction`, `gravity`,
+    `box size`, `parent`/`child`. As attributes they warn "XML Attribute[..] not
+    defined in SDF" and then kill the world with Error Code 34, "Empty string
+    used when setting a required parameter". This is the same form `gz sdf -p`
+    writes out.
+  * **Plugin placement.** `JointPositionController` at world level is refused
+    ("should be attached to a model entity"), and a `<plugins>` wrapper inside
+    `<joint>` is "not defined in SDF". It must be a `<plugin>` child of
+    `<model>`, with `joint_name`/`p_gain`/... as element text.
+
+### The minimal model loads but cannot yet be read
+
+`minimal_prismatic.sdf` is the section-6 world: one parent link, one prismatic
+joint, one child link, no Panda, no table, no cube, no camera, no sensor. It
+loads with **no errors at all** and the controller advertises
+`/model/minifinger/joint/slide/0/cmd_pos`. But **no `joint_state` topic
+appears**, so q cannot be read back and the section-6 branch is still unknown.
+The model-level `JointStatePublisher` plugin is not producing
+`/world/minifinger_world/model/minifinger/joint_state`.
+
+This is where Part 1C stops. The minimal model has not yet answered its own
+question, so it is not yet true that Gazebo's prismatic joints are sound in
+isolation -- and until it is, the search space still includes Gazebo's own
+joint handling rather than being confined to the Panda conversion.
+
 ## The fix this implies, and why it is not applied here
 
 Two candidate fixes, neither applied:

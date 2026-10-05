@@ -1,0 +1,76 @@
+{
+  "part": "1C",
+  "urdf_sha256": "f88fe0a05f68984b18ee73129063856222dee6c5f7483f634e5542dce44c0f43",
+  "section2_joint_origin_derivation": {
+    "left_finger": {
+      "urdf_parent_link": "panda_hand",
+      "sdf_parent_link": "panda_link7",
+      "urdf_joint_origin_in_hand": [
+        0.0,
+        0.0055,
+        0.0445
+      ],
+      "hand_fixed_joint_xyz": [
+        0.0,
+        0.0,
+        0.107
+      ],
+      "hand_fixed_joint_rpy": [
+        0.0,
+        0.0,
+        -0.7853982
+      ],
+      "recomputed_joint_origin_in_link7": [
+        0.003889087,
+        0.003889087,
+        0.1515
+      ],
+      "sdf_joint_origin_in_link7": [
+        0.003889087438876528,
+        0.003889087154175489,
+        0.1515
+      ],
+      "conversion_matches": true
+    },
+    "right_finger": {
+      "urdf_parent_link": "panda_hand",
+      "sdf_parent_link": "panda_link7",
+      "urdf_joint_origin_in_hand": [
+        0.0,
+        -0.0055,
+        0.0445
+      ],
+      "hand_fixed_joint_xyz": [
+        0.0,
+        0.0,
+        0.107
+      ],
+      "hand_fixed_joint_rpy": [
+        0.0,
+        0.0,
+        -0.7853982
+      ],
+      "recomputed_joint_origin_in_link7": [
+        -0.003889087,
+        -0.003889087,
+        0.1515
+      ],
+      "sdf_joint_origin_in_link7": [
+        -0.003889087438876528,
+        -0.003889087154175489,
+        0.1515
+      ],
+      "conversion_matches": true
+    }
+  },
+  "section2_conclusion": "URDF->SDF joint-origin conversion is arithmetically correct to 1e-9 m: gz sdf -p collapsed panda_hand into panda_link7 and recomputed each finger joint origin as hand_xyz + Rz(hand_yaw) @ urdf_origin. Axis, limits, effort, velocity, damping, friction, mass and inertia also match the URDF exactly. Candidates 1 and 2 are falsified as conversion errors.",
+  "section6_minimal_model": {
+    "status": "NOT_YET_RUNNING",
+    "why": "scripts/finger_minimal.py builds and launches the minimal world, and the controller advertises /model/minifinger/joint/slide/0/cmd_pos with no load errors. But no joint_state topic is published, so q cannot be read back and the model-level JointStatePublisher plugin is not producing /world/minifinger_world/model/minifinger/joint_state. Until that is fixed the minimal model has not answered section 6 and the branch is unknown.",
+    "hazebo_build": "gz-sim 8.15.0, aarch64",
+    "sdf_dialect_finding": "This build reads SDF values as ELEMENT TEXT, not attributes: pose, mass, ixx..izz, lower/upper/effort/velocity, damping/friction, gravity, box size, parent/child. Written as attributes it warns \"XML Attribute[..] not defined in SDF\" and then fails the world with Error Code 34, \"Empty string used when setting a required parameter\". Same form gz sdf -p emits.",
+    "plugin_placement_finding": "JointPositionController at world level is refused: \"should be attached to a model entity\". A <plugins> wrapper inside <joint> is \"not defined in SDF\". The controller must be a <plugin> child of <model>, with joint_name/p_gain/... as element text.",
+    "gui_finding": "gz sim without -s tries to open a GUI, dies with no display, and advertises zero topics while still producing a clean-looking result file full of nulls."
+  },
+  "root_cause": "NOT IDENTIFIED"
+}

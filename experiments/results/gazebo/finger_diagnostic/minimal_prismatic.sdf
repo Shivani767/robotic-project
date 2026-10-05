@@ -1,0 +1,80 @@
+<sdf version="1.11">
+  <world name="minifinger_world">
+    <plugin filename="gz-sim-physics-system" name="gz::sim::systems::Physics" />
+    <gravity>0 0 -9.8</gravity>
+    <plugin filename="gz-sim-joint-state-publisher-system" name="gz::sim::systems::JointStatePublisher" />
+    <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController" />
+    <model name="minifinger">
+      <static>false</static>
+      <pose>0 0 0.5 0 0 0</pose>
+      <link name="parent">
+        <inertial>
+          <pose>0 0 0 0 0 0</pose>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.01</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>0.01</iyy>
+            <iyz>0</iyz>
+            <izz>0.01</izz>
+          </inertia>
+        </inertial>
+        <collision name="parent_collision">
+          <pose>0 0 0 0 0 0</pose>
+          <geometry>
+            <box>0.05 0.05 0.05</box>
+          </geometry>
+        </collision>
+      </link>
+      <joint name="slide" type="prismatic">
+        <pose>0 0.0055 0.0445 0 0 0</pose>
+        <parent>parent</parent>
+        <child>finger</child>
+        <axis>
+          <xyz>0 1 0</xyz>
+          <limit>
+            <lower>0.0</lower>
+            <upper>0.04</upper>
+            <effort>100</effort>
+            <velocity>0.2</velocity>
+          </limit>
+          <dynamics>
+            <damping>1.0</damping>
+            <friction>0.0</friction>
+          </dynamics>
+        </axis>
+      </joint>
+      <link name="finger">
+        <inertial>
+          <pose>0 0.0075 0.0584 0 0 0</pose>
+          <mass>0.015</mass>
+          <inertia>
+            <ixx>1.559e-06</ixx>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyy>1.336e-06</iyy>
+            <iyz>0</iyz>
+            <izz>9.543e-07</izz>
+          </inertia>
+        </inertial>
+        <collision name="finger_collision">
+          <pose>0 0.0075 0.0584 0 0 0</pose>
+          <geometry>
+            <box>0.02 0.015 0.013</box>
+          </geometry>
+        </collision>
+      </link>
+      <plugin filename="gz-sim-joint-position-controller-system" name="gz::sim::systems::JointPositionController">
+        <joint_name>slide</joint_name>
+        <p_gain>1000</p_gain>
+        <i_gain>0</i_gain>
+        <d_gain>0</d_gain>
+        <i_max>0.1</i_max>
+        <i_min>-0.1</i_min>
+        <cmd_max>50</cmd_max>
+        <cmd_min>-50</cmd_min>
+      </plugin>
+    </model>
+  </world>
+</sdf>
