@@ -65,6 +65,14 @@ Arm at the episode's step-56 joints (settled 13 mrad joint5 / 26 mrad joint7 off
 So: reproduction inconclusive on state match (joint errors recorded), but the
 stall itself is fully explained by section 3.
 
+## 5. Regression test
+
+`tests/unit/test_production_cube_isolation_detector.py` pins the detector:
+cross-topic pairs cannot be manufactured, real pairs (both orientations) are
+reported, substring lookalikes are rejected (the substring `in` form I first
+wrote failed this test and was replaced by `::`-token equality), and empty
+topics fail soft. 5 tests.
+
 ## Verdict
 
 Production cube isolation: **FAIL** (grasp/lift/placement still FAIL)

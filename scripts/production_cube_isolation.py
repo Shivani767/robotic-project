@@ -117,8 +117,20 @@ def contact_hits(obj_text: str, tab_text: str) -> dict[str, Any]:
         return found
 
     def touching(pairs_list: list[tuple[str, str]], a: str, b: str) -> bool:
+        """Match on `::`-delimited tokens, not substrings.
+
+        Gazebo collision names are `model::link::collision`. A substring test
+        would accept `archive::panda_left_finger_note` as a finger contact; the
+        token form matches the real `panda::panda_left_finger::panda_left_finger_collision`
+        (exact middle token) and rejects lookalikes. Exact equality only --
+        prefix/suffix allowances would reintroduce the forgery.
+        """
+
+        def has(name: str, wanted: str) -> bool:
+            return wanted in name.split("::")
+
         return any(
-            (a in p1 and b in p2) or (a in p2 and b in p1)
+            (has(p1, a) and has(p2, b)) or (has(p1, b) and has(p2, a))
             for p1, p2 in pairs_list
         )
 
