@@ -58,4 +58,22 @@ appears, collision self-interaction inside the gripper is the cause and can be
 isolated link by link. If it still tracks, the remaining difference is the scene,
 not the mechanism, and the search must move there.
 
+## D+projworld: the real world minus the cube tracks
+
+The final unblock was trivial once licensed: `world_sdf` takes `robot_urdf` and
+embeds the converted robot as a `<model>` -- the production path all along --
+instead of emitting an `<include>` that needs a `model.config` nobody has. With
+that, the project world loads clean (no sim errors), `joint_state` appears after
+~9 s, and the sweep reads back:
+
+    D+projworld   full stroke, max q 38.444 mm, final err -1.556 mm
+
+Real placement (bolted to the table), real table, real plugin set, cube removed --
+**the finger tracks.** The table is falsified.
+
+That reframes everything before it. The ~21 mm stall with its ~5 N reaction needs
+the cube present, or the specific episode arm pose; it is reproduced by nothing in
+the mechanism, the collisions, the gains, the poses, the plugin count, the arm
+chain, or the table.
+
 Root cause: NOT IDENTIFIED. Part 1 remains open.

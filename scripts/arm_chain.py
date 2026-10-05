@@ -160,8 +160,16 @@ def build(
         from robot_ci.gazebo.world import world_sdf
         from robot_ci.scenarios import default_scenario
 
+        # robot_urdf is the production path: it converts and EMBEDS the robot as
+        # a <model> instead of emitting an <include> that needs a model.config.
+        # Without it we got "Unable to find uri[panda]", which was a setup
+        # failure, not a measurement.
         return world_sdf(
-            default_scenario(), include_object=False, include_table=True, finger_collisions=True
+            default_scenario(),
+            robot_urdf="gazebo/models/panda/panda.urdf",
+            include_object=False,
+            include_table=True,
+            finger_collisions=True,
         )
 
     model = load_chain()

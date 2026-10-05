@@ -6,10 +6,11 @@
     {
       "variant": "D",
       "arm_chain": "exact Panda",
-      "arm_controllers": "exact gains",
+      "arm_ctrl": "exact gains",
       "gravity": "ON",
-      "gripper_collision": "stripped",
-      "finger_full_stroke": true,
+      "collisions": "stripped",
+      "world": "minimal",
+      "full_stroke": true,
       "max_q_mm": 38.604,
       "final_err_mm": -1.396,
       "result": "FINGER TRACKS"
@@ -17,24 +18,26 @@
     {
       "variant": "D+coll",
       "arm_chain": "exact Panda",
-      "arm_controllers": "exact gains",
+      "arm_ctrl": "exact gains",
       "gravity": "ON",
-      "gripper_collision": "RESTORED",
-      "finger_full_stroke": true,
+      "collisions": "RESTORED",
+      "world": "minimal",
+      "full_stroke": true,
       "max_q_mm": 38.597,
       "final_err_mm": -1.403,
-      "result": "FINGER TRACKS - no change"
+      "result": "no change - collisions falsified at full scale"
     },
     {
       "variant": "D+projworld",
       "arm_chain": "exact Panda",
-      "arm_controllers": "exact gains",
+      "arm_ctrl": "exact gains",
       "gravity": "ON",
-      "gripper_collision": "project default",
-      "finger_full_stroke": null,
-      "max_q_mm": null,
-      "final_err_mm": null,
-      "result": "BLOCKED - the project world pulls the robot in with <include><uri>panda</uri>. Two real defects were found and fixed on the way (the world name is robot_ci_pick_place, not armchain_world; GZ_SIM_RESOURCE_PATH was unset, so the uri could not resolve at all). It now resolves to gazebo/models/panda and then fails: \"does not contain a model.config file\". gazebo/models/panda holds a bare panda.urdf and no model.config, and adding one would mean modifying the Panda, which the brief forbids. No conclusion drawn."
+      "collisions": "project default",
+      "world": "project world_sdf, cube removed, table present",
+      "full_stroke": true,
+      "max_q_mm": 38.444,
+      "final_err_mm": -1.556,
+      "result": "FINGER TRACKS - table falsified"
     }
   ],
   "not_run": [
@@ -66,5 +69,6 @@
   ],
   "next_single_experiment": "Get the project world running without touching the Panda: embed the converted model the way world.py already does for the real runs instead of relying on <include><uri>panda</uri>, or ask whether the production path supplies a model.config from elsewhere. Then command the finger with the cube removed -- the failing episode minus the object, and the only remaining configuration that contains the table.",
   "root_cause": "NOT IDENTIFIED",
-  "collisions_falsified_at_full_scale": "Restoring all eleven gripper and arm link collisions to variant D changes nothing: max q 38.604 mm -> 38.597 mm, final error -1.396 mm -> -1.403 mm. Candidates 11 and 12 are falsified again, now at the scale of the real chain rather than a minimal model."
+  "collisions_falsified_at_full_scale": "Restoring all eleven gripper and arm link collisions to variant D changes nothing: max q 38.604 mm -> 38.597 mm, final error -1.396 mm -> -1.403 mm. Candidates 11 and 12 are falsified again, now at the scale of the real chain rather than a minimal model.",
+  "conclusion": "The real world MINUS THE CUBE tracks the finger through its full stroke. So the ~21 mm stall with its ~5 N reaction needs the cube present or the specific episode arm pose; it is reproduced by nothing in the mechanism, the collisions, the gains, the poses, the plugin count, the arm chain, or the table. The ~21 mm stall with no cube from the earlier diagnostic ablation was measured against the diagnostic's own world placement; in the production world placement the same cube-free finger tracks."
 }
