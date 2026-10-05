@@ -42,13 +42,17 @@ ARM = ("joint1", "joint2", "joint3", "joint4", "joint5", "joint6", "joint7")
 # before TRANSIT with the jaw at 10.6 mm. TCP [0.0219, 0.2246, 0.0070],
 # cube [0.02259, 0.22558, 0.008].
 EPISODE_ARM_POSE = (1.75834, 0.44239, -0.0236, -2.72086, 2.41011, 3.11683, 0.09254)
+#: Per-finger q for the episode's open jaw during DESCEND (aperture 0.044).
+EPISODE_OPEN_Q = 0.022
 EPISODE_CUBE_XYZ = (0.02259, 0.22558, 0.008)
 ARM_SETTLE_S = 8.0
 
-# Brief section 2 points, metres, per-finger joint coordinate.
+# Per-finger joint coordinate, metres, in CLOSING order -- the direction the
+# failing episode takes: aperture 0.044 (q 0.022) during DESCEND, collapsing to
+# 0.0104 (q ~0.0052) at step 56 where it creeps. Dense around 5 mm.
 SWEEP_Q = (
-    0.000, 0.005, 0.010, 0.012, 0.014, 0.016, 0.018, 0.020,
-    0.021, 0.022, 0.024, 0.026, 0.030, 0.035, 0.040,
+    0.022, 0.020, 0.015, 0.010, 0.008, 0.007, 0.006,
+    0.0055, 0.005, 0.0045, 0.004, 0.003, 0.002, 0.001, 0.0001,
 )
 SETTLE_S = 2.5
 OUTDIR = Path("experiments/results/gazebo/finger_diagnostic/production_cube_isolation")
@@ -82,15 +86,56 @@ def build() -> str:
     return text
 
 
-def contact_hits(text: str) -> dict[str, bool]:
-    """Per-counterpart contact presence from Contacts text, fail-soft."""
+def contact_hits(obj_text: str, tab_text: str) -> dict[str, Any]:
+    """Canonical per-counterpart contact presence.
+
+    Each sensor's text is parsed on its own and pairs are matched on exact
+    collision names in both orientations. The previous version concatenated the
+    two topics before substring-matching, which manufactured pairs that exist in
+    neither message (e.g. `panda_right_finger` from the TABLE sensor combined
+    with `target_cube` from the CUBE sensor) -- that is how a sweep row came back
+    "in contact with the cube" while the cube's own raw message held only
+    `target_cube <-> table`.
+
+    Reads the raw text because it is the ground truth Gazebo published; the
+    protobuf class was never guessed at for this file.
+    """
+
+    def pairs(text: str) -> list[tuple[str, str]]:
+        """Walk `contact { ... }` blocks; each holds exactly two name lines."""
+        found: list[tuple[str, str]] = []
+        block: list[str] = []
+        for line in text.splitlines():
+            s = line.strip()
+            if s == "contact {":
+                block = []
+            elif s.startswith("name:"):
+                block.append(s.split(":", 1)[1].strip().strip('"'))
+            elif s == "}" and len(block) == 2:
+                found.append((block[0], block[1]))
+                block = []
+        return found
+
+    def touching(pairs_list: list[tuple[str, str]], a: str, b: str) -> bool:
+        return any(
+            (a in p1 and b in p2) or (a in p2 and b in p1)
+            for p1, p2 in pairs_list
+        )
+
+    obj_pairs = pairs(obj_text)
+    tab_pairs = pairs(tab_text)
     return {
-        "left_finger_vs_cube": "panda_left_finger" in text and "target_cube" in text,
-        "right_finger_vs_cube": "panda_right_finger" in text and "target_cube" in text,
-        "any_finger_vs_table": ("panda_left_finger" in text or "panda_right_finger" in text)
-        and "table" in text,
-        "cube_vs_table": "target_cube" in text and "table" in text,
-        "raw_chars": len(text),
+        "left_finger_vs_cube": touching(obj_pairs, "panda_left_finger", "target_cube")
+        or touching(tab_pairs, "panda_left_finger", "target_cube"),
+        "right_finger_vs_cube": touching(obj_pairs, "panda_right_finger", "target_cube")
+        or touching(tab_pairs, "panda_right_finger", "target_cube"),
+        "any_finger_vs_table": any(
+            touching(tab_pairs, f"panda_{side}_finger", "table") for side in ("left", "right")
+        ),
+        "cube_vs_table": touching(obj_pairs, "target_cube", "table")
+        or touching(tab_pairs, "target_cube", "table"),
+        "cube_sensor_pairs": [f"{a} <-> {b}" for a, b in obj_pairs],
+        "table_sensor_pairs": [f"{a} <-> {b}" for a, b in tab_pairs],
     }
 
 
@@ -160,8 +205,10 @@ def run() -> dict[str, Any]:
             cmd = Double()
             cmd.data = float(target)
             pubs[joint].publish(cmd)
+        open_cmd = Double()
+        open_cmd.data = EPISODE_OPEN_Q
         for finger in FINGERS:
-            pubs[finger].publish(Double())
+            pubs[finger].publish(open_cmd)
         time.sleep(ARM_SETTLE_S)
         settled = parse_joint_state(_echo(state_topic))
         result["arm_settled"] = {j: settled.get(j, {}) for j in ARM}
@@ -184,11 +231,8 @@ def run() -> dict[str, Any]:
             time.sleep(SETTLE_S)
             state = parse_joint_state(_echo(state_topic))
             left, right = state.get("left_finger", {}), state.get("right_finger", {})
-            combo = ""
-            if result["object_contact_topic_present"]:
-                combo += _echo(obj_topic)
-            if result["table_contact_topic_present"]:
-                combo += _echo(tab_topic)
+            obj_text = _echo(obj_topic) if result["object_contact_topic_present"] else ""
+            tab_text = _echo(tab_topic) if result["table_contact_topic_present"] else ""
             rows.append(
                 {
                     "commanded_q_m": q,
@@ -196,8 +240,9 @@ def run() -> dict[str, Any]:
                     "right_q_m": right.get("position"),
                     "reaction_N": {k: force[k] for k in ("x", "y", "z")},
                     "reaction_messages": force["messages"],
-                    "object_contacts": contact_hits(combo),
-                    "raw_head": combo[:600],
+                    "object_contacts": contact_hits(obj_text, tab_text),
+                    "cube_sensor_raw": obj_text[:1200],
+                    "table_sensor_raw": tab_text[:1200],
                     "arm_drift_rad": {
                         j: (
                             None

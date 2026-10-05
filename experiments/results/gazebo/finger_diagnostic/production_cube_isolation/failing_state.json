@@ -1,0 +1,247 @@
+{
+  "source": "experiments/results/gazebo/pick_place_seed3_0mm_policy_v1.json",
+  "stall_tick": 56,
+  "sim_t_s": 10.958,
+  "phase": "Phase.DESCEND",
+  "commanded_arm_joints": [
+    1.75623,
+    0.43715,
+    -0.0262,
+    -2.71793,
+    2.42617,
+    3.12412,
+    0.09162
+  ],
+  "measured_arm_joints": [
+    1.75834,
+    0.44239,
+    -0.0236,
+    -2.72086,
+    2.41011,
+    3.11683,
+    0.09254
+  ],
+  "arm_joint_velocity_rad_s": null,
+  "arm_joint_velocity_recorded": false,
+  "finger_aperture_m": 0.01056,
+  "finger_q_per_joint_m": 0.00528,
+  "pad_separation_m": 0.02156,
+  "pad_separation_note": "pad separation = gripper_closed_separation_m (0.011) + 2q; per world.py comment 'pads are 0.011 m apart at rest'",
+  "tcp_xyz": [
+    0.02193,
+    0.22458,
+    0.00703
+  ],
+  "cube_xyz": [
+    0.02259,
+    0.22558,
+    0.008
+  ],
+  "cube_quat_wxyz": [
+    1.0,
+    0.0,
+    -0.0,
+    -0.0
+  ],
+  "cube_velocity_m_s": null,
+  "cube_velocity_recorded": false,
+  "object_contacts": {
+    "target_cube::link::collision <-> table::link::collision": {
+      "in_contact": true
+    }
+  },
+  "table_contacts": {
+    "table::link::collision <-> target_cube::link::collision": {
+      "in_contact": true
+    }
+  },
+  "contact_health": {
+    "object": {
+      "errors": [],
+      "live": true,
+      "messages": 8155,
+      "pairs": 1,
+      "topic": "/world/robot_ci_pick_place/model/target_cube/link/link/sensor/object_contacts/contact"
+    },
+    "table": {
+      "errors": [],
+      "live": true,
+      "messages": 8155,
+      "pairs": 1,
+      "topic": "/world/robot_ci_pick_place/model/table/link/link/sensor/table_contacts/contact"
+    }
+  },
+  "collapse_trace": [
+    {
+      "step": 52,
+      "sim_t": 10.754,
+      "aperture_m": 0.04295,
+      "measured_arm_joints": [
+        1.70034,
+        0.44232,
+        -0.01021,
+        -2.72114,
+        2.41691,
+        3.12509,
+        0.09801
+      ],
+      "tcp": [
+        0.03119,
+        0.22136,
+        0.00743
+      ]
+    },
+    {
+      "step": 53,
+      "sim_t": 10.805,
+      "aperture_m": 0.02223,
+      "measured_arm_joints": [
+        1.75359,
+        0.44229,
+        -0.01976,
+        -2.72047,
+        2.41191,
+        3.12057,
+        0.09569
+      ],
+      "tcp": [
+        0.02214,
+        0.22411,
+        0.00729
+      ]
+    },
+    {
+      "step": 54,
+      "sim_t": 10.855,
+      "aperture_m": 0.01271,
+      "measured_arm_joints": [
+        1.75897,
+        0.44226,
+        -0.02337,
+        -2.72057,
+        2.41124,
+        3.11717,
+        0.09097
+      ],
+      "tcp": [
+        0.02167,
+        0.22469,
+        0.00709
+      ]
+    },
+    {
+      "step": 55,
+      "sim_t": 10.908,
+      "aperture_m": 0.01099,
+      "measured_arm_joints": [
+        1.75898,
+        0.44244,
+        -0.02457,
+        -2.72083,
+        2.41088,
+        3.11658,
+        0.09095
+      ],
+      "tcp": [
+        0.02204,
+        0.22459,
+        0.00703
+      ]
+    },
+    {
+      "step": 56,
+      "sim_t": 10.958,
+      "aperture_m": 0.01056,
+      "measured_arm_joints": [
+        1.75834,
+        0.44239,
+        -0.0236,
+        -2.72086,
+        2.41011,
+        3.11683,
+        0.09254
+      ],
+      "tcp": [
+        0.02193,
+        0.22458,
+        0.00703
+      ]
+    },
+    {
+      "step": 57,
+      "sim_t": 11.01,
+      "aperture_m": 0.01039,
+      "measured_arm_joints": [
+        1.75911,
+        0.4424,
+        -0.02445,
+        -2.7208,
+        2.41092,
+        3.11641,
+        0.09087
+      ],
+      "tcp": [
+        0.02193,
+        0.22464,
+        0.00702
+      ]
+    }
+  ],
+  "post_stall_trace": [
+    {
+      "step": 57,
+      "sim_t": 11.01,
+      "aperture_m": 0.01039,
+      "grasped": false,
+      "object": [
+        0.02259,
+        0.22558,
+        0.008
+      ]
+    },
+    {
+      "step": 58,
+      "sim_t": 11.191,
+      "aperture_m": 0.01029,
+      "grasped": true,
+      "object": [
+        0.02331,
+        0.20757,
+        0.01091
+      ]
+    },
+    {
+      "step": 59,
+      "sim_t": 11.244,
+      "aperture_m": 0.00795,
+      "grasped": false,
+      "object": [
+        0.02617,
+        0.20138,
+        0.00971
+      ]
+    },
+    {
+      "step": 60,
+      "sim_t": 11.295,
+      "aperture_m": 0.00689,
+      "grasped": false,
+      "object": [
+        0.02607,
+        0.19978,
+        0.00794
+      ]
+    },
+    {
+      "step": 61,
+      "sim_t": 11.346,
+      "aperture_m": 0.00618,
+      "grasped": false,
+      "object": [
+        0.02609,
+        0.19979,
+        0.00796
+      ]
+    }
+  ]
+}

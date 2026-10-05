@@ -15,61 +15,58 @@
     0.008
   ],
   "sweep_q_m": [
-    0.0,
-    0.005,
-    0.01,
-    0.012,
-    0.014,
-    0.016,
-    0.018,
-    0.02,
-    0.021,
     0.022,
-    0.024,
-    0.026,
-    0.03,
-    0.035,
-    0.04
+    0.02,
+    0.015,
+    0.01,
+    0.008,
+    0.007,
+    0.006,
+    0.0055,
+    0.005,
+    0.0045,
+    0.004,
+    0.003,
+    0.002,
+    0.001,
+    0.0001
   ],
-  "startup_wait_s": -20.8,
+  "startup_wait_s": -20.9,
   "joint_state_present": true,
   "finger_ft_present": false,
   "arm_settled": {
     "joint1": {
-      "position": 1.7608578887998616,
-      "velocity": -0.695105488625918
+      "position": 1.7671463960695486,
+      "velocity": -0.38770245133296466
     },
     "joint2": {
-      "position": 0.44490222394649787,
-      "velocity": 0.004224657457738876
+      "position": 0.36312597226578525,
+      "velocity": 0.007510953776595518
     },
     "joint3": {
-      "position": -0.022246125626883884,
-      "velocity": 0.8268546092697305
+      "position": -0.013242302693926277,
+      "velocity": 0.4504834043636666
     },
     "joint4": {
-      "position": -2.723190887763844,
-      "velocity": -0.05328005531511673
+      "position": -2.713535793214389,
+      "velocity": -0.04615688728934139
     },
     "joint5": {
-      "position": 2.423198788298963,
-      "velocity": -0.9472149145462474
+      "position": 2.4176383725885255,
+      "velocity": -0.12614128728432192
     },
     "joint6": {
-      "position": 3.1141292481478944,
-      "velocity": 0.3787555971573899
+      "position": 2.8144798634411905,
+      "velocity": 0.12370579612725753
     },
     "joint7": {
-      "position": 0.06659808932157127,
-      "velocity": 2.3098140432257335
+      "position": 0.1141778853075198,
+      "velocity": -1.6797847185338883
     }
   },
   "object_contact_topic_present": true,
   "table_contact_topic_present": true,
-  "max_q_m": 0.04000000000035143,
-  "full_stroke": true,
-  "stall_row": {
-    "commanded_q_m": 0.01,
-    "measured_q_m": 0.0056802294813523375
-  }
+  "max_q_m": 0.020643956852581555,
+  "full_stroke": false,
+  "stall_row": null
 }

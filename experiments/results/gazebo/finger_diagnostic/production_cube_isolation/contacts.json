@@ -1,122 +1,209 @@
 [
   {
-    "commanded_q_m": 0.0,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 4874
-  },
-  {
-    "commanded_q_m": 0.005,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 4871
-  },
-  {
-    "commanded_q_m": 0.01,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 5007
-  },
-  {
-    "commanded_q_m": 0.012,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 5021
-  },
-  {
-    "commanded_q_m": 0.014,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 5023
-  },
-  {
-    "commanded_q_m": 0.016,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 4872
-  },
-  {
-    "commanded_q_m": 0.018,
+    "commanded_q_m": 0.022,
     "left_finger_vs_cube": false,
     "right_finger_vs_cube": false,
-    "any_finger_vs_table": false,
+    "any_finger_vs_table": true,
     "cube_vs_table": true,
-    "raw_chars": 4321
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
   },
   {
     "commanded_q_m": 0.02,
     "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
+    "right_finger_vs_cube": false,
     "any_finger_vs_table": true,
     "cube_vs_table": true,
-    "raw_chars": 5007
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
   },
   {
-    "commanded_q_m": 0.021,
+    "commanded_q_m": 0.015,
     "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
+    "right_finger_vs_cube": false,
     "any_finger_vs_table": true,
     "cube_vs_table": true,
-    "raw_chars": 5001
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
   },
   {
-    "commanded_q_m": 0.022,
+    "commanded_q_m": 0.01,
     "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
+    "right_finger_vs_cube": false,
     "any_finger_vs_table": true,
     "cube_vs_table": true,
-    "raw_chars": 5007
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
   },
   {
-    "commanded_q_m": 0.024,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 5007
-  },
-  {
-    "commanded_q_m": 0.026,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 5017
-  },
-  {
-    "commanded_q_m": 0.03,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 5014
-  },
-  {
-    "commanded_q_m": 0.035,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": true,
-    "any_finger_vs_table": true,
-    "cube_vs_table": true,
-    "raw_chars": 5007
-  },
-  {
-    "commanded_q_m": 0.04,
+    "commanded_q_m": 0.008,
     "left_finger_vs_cube": false,
     "right_finger_vs_cube": false,
     "any_finger_vs_table": false,
     "cube_vs_table": true,
-    "raw_chars": 4321
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.007,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": true,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.006,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": true,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.0055,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": false,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.005,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": true,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.0045,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": true,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.004,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": true,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.003,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": false,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.002,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": true,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.001,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": true,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.0001,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
+    "any_finger_vs_table": true,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+    ]
   }
 ]

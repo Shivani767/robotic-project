@@ -1,0 +1,37 @@
+{
+  "arm_pose_commanded": [
+    1.75834,
+    0.44239,
+    -0.0236,
+    -2.72086,
+    2.41011,
+    3.11683,
+    0.09254
+  ],
+  "cube_pose_expected": [
+    0.02259,
+    0.22558,
+    0.008
+  ],
+  "sweep_q_m": [
+    0.0,
+    0.005,
+    0.01,
+    0.012,
+    0.014,
+    0.016,
+    0.018,
+    0.02,
+    0.021,
+    0.022,
+    0.024,
+    0.026,
+    0.03,
+    0.035,
+    0.04
+  ],
+  "finger_ft_present": false,
+  "object_contact_topic_present": true,
+  "table_contact_topic_present": true,
+  "startup_wait_s": -20.8
+}
