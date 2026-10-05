@@ -209,6 +209,28 @@ mirrored across its own joint axis and inverted in z relative to the joint frame
 Whether Gazebo reconciles this at load is exactly the kind of thing to confirm
 rather than assume, and it is the next thing to check.
 
+## The finger link poses are honoured, and correcting them is not enough
+
+`--drop-finger-link-pose` deletes the absolute `<pose>` from each finger *link*
+so Gazebo derives the child link from its joint instead, changing one variable:
+
+    baseline (absolute link poses)  t=1.00  L 0.00521   force.y  5.00 N
+    --drop-finger-link-pose         t=1.00  L 0.00811   force.y  0.74 N
+
+Two conclusions, and the second is the unwelcome one.
+
+**The poses are honoured.** Removing them moves the stall from 5.2 mm to 8.1 mm
+and drops the reaction force from 5.0 N to 0.74 N. The 180 deg roll and flipped y
+in the converted SDF are not cosmetic metadata; they are what Gazebo places the
+pads by, and they change the outcome.
+
+**Correcting them does not fix the grasp.** The finger still halts short, now at
+8.1 mm instead of 5.2 mm, still with a residual reaction. So the link-pose
+inconsistency is real and load-bearing but is not the whole cause. Applying the
+URDF poses to the finger links is a necessary correction on its own merits -- the
+converted geometry genuinely disagrees with the URDF it came from -- and it is
+not a fix for this stall.
+
 ## The fix this implies, and why it is not applied here
 
 Two candidate fixes, neither applied:

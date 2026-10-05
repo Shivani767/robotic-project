@@ -201,6 +201,7 @@ def ablate(
     finger_velocity_limit: float | None = None,
     finger_force_torque: bool = False,
     remove_finger_velocity: bool = False,
+    drop_finger_link_pose: bool = False,
 ) -> str:
     """Return the world with the requested parts removed, one variable at a time.
 
@@ -222,6 +223,32 @@ def ablate(
         name = model.get("name")
         if (name == "target_cube" and no_object) or (name == "table" and no_table):
             world.remove(model)
+    # /world/<w>/model/<m>/link/<l>/pose only exists if DynamicPoseInfo is
+    # loaded; without it the subscriber is wired to a topic nobody serves and
+    # silently reads nothing, which is exactly the failure mode that made the
+    # first three force-torque attempts look healthy while returning zeros.
+    world_el0 = root.find("world")
+    assert world_el0 is not None
+    pose_plugin = ElementTree.Element("plugin")
+    pose_plugin.set("filename", "gz-sim-dynamic-pose-info-system")
+    pose_plugin.set("name", "gz::sim::systems::DynamicPoseInfo")
+    world_el0.append(pose_plugin)
+
+    if drop_finger_link_pose:
+        # model_sdf.txt gives each finger JOINT a pose relative to panda_link7
+        # but each finger LINK an absolute world pose carrying a 180 deg roll
+        # and a flipped y. Drop the link pose and let Gazebo derive the child
+        # link from its joint. Either the pads move and the stall breaks -- the
+        # hypothesis holds -- or nothing changes, which falsifies it just as
+        # cleanly. Single variable either way.
+        for model in root.iter("model"):
+            for link in model.findall("link"):
+                name = link.get("name") or ""
+                if not name.startswith("panda_") or "finger" not in name:
+                    continue
+                pose = link.find("pose")
+                if pose is not None:
+                    link.remove(pose)
     if remove_finger_velocity:
         # Delete the element rather than raise it. Raising it tenfold only moved
         # the stall into a limit cycle, so the question this answers is whether
@@ -434,6 +461,7 @@ def hold_trace(
     no_finger_collision: bool = False,
     finger_force_torque: bool = False,
     remove_finger_velocity: bool = False,
+    drop_finger_link_pose: bool = False,
     only: str | None = None,
 ) -> dict[str, Any]:
     """Command one aperture and watch the fingers for a long time.
@@ -455,6 +483,7 @@ def hold_trace(
         finger_velocity_limit=finger_velocity_limit,
         finger_force_torque=finger_force_torque,
         remove_finger_velocity=remove_finger_velocity,
+        drop_finger_link_pose=drop_finger_link_pose,
     )
     world_file = Path(f"/tmp/finger_hold_{label}.sdf")
     world_file.write_text(sdf, encoding="utf-8")
@@ -503,6 +532,33 @@ def hold_trace(
                 )
 
             ft_node.subscribe(Wrench, topic, _on)
+
+    # Read where the finger links ACTUALLY are once Gazebo has loaded them.
+    # model_sdf.txt shows each finger joint pose relative to panda_link7 while
+    # each finger link pose is absolute, carrying a 180 deg roll with the y sign
+    # flipped. That could be reconciled at load or could leave each pad mirrored
+    # across its own joint axis and inverted in z. The SDF text cannot answer
+    # that; the loaded pose can.
+    pose_latest: dict[str, Any] = {}
+    if True:  # always: the loaded pose matters even without the FT sensors
+      try:
+        from gz.msgs10.pose_v_pb2 import Pose_V as Pose
+
+        pose_node = Node()
+        for link in ("panda_link7", "panda_left_finger", "panda_right_finger"):
+            topic = (
+                f"/world/{GAZEBO_WORLD_NAME}/model/{GAZEBO_ROBOT_NAME}/link/{link}/pose"
+            )
+
+            def _on_pose(msg: Any, name: str = link) -> None:
+                pose_latest[name] = (
+                    [round(float(v), 6) for v in msg.position()],
+                    [round(float(v), 6) for v in msg.orientation().wxyz()],
+                )
+
+            pose_node.subscribe(Pose, topic, _on_pose)
+      except Exception as exc:
+        pose_latest["error"] = repr(exc)
     try:
         if not _wait_for_topic(process, JOINT_STATE_TOPIC):
             return {"label": label, "error": "joint_state never appeared"}
@@ -595,11 +651,13 @@ def hold_trace(
                 "no_finger_collision": no_finger_collision,
                 "finger_force_torque": finger_force_torque,
                 "remove_finger_velocity": remove_finger_velocity,
+                "drop_finger_link_pose": drop_finger_link_pose,
                 "only": only,
             },
             "samples": samples,
             "reader": {"messages": health.joint_messages, "errors": list(health.errors)},
             "force_sensor": dict(ft_health),
+            "link_pose": pose_latest,
         }
     finally:
         reader.stop()
@@ -627,6 +685,7 @@ def main() -> int:
     parser.add_argument("--no-finger-collision", action="store_true")
     parser.add_argument("--finger-ft", action="store_true")
     parser.add_argument("--remove-finger-velocity", action="store_true")
+    parser.add_argument("--drop-finger-link-pose", action="store_true")
     parser.add_argument("--no-object", action="store_true")
     parser.add_argument("--no-table", action="store_true")
     parser.add_argument("--only", choices=("left_finger", "right_finger"), default=None)
@@ -658,6 +717,8 @@ def main() -> int:
         label = f"{label}_ft"
     if args.remove_finger_velocity:
         label = f"{label}_novel"
+    if args.drop_finger_link_pose:
+        label = f"{label}_noposelink"
     if args.only:
         label = f"{label}_{args.only}"
         result = hold_trace(
@@ -672,6 +733,7 @@ def main() -> int:
             no_finger_collision=args.no_finger_collision,
             finger_force_torque=args.finger_ft,
             remove_finger_velocity=args.remove_finger_velocity,
+            drop_finger_link_pose=args.drop_finger_link_pose,
             only=args.only,
         )
         if "error" in result:
