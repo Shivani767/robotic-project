@@ -319,6 +319,25 @@ integral would need far longer than any episode. This is consistent with the jaw
 creeping at ~0.6 mm/s instead of closing, but it does not explain where the 5 N
 comes from.
 
+### Plugin count is not it either
+
+`multictrl` puts **nine** `JointPositionController` plugins on the one model, as
+panda does, and tracks the full stroke with **0.000 m** error. Candidate 15 is
+falsified.
+
+### What is left: the arm chain above the finger
+
+`panda_link7` is **not fixed**. The model carries no `<static>` flag and is anchored
+to the world by a fixed `world -> panda_link0` joint. So each finger joint hangs
+off `panda_link7`, which hangs off **seven revolute joints held by their own
+position controllers**. In every minimal variant the parent link is the model root
+with nothing above it.
+
+That is the last structural condition never reproduced in isolation, and it
+matters: the finger's ~5 N reaction is transmitted into `panda_link7` and up the
+arm, balanced by seven arm controllers rather than by the world. That is
+candidates 13 and 14 together.
+
 ## The fix this implies, and why it is not applied here
 
 Two candidate fixes, neither applied:

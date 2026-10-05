@@ -114,6 +114,10 @@ def build(variant: str, world_name: str = "minifinger_world") -> str:
         damping, friction = "0.0", "0.0"
 
     parent_cylinder = variant == "parentcoll"
+    # How many JointPositionController plugins share the one model. The Panda
+    # mounts nine on panda; a single plugin is what every other variant has, so
+    # this isolates plugin *count* as a variable with nothing else changed.
+    extra_joints = 8 if variant == "multictrl" else 0
 
     sdf = ET.Element("sdf", {"version": "1.11"})
     world = _element(sdf, "world", {"name": world_name})
@@ -180,6 +184,27 @@ def build(variant: str, world_name: str = "minifinger_world") -> str:
         "plugin",
         {"filename": "gz-sim-joint-position-controller-system", "name": "gz::sim::systems::JointPositionController"},
     )
+    for index in range(extra_joints):
+        name = f"aux{index}"
+        aux = _element(model, "joint", {"name": name, "type": "prismatic"})
+        _pose(aux, "pose", "0 0.02 0.0445")
+        _text(aux, "parent", "parent")
+        _text(aux, "child", f"auxlink{index}")
+        aux_axis = _element(aux, "axis")
+        _text(aux_axis, "xyz", "0 1 0")
+        aux_limit = _element(aux_axis, "limit")
+        _text(aux_limit, "lower", LOWER)
+        _text(aux_limit, "upper", UPPER)
+        _text(aux_limit, "effort", EFFORT)
+        _text(aux_limit, "velocity", VELOCITY)
+        aux_dyn = _element(aux_axis, "dynamics")
+        _text(aux_dyn, "damping", damping)
+        _text(aux_dyn, "friction", friction)
+        aux_link = _element(model, "link", {"name": f"auxlink{index}"})
+        _inertial(aux_link, "0.01", {"ixx": "1e-05", "ixy": "0", "ixz": "0",
+                                    "iyy": "1e-05", "iyz": "0", "izz": "1e-05"},
+                  ("0", "0", "0"))
+
     # State feedback lives on the MODEL too, alongside the controller, exactly as
     # in gazebo/world.py. Put it in the world and no joint_state is ever
     # published, which reads as "the joint does not move" rather than as a
@@ -189,6 +214,18 @@ def build(variant: str, world_name: str = "minifinger_world") -> str:
         "plugin",
         {"filename": "gz-sim-joint-state-publisher-system", "name": "gz::sim::systems::JointStatePublisher"},
     )
+    for joint_name in [JOINT] + [f"aux{i}" for i in range(extra_joints)]:
+        controller_extra = _element(
+            model,
+            "plugin",
+            {"filename": "gz-sim-joint-position-controller-system", "name": "gz::sim::systems::JointPositionController"},
+        )
+        _text(controller_extra, "joint_name", joint_name)
+        _text(controller_extra, "p_gain", "1000")
+        _text(controller_extra, "i_gain", "0")
+        _text(controller_extra, "d_gain", "0")
+        _text(controller_extra, "cmd_max", "50")
+        _text(controller_extra, "cmd_min", "-50")
     for key, value in (
         ("joint_name", JOINT),
         *(
@@ -364,7 +401,8 @@ def main() -> int:
     """Write an SDF with --out, or run the sweep with --run."""
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
-        "--variant", default="base", choices=("base", "visual", "simple", "free", "parentcoll", "pandalink", "pandagains")
+        "--variant", default="base", choices=("base", "visual", "simple", "free", "parentcoll", "pandalink",
+                 "pandagains", "multictrl")
     )
     parser.add_argument("--out")
     parser.add_argument("--run", action="store_true")

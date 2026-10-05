@@ -1,0 +1,95 @@
+{
+  "variant": "multictrl",
+  "sdf_path": "/tmp/min_multictrl.sdf",
+  "topics": [
+    "/clock",
+    "/gazebo/resource_paths",
+    "/stats",
+    "/world/minifinger_world/clock",
+    "/world/minifinger_world/model/minifinger/joint_state",
+    "/world/minifinger_world/stats",
+    "/model/minifinger/joint/aux0/0/cmd_pos",
+    "/model/minifinger/joint/aux1/0/cmd_pos",
+    "/model/minifinger/joint/aux2/0/cmd_pos",
+    "/model/minifinger/joint/aux3/0/cmd_pos",
+    "/model/minifinger/joint/aux4/0/cmd_pos",
+    "/model/minifinger/joint/aux5/0/cmd_pos",
+    "/model/minifinger/joint/aux6/0/cmd_pos",
+    "/model/minifinger/joint/aux7/0/cmd_pos",
+    "/model/minifinger/joint/slide/0/cmd_pos"
+  ],
+  "topics_present": {
+    "cmd": true,
+    "joint_state": true,
+    "finger_pose": false
+  },
+  "pose_like_topics": [],
+  "rows": [
+    {
+      "commanded_q_m": 0.0,
+      "measured_q_m": 6.740101584818891e-23,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    },
+    {
+      "commanded_q_m": 0.005,
+      "measured_q_m": 0.005,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    },
+    {
+      "commanded_q_m": 0.01,
+      "measured_q_m": 0.01,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    },
+    {
+      "commanded_q_m": 0.015,
+      "measured_q_m": 0.015,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    },
+    {
+      "commanded_q_m": 0.02,
+      "measured_q_m": 0.02,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    },
+    {
+      "commanded_q_m": 0.025,
+      "measured_q_m": 0.025,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    },
+    {
+      "commanded_q_m": 0.03,
+      "measured_q_m": 0.03,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    },
+    {
+      "commanded_q_m": 0.035,
+      "measured_q_m": 0.035,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    },
+    {
+      "commanded_q_m": 0.04,
+      "measured_q_m": 0.04,
+      "error_m": 0.0,
+      "link_position": null,
+      "displacement_from_q0": null
+    }
+  ],
+  "max_abs_error_m": 0.0,
+  "full_stroke": true,
+  "sim_log_tail": "tial_position: [\u001b[0m\u001b[1;36m0\u001b[0m\u001b[1;36m]\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [SystemManager.cc:80] \u001b[0m\u001b[1;36mLoaded system [\u001b[0m\u001b[1;36mgz::sim::systems::JointPositionController\u001b[0m\u001b[1;36m] for entity [\u001b[0m\u001b[1;36m4\u001b[0m\u001b[1;36m]\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mLoaded level [\u001b[0m\u001b[1;32mdefault\u001b[0m\u001b[1;32m]\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mServing world controls on [\u001b[0m\u001b[1;32m/world/minifinger_world\u001b[0m\u001b[1;32m/control], [\u001b[0m\u001b[1;32m/world/minifinger_world\u001b[0m\u001b[1;32m/control/state] and [\u001b[0m\u001b[1;32m/world/minifinger_world\u001b[0m\u001b[1;32m/playback/control]\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mServing GUI information on [\u001b[0m\u001b[1;32m/world/minifinger_world\u001b[0m\u001b[1;32m/\u001b[0m\u001b[1;32mgui/info\u001b[0m\u001b[1;32m]\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mWorld [\u001b[0m\u001b[1;32mminifinger_world\u001b[0m\u001b[1;32m] initialized with [\u001b[0m\u001b[1;32mdefault_physics\u001b[0m\u001b[1;32m] physics profile.\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mServing world SDF generation service on [\u001b[0m\u001b[1;32m/world/minifinger_world\u001b[0m\u001b[1;32m/\u001b[0m\u001b[1;32mgenerate_world_sdf\u001b[0m\u001b[1;32m]\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mServing world names on [\u001b[0m\u001b[1;32m/gazebo/worlds\u001b[0m\u001b[1;32m]\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mResource path add service on [\u001b[0m\u001b[1;32m/gazebo/resource_paths/add\u001b[0m\u001b[1;32m].\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mResource path get service on [\u001b[0m\u001b[1;32m/gazebo/resource_paths/get\u001b[0m\u001b[1;32m].\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mResource path resolve service on [\u001b[0m\u001b[1;32m/gazebo/resource_paths/resolve\u001b[0m\u001b[1;32m].\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mResource paths published on [\u001b[0m\u001b[1;32m/gazebo/resource_paths\u001b[0m\u001b[1;32m].\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mServer control service on [\u001b[0m\u001b[1;32m/server_control\u001b[0m\u001b[1;32m].\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mFound no publishers on /stats, adding root stats topic\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mFound no publishers on /clock, adding root clock topic\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;36m[Dbg] [SimulationRunner.cc:627] \u001b[0m\u001b[1;36mCreating PostUpdate worker threads: \u001b[0m\u001b[1;36m2\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [SimulationRunner.cc:638] \u001b[0m\u001b[1;36mCreating postupdate worker thread (\u001b[0m\u001b[1;36m0\u001b[0m\u001b[1;36m)\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mslide\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m17\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mslide\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m17\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36maux0\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m18\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36maux1\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m19\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36maux2\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m20\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36maux3\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m21\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36maux4\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m22\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36maux5\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m23\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36maux6\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m24\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36maux7\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m25\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [SignalHandler.cc:142] \u001b[0m\u001b[1;36mReceived signal[\u001b[0m\u001b[1;36m15\u001b[0m\u001b[1;36m].\u001b[0m\n\u001b[1;36m[Dbg] [ServerPrivate.cc:122] \u001b[0m\u001b[1;36mServer received signal[\u001b[0m\u001b[1;36m15\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [gz.cc:434] \u001b[0m\u001b[1;36mShutting down gz-sim-server\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [SimulationRunner.cc:654] \u001b[0m\u001b[1;36mExiting postupdate worker thread (\u001b[0m\u001b[1;36m0\u001b[0m\u001b[1;36m)\u001b[0m\u001b[1;36m\u001b[0m\n"
+}
