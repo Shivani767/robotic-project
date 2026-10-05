@@ -431,8 +431,11 @@ attribution is not trustworthy: at t = 0.05 s of the left-only run the
 5.49 N, which is backwards. And in `model_sdf.txt` each finger *joint* pose is
 relative to `panda_link7` while each finger *link* pose is absolute, carrying a
 180 deg roll with the y sign flipped -- so each pad sits mirrored across its own
-joint axis and inverted in z. Whether Gazebo reconciles that at load is the next
-thing to confirm.
+joint axis and inverted in z. Deleting those absolute link poses so Gazebo
+derives the children from their joints moves the stall from 5.2 mm to 8.1 mm and
+cuts the reaction force from 5.0 N to 0.74 N, so they are honoured rather than
+cosmetic. They are still not the cause: the finger halts short either way, just
+further out.
 
 Part 1B is not complete.
 
