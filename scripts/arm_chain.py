@@ -38,6 +38,7 @@ import argparse
 import contextlib
 import copy
 import json
+import os
 import subprocess
 import time
 from pathlib import Path
@@ -275,11 +276,18 @@ def run(**kwargs: Any) -> dict[str, Any]:
     world = ET.fromstring(sdf_text).find("world")
     world_name = world.get("name") if world is not None else WORLD
     sim_log = Path(f"/tmp/armchain_{label}_sim.log").open("w+")  # noqa: SIM115 - outlives try
+    # The project world pulls the robot in with <include><uri>panda</uri>, which
+    # resolves against GZ_SIM_RESOURCE_PATH. Without it the world fails with
+    # "Unable to find uri[panda]" and advertises nothing, which is why the first
+    # two project-world runs produced no joint_state at any startup delay.
+    env = dict(os.environ)
+    env["GZ_SIM_RESOURCE_PATH"] = str(Path("gazebo/models").resolve())
     process = subprocess.Popen(
         # -s: server only, or it opens a GUI and dies advertising nothing.
         ["gz", "sim", "-r", "-s", "-v", "4", str(sdf_path)],
         stdout=sim_log,
         stderr=subprocess.STDOUT,
+        env=env,
     )
     result: dict[str, Any] = {
         "label": label,
@@ -288,9 +296,19 @@ def run(**kwargs: Any) -> dict[str, Any]:
         "world_name": world_name,
     }
     try:
-        time.sleep(14.0)
-        topics = _topics()
+        # Poll for the state topic instead of sleeping a guessed interval. The
+        # project world loads the Sensors and Contact systems on top of the
+        # minimal world's plugin set and was still not ready after a fixed 14 s,
+        # which produced a run with no joint_state and every reading null.
         state_topic = f"/world/{world_name}/model/{MODEL}/joint_state"
+        deadline = time.monotonic() + 60.0
+        topics: list[str] = []
+        while time.monotonic() < deadline:
+            topics = _topics()
+            if state_topic in topics:
+                break
+            time.sleep(5.0)
+        result["startup_wait_s"] = round(60.0 - max(0.0, deadline - time.monotonic()), 1)
         ft_topic = f"/world/{world_name}/model/{MODEL}/joint/{FINGER}/sensor/finger_ft/forcetorque"
         link7_topic = f"/world/{world_name}/model/{MODEL}/link/panda_link7/pose"
         result["topics_present"] = {

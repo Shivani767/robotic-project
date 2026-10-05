@@ -7,6 +7,7 @@
   },
   "sdf_path": "/tmp/armchain_D_projworld.sdf",
   "world_name": "robot_ci_pick_place",
+  "startup_wait_s": 60.0,
   "topics_present": {
     "joint_state": false,
     "finger_ft": false,
@@ -465,5 +466,5 @@
     "z": 0.0
   },
   "max_arm_drift_rad": 0.0,
-  "sim_log_tail": "\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mGazebo Sim Server v\u001b[0m\u001b[1;32m8.15.0\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mLoading SDF world file[\u001b[0m\u001b[1;32m/tmp/armchain_D_projworld.sdf\u001b[0m\u001b[1;32m].\u001b[0m\n\u001b[1;33mWarning [Utils.cc:132]\u001b[0m [/sdf/world[@name=\"robot_ci_pick_place\"]/model[@name=\"camera_rig\"]/link[@name=\"link\"]/sensor[@name=\"robot_ci_camera\"]/camera[@name=\"robot_ci_camera\"]/depth_camera/noise:/tmp/armchain_D_projworld.sdf:L129]: XML Element[noise], child of element[depth_camera], not defined in SDF. Copying[noise] as children of [depth_camera].\n\u001b[1;31m[Err] [Server.cc:86] \u001b[0m\u001b[1;31mError Code \u001b[0m\u001b[1;31m14\u001b[0m\u001b[1;31m: \u001b[0m\u001b[1;31m[/sdf/world[@name=\"robot_ci_pick_place\"]/include[0]/uri:/tmp/armchain_D_projworld.sdf:L60]: \u001b[0m\u001b[1;31mMsg: \u001b[0m\u001b[1;31mUnable to find uri[panda]\u001b[0m\u001b[1;31m\u001b[0m\n\u001b[1;36m[Dbg] [gz.cc:434] \u001b[0m\u001b[1;36mShutting down gz-sim-server\u001b[0m\u001b[1;36m\u001b[0m\n"
+  "sim_log_tail": "\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mGazebo Sim Server v\u001b[0m\u001b[1;32m8.15.0\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mLoading SDF world file[\u001b[0m\u001b[1;32m/tmp/armchain_D_projworld.sdf\u001b[0m\u001b[1;32m].\u001b[0m\n\u001b[1;33mWarning [Utils.cc:132]\u001b[0m [/sdf/world[@name=\"robot_ci_pick_place\"]/model[@name=\"camera_rig\"]/link[@name=\"link\"]/sensor[@name=\"robot_ci_camera\"]/camera[@name=\"robot_ci_camera\"]/depth_camera/noise:/tmp/armchain_D_projworld.sdf:L129]: XML Element[noise], child of element[depth_camera], not defined in SDF. Copying[noise] as children of [depth_camera].\n\u001b[1;31m[Err] [Server.cc:86] \u001b[0m\u001b[1;31mError Code \u001b[0m\u001b[1;31m1\u001b[0m\u001b[1;31m: \u001b[0m\u001b[1;31mMsg: \u001b[0m\u001b[1;31mCould not find model.config or manifest.xml in [/workspace/robot-ci/gazebo/models/panda]\u001b[0m\u001b[1;31m\u001b[0m\n\u001b[1;31m[Err] [Server.cc:86] \u001b[0m\u001b[1;31mError Code \u001b[0m\u001b[1;31m14\u001b[0m\u001b[1;31m: \u001b[0m\u001b[1;31m[/sdf/world[@name=\"robot_ci_pick_place\"]/include[0]/uri:/tmp/armchain_D_projworld.sdf:L60]: \u001b[0m\u001b[1;31mMsg: \u001b[0m\u001b[1;31mUnable to resolve uri[panda] to model path [/workspace/robot-ci/gazebo/models/panda] since it does not contain a model.config file.\u001b[0m\u001b[1;31m\u001b[0m\n\u001b[1;36m[Dbg] [gz.cc:434] \u001b[0m\u001b[1;36mShutting down gz-sim-server\u001b[0m\u001b[1;36m\u001b[0m\n"
 }

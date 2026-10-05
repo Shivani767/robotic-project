@@ -34,7 +34,7 @@
       "finger_full_stroke": null,
       "max_q_mm": null,
       "final_err_mm": null,
-      "result": "NOT READABLE - world robot_ci_pick_place advertised no joint_state within the 14 s window; world name was wrong on the first attempt and fixed, but the topic still did not appear. No conclusion drawn."
+      "result": "BLOCKED - the project world pulls the robot in with <include><uri>panda</uri>. Two real defects were found and fixed on the way (the world name is robot_ci_pick_place, not armchain_world; GZ_SIM_RESOURCE_PATH was unset, so the uri could not resolve at all). It now resolves to gazebo/models/panda and then fails: \"does not contain a model.config file\". gazebo/models/panda holds a bare panda.urdf and no model.config, and adding one would mean modifying the Panda, which the brief forbids. No conclusion drawn."
     }
   ],
   "not_run": [
@@ -64,7 +64,7 @@
     "the target cube",
     "the real robot placement in the scene"
   ],
-  "next_single_experiment": "Make the project-world run readable (the world robot_ci_pick_place loads more plugins and needs longer than 14 s, or the robot model name differs) and command the finger there with the cube removed. That is the failing episode minus the object, and it is the only configuration left that contains the table.",
+  "next_single_experiment": "Get the project world running without touching the Panda: embed the converted model the way world.py already does for the real runs instead of relying on <include><uri>panda</uri>, or ask whether the production path supplies a model.config from elsewhere. Then command the finger with the cube removed -- the failing episode minus the object, and the only remaining configuration that contains the table.",
   "root_cause": "NOT IDENTIFIED",
   "collisions_falsified_at_full_scale": "Restoring all eleven gripper and arm link collisions to variant D changes nothing: max q 38.604 mm -> 38.597 mm, final error -1.396 mm -> -1.403 mm. Candidates 11 and 12 are falsified again, now at the scale of the real chain rather than a minimal model."
 }
