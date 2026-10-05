@@ -404,10 +404,37 @@ term for that error is 1000 * 0.0052 = **5.2 N**. The controller is applying
 exactly the force it intends, and the joint is not moving. So the command is not
 lost or mis-scaled, the reaction is not the cube or the table or the pads'
 collision geometry, and 5 N on a 15 g finger (an acceleration of ~330 m/s^2)
-cannot plausibly take seconds to cover 5 mm. What remains is a joint constraint
-in the engine rejecting that force; the joint velocity limit is the documented
-candidate, and raising it tenfold moved the stall into a limit cycle rather than
-removing it.
+cannot plausibly take seconds to cover 5 mm.
+
+Deleting the joint velocity limit outright -- rather than raising it, which only
+moved the stall into a limit cycle -- shows the limiter really is what capped
+that force: without it the controller saturates and the sensor reads **96.7 N**.
+But it also appeared to expose a second defect, with the two mirror-image finger
+joints behaving differently under identical commands. **That second defect was
+an artifact of the experiment, and is retracted.** Commanding one finger at a
+time shows neither joint is stuck:
+
+| Run | t = 1.00 s, left | t = 1.00 s, right |
+|---|---|---|
+| `--only left_finger` | 0.00521 m | 0.03702 m (uncommanded) |
+| `--only right_finger` | 0.03691 m (uncommanded) | 0.00540 m |
+
+The uncommanded finger simply stays where it was, which is what produced the
+apparent asymmetry. So there is one defect, not two, and it is **per-joint**: a
+single prismatic joint, commanded over a 40 mm stroke, halts 5.2 mm in -- with
+the other finger inert, no cube, no table, and the pads' collision geometry
+deleted.
+
+Two caveats are on the record rather than glossed over. The per-finger force
+attribution is not trustworthy: at t = 0.05 s of the left-only run the
+*commanded* finger's sensor reads -0.18 N while the *uncommanded* one reads
+5.49 N, which is backwards. And in `model_sdf.txt` each finger *joint* pose is
+relative to `panda_link7` while each finger *link* pose is absolute, carrying a
+180 deg roll with the y sign flipped -- so each pad sits mirrored across its own
+joint axis and inverted in z. Whether Gazebo reconciles that at load is the next
+thing to confirm.
+
+Part 1B is not complete.
 
 For the grasp that is decisive whatever the reaction turns out to be. The policy
 advances past the grasp on `close_dwell >= 6` ticks -- 0.3 s at 20 Hz -- and the
