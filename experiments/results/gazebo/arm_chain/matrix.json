@@ -38,6 +38,18 @@
       "max_q_mm": 38.444,
       "final_err_mm": -1.556,
       "result": "FINGER TRACKS - table falsified"
+    },
+    {
+      "variant": "production+cube",
+      "arm_chain": "exact Panda, episode grasp pose",
+      "arm_ctrl": "exact gains",
+      "gravity": "ON",
+      "collisions": "project default",
+      "world": "project world_sdf(seed=3), real table, real cube at [0.02259,0.22558,0.008]",
+      "full_stroke": true,
+      "max_q_mm": 40.0,
+      "final_err_mm": 0.0,
+      "result": "CASE 2: cube present, both fingers track the full 0..40 mm sweep. Right finger reports contact with the cube at nearly every point yet does not stall."
     }
   ],
   "not_run": [
@@ -70,5 +82,5 @@
   "next_single_experiment": "Get the project world running without touching the Panda: embed the converted model the way world.py already does for the real runs instead of relying on <include><uri>panda</uri>, or ask whether the production path supplies a model.config from elsewhere. Then command the finger with the cube removed -- the failing episode minus the object, and the only remaining configuration that contains the table.",
   "root_cause": "NOT IDENTIFIED",
   "collisions_falsified_at_full_scale": "Restoring all eleven gripper and arm link collisions to variant D changes nothing: max q 38.604 mm -> 38.597 mm, final error -1.396 mm -> -1.403 mm. Candidates 11 and 12 are falsified again, now at the scale of the real chain rather than a minimal model.",
-  "conclusion": "The real world MINUS THE CUBE tracks the finger through its full stroke. So the ~21 mm stall with its ~5 N reaction needs the cube present or the specific episode arm pose; it is reproduced by nothing in the mechanism, the collisions, the gains, the poses, the plugin count, the arm chain, or the table. The ~21 mm stall with no cube from the earlier diagnostic ablation was measured against the diagnostic's own world placement; in the production world placement the same cube-free finger tracks."
+  "conclusion": "CASE 2. The cube at the failing pose is NOT sufficient to reproduce the stall. Production world minus the cube tracks; production world plus the cube at the failing pose, arm at the failing pose, also tracks. The remaining difference is the exact episode state: the policy-held arm pose over time, the tick-by-tick command sequence, or the episode contact instrumentation itself, which reported zero finger<->cube contacts in a scene where this run reports right-finger contact at nearly every sweep point. That instrumentation divergence is now the single most informative open fact."
 }

@@ -1,0 +1,422 @@
+[
+  {
+    "commanded_q_m": 0.0,
+    "left_q_m": 0.0006255558578534422,
+    "right_q_m": 0.0004195466643129568,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 4874
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 23\n    nsec: 665000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 23\n      nsec: 665000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.00045787,
+      "joint2": -0.000394035,
+      "joint3": -0.000160226,
+      "joint4": 0.000463696,
+      "joint5": -0.001385453,
+      "joint6": -0.001124584,
+      "joint7": -0.000891468
+    }
+  },
+  {
+    "commanded_q_m": 0.005,
+    "left_q_m": 0.0023070096009952874,
+    "right_q_m": 0.005329834982679679,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 4871
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 26\n    nsec: 313000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 26\n      nsec: 313000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.000247844,
+      "joint2": -5.3574e-05,
+      "joint3": -0.001340487,
+      "joint4": 0.00048343,
+      "joint5": -0.000729654,
+      "joint6": -0.00054761,
+      "joint7": -0.003027377
+    }
+  },
+  {
+    "commanded_q_m": 0.01,
+    "left_q_m": 0.0056802294813523375,
+    "right_q_m": 0.010587264204971553,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5007
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 28\n    nsec: 963000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 28\n      nsec: 963000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.000628184,
+      "joint2": 0.000276441,
+      "joint3": -0.001583484,
+      "joint4": 0.000564141,
+      "joint5": 0.000155141,
+      "joint6": 0.00081406,
+      "joint7": -0.007067368
+    }
+  },
+  {
+    "commanded_q_m": 0.012,
+    "left_q_m": 0.008711403995556559,
+    "right_q_m": 0.012657047987523866,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5021
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 31\n    nsec: 603000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 31\n      nsec: 603000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.000737392,
+      "joint2": 3.0156e-05,
+      "joint3": -0.001639481,
+      "joint4": 0.00073091,
+      "joint5": 0.000384023,
+      "joint6": 7.6954e-05,
+      "joint7": -0.007008484
+    }
+  },
+  {
+    "commanded_q_m": 0.014,
+    "left_q_m": 0.011324967886543828,
+    "right_q_m": 0.014519707333625044,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5023
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 34\n    nsec: 238000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 34\n      nsec: 238000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.001765694,
+      "joint2": 0.000335115,
+      "joint3": -0.000974216,
+      "joint4": 0.000655198,
+      "joint5": -0.028135199,
+      "joint6": 0.002392571,
+      "joint7": -0.007344321
+    }
+  },
+  {
+    "commanded_q_m": 0.016,
+    "left_q_m": 0.013905220366664429,
+    "right_q_m": 0.015992622291327294,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 4872
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 36\n    nsec: 888000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 36\n      nsec: 888000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.002155021,
+      "joint2": 0.001069762,
+      "joint3": -0.002222873,
+      "joint4": 0.000435654,
+      "joint5": -0.029556943,
+      "joint6": 0.004609412,
+      "joint7": 0.062427875
+    }
+  },
+  {
+    "commanded_q_m": 0.018,
+    "left_q_m": 0.01658111784950263,
+    "right_q_m": 0.01815177261838482,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": false,
+      "any_finger_vs_table": false,
+      "cube_vs_table": true,
+      "raw_chars": 4321
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 39\n    nsec: 535000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 39\n      nsec: 535000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.001591056,
+      "joint2": 0.001047361,
+      "joint3": -0.00321112,
+      "joint4": 0.000620077,
+      "joint5": -0.027356265,
+      "joint6": 0.004238215,
+      "joint7": 0.056382274
+    }
+  },
+  {
+    "commanded_q_m": 0.02,
+    "left_q_m": 0.018608383897886945,
+    "right_q_m": 0.020430573827929552,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5007
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 42\n    nsec: 178000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 42\n      nsec: 178000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.001726503,
+      "joint2": 0.000956293,
+      "joint3": -0.003286138,
+      "joint4": 0.000725382,
+      "joint5": -0.026321065,
+      "joint6": 0.004141569,
+      "joint7": 0.054690304
+    }
+  },
+  {
+    "commanded_q_m": 0.021,
+    "left_q_m": 0.019610129027882967,
+    "right_q_m": 0.021419454090609382,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5001
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 44\n    nsec: 807000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 44\n      nsec: 807000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.001796696,
+      "joint2": 0.000767019,
+      "joint3": -0.003240195,
+      "joint4": 0.000831064,
+      "joint5": -0.025502886,
+      "joint6": 0.003454526,
+      "joint7": 0.053224472
+    }
+  },
+  {
+    "commanded_q_m": 0.022,
+    "left_q_m": 0.020608785487396097,
+    "right_q_m": 0.022664926776022134,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5007
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 47\n    nsec: 451000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 47\n      nsec: 451000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.001858521,
+      "joint2": 0.000521148,
+      "joint3": -0.003254413,
+      "joint4": 0.001012896,
+      "joint5": -0.024278839,
+      "joint6": 0.002637147,
+      "joint7": 0.051710437
+    }
+  },
+  {
+    "commanded_q_m": 0.024,
+    "left_q_m": 0.02241252429213467,
+    "right_q_m": 0.024577096300184276,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5007
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 50\n    nsec: 101000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 50\n      nsec: 101000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.002709431,
+      "joint2": 0.000551478,
+      "joint3": -0.00241672,
+      "joint4": 0.000996129,
+      "joint5": -0.025054326,
+      "joint6": 0.003443372,
+      "joint7": 0.052675237
+    }
+  },
+  {
+    "commanded_q_m": 0.026,
+    "left_q_m": 0.024606473474274443,
+    "right_q_m": 0.026171464038986396,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5017
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 52\n    nsec: 856000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 52\n      nsec: 856000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.001780407,
+      "joint2": -0.000213882,
+      "joint3": -0.00303675,
+      "joint4": 0.001269814,
+      "joint5": -0.024652678,
+      "joint6": 0.000165275,
+      "joint7": 0.053581239
+    }
+  },
+  {
+    "commanded_q_m": 0.03,
+    "left_q_m": 0.0286184970874887,
+    "right_q_m": 0.027152146373372245,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5014
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 55\n    nsec: 500000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 55\n      nsec: 500000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.001076866,
+      "joint2": -0.001249445,
+      "joint3": -0.000618742,
+      "joint4": 0.001357463,
+      "joint5": 0.003731514,
+      "joint6": -0.003834727,
+      "joint7": -0.00785575
+    }
+  },
+  {
+    "commanded_q_m": 0.035,
+    "left_q_m": 0.03374785611613009,
+    "right_q_m": 0.03251073420639245,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": true,
+      "any_finger_vs_table": true,
+      "cube_vs_table": true,
+      "raw_chars": 5007
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 58\n    nsec: 149000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 58\n      nsec: 149000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.00076276,
+      "joint2": -0.001385396,
+      "joint3": -0.000292895,
+      "joint4": 0.00149485,
+      "joint5": 2.6321e-05,
+      "joint6": -0.004016344,
+      "joint7": 0.003164957
+    }
+  },
+  {
+    "commanded_q_m": 0.04,
+    "left_q_m": 0.04000000000035143,
+    "right_q_m": 0.03795017706002826,
+    "reaction_N": {
+      "x": 0.0,
+      "y": 0.0,
+      "z": 0.0
+    },
+    "reaction_messages": 0,
+    "object_contacts": {
+      "left_finger_vs_cube": false,
+      "right_finger_vs_cube": false,
+      "any_finger_vs_table": false,
+      "cube_vs_table": true,
+      "raw_chars": 4321
+    },
+    "raw_head": "header {\n  stamp {\n    sec: 60\n    nsec: 781000000\n  }\n}\ncontact {\n  header {\n    stamp {\n      sec: 60\n      nsec: 781000000\n    }\n  }\n  collision1 {\n    id: 55\n    name: \"target_cube::link::collision\"\n  }\n  collision2 {\n    id: 7\n    name: \"table::link::collision\"\n  }\n  position {\n    x: 0.042846758047646365\n    y: 0.21429795264312435\n    z: -3.9908665910165508e-08\n  }\n  position {\n    x: 0.042007032536061688\n    y: 0.2302759018564503\n    z: -2.8354959699661286e-10\n  }\n  position {\n    x: 0.057984981749415951\n    y: 0.23111562736809538\n    z: -2.4033650822957719e-08\n  }\n  position {\n    x: 0",
+    "arm_drift_rad": {
+      "joint1": -0.001114334,
+      "joint2": -0.001260054,
+      "joint3": -0.00084145,
+      "joint4": 0.001546007,
+      "joint5": -0.005091441,
+      "joint6": -0.003448125,
+      "joint7": -0.002137328
+    }
+  }
+]
