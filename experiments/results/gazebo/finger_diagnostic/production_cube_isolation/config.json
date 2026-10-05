@@ -30,10 +30,8 @@
     0.001,
     0.0001
   ],
-  "finger_ft_present": false,
+  "finger_ft_present": true,
   "object_contact_topic_present": true,
   "table_contact_topic_present": true,
-  "startup_wait_s": -20.9,
-  "sweep_direction": "closing (0.022 -> 0.0001), matching the episode DESCEND",
-  "detector": "canonical per-topic exact-name both-orientation pairs (contact_hits)"
+  "startup_wait_s": -20.9
 }

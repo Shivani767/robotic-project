@@ -33,40 +33,92 @@
   ],
   "startup_wait_s": -20.9,
   "joint_state_present": true,
-  "finger_ft_present": false,
-  "arm_settled": {
-    "joint1": {
-      "position": 1.7671463960695486,
-      "velocity": -0.38770245133296466
-    },
-    "joint2": {
-      "position": 0.36312597226578525,
-      "velocity": 0.007510953776595518
-    },
-    "joint3": {
-      "position": -0.013242302693926277,
-      "velocity": 0.4504834043636666
-    },
-    "joint4": {
-      "position": -2.713535793214389,
-      "velocity": -0.04615688728934139
-    },
-    "joint5": {
-      "position": 2.4176383725885255,
-      "velocity": -0.12614128728432192
-    },
-    "joint6": {
-      "position": 2.8144798634411905,
-      "velocity": 0.12370579612725753
-    },
-    "joint7": {
-      "position": 0.1141778853075198,
-      "velocity": -1.6797847185338883
-    }
-  },
+  "finger_ft_topics": [
+    "/finger_ft_left_finger",
+    "/finger_ft_right_finger"
+  ],
+  "finger_ft_present": true,
   "object_contact_topic_present": true,
   "table_contact_topic_present": true,
-  "max_q_m": 0.020643956852581555,
+  "pose_info_topic_present": true,
+  "all_relevant_topics": [
+    "/world/robot_ci_pick_place/dynamic_pose/info",
+    "/world/robot_ci_pick_place/model/panda/joint_state",
+    "/world/robot_ci_pick_place/model/table/link/link/sensor/table_contacts/contact",
+    "/world/robot_ci_pick_place/model/target_cube/link/link/sensor/object_contacts/contact",
+    "/world/robot_ci_pick_place/pose/info"
+  ],
+  "approach": [
+    {
+      "stage": 0,
+      "worst_joint_error_rad": 0.03594,
+      "cube_knock_from_spawn_m": 4e-06
+    },
+    {
+      "stage": 1,
+      "worst_joint_error_rad": 0.026966,
+      "cube_knock_from_spawn_m": 4e-06
+    },
+    {
+      "stage": 2,
+      "worst_joint_error_rad": 0.029144,
+      "cube_knock_from_spawn_m": 4e-06
+    }
+  ],
+  "arm_settled": {
+    "joint1": {
+      "position": 1.759147503393006,
+      "velocity": 0.7139659234309882
+    },
+    "joint2": {
+      "position": 0.4450373203252429,
+      "velocity": 0.00890715174062809
+    },
+    "joint3": {
+      "position": -0.02447320791864773,
+      "velocity": -0.8436814796007139
+    },
+    "joint4": {
+      "position": -2.7211738114565622,
+      "velocity": 0.03667181392202864
+    },
+    "joint5": {
+      "position": 2.398168079551576,
+      "velocity": 0.6853786407116085
+    },
+    "joint6": {
+      "position": 3.11506280364409,
+      "velocity": -0.443402201947648
+    },
+    "joint7": {
+      "position": 0.12118755007904633,
+      "velocity": -1.275593032140961
+    }
+  },
+  "arm_settled_worst_error_rad": 0.028648,
+  "arm_converged": false,
+  "tcp_alignment": [
+    {
+      "attempt": 0,
+      "error_m": 0.000956
+    }
+  ],
+  "arm_final_worst_error_rad": 0.028648,
+  "max_q_m": 0.02210184582447207,
   "full_stroke": false,
-  "stall_row": null
+  "stall_row": {
+    "commanded_q_m": 0.015,
+    "measured_q_m": 0.02065896928802689,
+    "min_gap_mm": 11.51,
+    "contacts_accumulated": [
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision",
+      "table::link::collision <-> target_cube::link::collision",
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "force_y_N": {
+      "left_finger": -4.3471,
+      "right_finger": -4.2731
+    }
+  },
+  "min_q_m": 0.001341019578144376
 }

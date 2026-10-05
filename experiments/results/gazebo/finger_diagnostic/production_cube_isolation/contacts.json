@@ -59,13 +59,14 @@
     "commanded_q_m": 0.008,
     "left_finger_vs_cube": false,
     "right_finger_vs_cube": false,
-    "any_finger_vs_table": false,
+    "any_finger_vs_table": true,
     "cube_vs_table": true,
     "cube_sensor_pairs": [
       "target_cube::link::collision <-> table::link::collision"
     ],
     "table_sensor_pairs": [
-      "table::link::collision <-> target_cube::link::collision"
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
     ]
   },
   {
@@ -86,6 +87,19 @@
     "commanded_q_m": 0.006,
     "left_finger_vs_cube": false,
     "right_finger_vs_cube": false,
+    "any_finger_vs_table": false,
+    "cube_vs_table": true,
+    "cube_sensor_pairs": [
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "table_sensor_pairs": [
+      "table::link::collision <-> target_cube::link::collision"
+    ]
+  },
+  {
+    "commanded_q_m": 0.0055,
+    "left_finger_vs_cube": false,
+    "right_finger_vs_cube": false,
     "any_finger_vs_table": true,
     "cube_vs_table": true,
     "cube_sensor_pairs": [
@@ -94,19 +108,6 @@
     "table_sensor_pairs": [
       "table::link::collision <-> target_cube::link::collision",
       "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
-    ]
-  },
-  {
-    "commanded_q_m": 0.0055,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": false,
-    "any_finger_vs_table": false,
-    "cube_vs_table": true,
-    "cube_sensor_pairs": [
-      "target_cube::link::collision <-> table::link::collision"
-    ],
-    "table_sensor_pairs": [
-      "table::link::collision <-> target_cube::link::collision"
     ]
   },
   {
@@ -155,23 +156,25 @@
     "commanded_q_m": 0.003,
     "left_finger_vs_cube": false,
     "right_finger_vs_cube": false,
-    "any_finger_vs_table": false,
+    "any_finger_vs_table": true,
     "cube_vs_table": true,
     "cube_sensor_pairs": [
       "target_cube::link::collision <-> table::link::collision"
     ],
     "table_sensor_pairs": [
-      "table::link::collision <-> target_cube::link::collision"
+      "table::link::collision <-> target_cube::link::collision",
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
     ]
   },
   {
     "commanded_q_m": 0.002,
-    "left_finger_vs_cube": false,
+    "left_finger_vs_cube": true,
     "right_finger_vs_cube": false,
     "any_finger_vs_table": true,
     "cube_vs_table": true,
     "cube_sensor_pairs": [
-      "target_cube::link::collision <-> table::link::collision"
+      "target_cube::link::collision <-> table::link::collision",
+      "target_cube::link::collision <-> panda::panda_left_finger::panda_left_finger_collision"
     ],
     "table_sensor_pairs": [
       "table::link::collision <-> target_cube::link::collision",
@@ -181,11 +184,12 @@
   {
     "commanded_q_m": 0.001,
     "left_finger_vs_cube": false,
-    "right_finger_vs_cube": false,
+    "right_finger_vs_cube": true,
     "any_finger_vs_table": true,
     "cube_vs_table": true,
     "cube_sensor_pairs": [
-      "target_cube::link::collision <-> table::link::collision"
+      "target_cube::link::collision <-> table::link::collision",
+      "target_cube::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
     ],
     "table_sensor_pairs": [
       "table::link::collision <-> target_cube::link::collision",
@@ -194,16 +198,17 @@
   },
   {
     "commanded_q_m": 0.0001,
-    "left_finger_vs_cube": false,
-    "right_finger_vs_cube": false,
-    "any_finger_vs_table": true,
+    "left_finger_vs_cube": true,
+    "right_finger_vs_cube": true,
+    "any_finger_vs_table": false,
     "cube_vs_table": true,
     "cube_sensor_pairs": [
-      "target_cube::link::collision <-> table::link::collision"
+      "target_cube::link::collision <-> table::link::collision",
+      "target_cube::link::collision <-> panda::panda_left_finger::panda_left_finger_collision",
+      "target_cube::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
     ],
     "table_sensor_pairs": [
-      "table::link::collision <-> target_cube::link::collision",
-      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision"
+      "table::link::collision <-> target_cube::link::collision"
     ]
   }
 ]

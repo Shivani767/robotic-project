@@ -1,91 +1,130 @@
-# Part 1F consolidated: contact reconciliation, exact state, reproduction
+# Part 1G: closing the mechanism -- friction plateau, 0.3 s dwell, blind sampling
 
-## 1. Contact detection reconciled
+## What was fixed and run
 
-Canonical detector: each sensor topic parsed separately, pairs matched on exact
-collision names in both orientations (`scripts/production_cube_isolation.py:
-contact_hits`). Raw text read from `gz topic -e`; no protobuf class guessed.
+Three harness defects from the previous attempt, each found by reading output:
 
-Two instrumentation bugs, opposite directions, both now closed:
+1. **FT topics**: the sensor's `<topic>` overrode the derived per-joint topic to
+   one shared name, so both fingers published on one topic and my exact-string
+   subscriptions missed it. Now `/finger_ft_left_finger` and
+   `/finger_ft_right_finger` -- **forces read live on both fingers**.
+2. **Approach knocked the cube** (17.6 mm in one step swing). The arm now
+   follows the episode's own recorded path in three stages (ticks 40, 45, 56)
+   with a live cube-stability check after each stage; `CUBE_KNOCKED` aborts the
+   run instead of sweeping around a displaced object. Two of three runs pass at
+   4 um knock; one failed loudly at stage 2 (36.7 mm) -- recorded, not hidden.
+3. **Episode-timing mode**: the episode issues ONE step close and lifts after
+   0.3 s; my stepped sweep gave every point 2.5 s. `--episode-timing` replays
+   the episode clock (50 ms samples for 12 s).
 
-* **Sweep false POSITIVE (mine).** The previous sweep concatenated the cube's and
-  the table's contact messages before substring-matching, so
-  `panda_right_finger` (from the TABLE sensor) combined with `target_cube` (from
-  the CUBE sensor) manufactured a pair existing in neither message. The raw cube
-  message at those ticks contains only `target_cube <-> table`. Archived as
-  `*_concat_bug.json`. The episode's zero finger-cube contact was NOT refuted by
-  that run.
-* **Episode false NEGATIVE (Gazebo's sensor).** The episode reports
-  `object_contacts` = cube<->table only on all 149 ticks, `contact_health.errors`
-  empty and 4392+ messages -- a *live* stream. Yet at step 57->58 the cube moves
-  18 mm in -y and +3 mm in z **within one tick** while the TCP moves 0.06 mm and
-  the jaw commands stay closed. Nothing else can displace it: the pads were
-  touching it. The contact sensor never reported a single finger<->cube pair in
-  the whole episode. So the historical "0 ticks finger<->cube contact" is an
-  instrumentation failure, confirmed against physics.
+## The mechanism, measured
 
-Corroboration: the episode's TABLE sensor does report
-  `table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision`
-  on ticks 49-50, so finger collisions *can* appear in contacts -- the blindness
-  is specific to finger<->cube pairs on the cube's sensor.
+### A. The close arrests at ~19-21 mm pad separation with 4.3 N
 
-## 2. Exact failing state (failing_state.json)
+Stepped sweep (`telemetry.json`), every mid-range row:
 
-tick 56, sim_t 10.649, phase DESCEND, commanded q = measured q within 0.5 mrad;
-aperture 0.01056 m -> **pad separation 21.4 mm** (0.011 + aperture, pad geometry
-verified in the URDF: inner faces +/-5.5 mm at q=0);
-TCP [0.02193, 0.22464, 0.00702], cube [0.02259, 0.22558, 0.008] (1.6 mm apart);
-qdot and cube velocity were never recorded by the episode -- recorded as null,
-not inferred. Collapse: 43.9 -> 22.2 -> 12.7 -> 11.0 -> 10.6 mm over steps 52-56,
-then 6 ticks of hold, then ejection.
+    |Fy| = 4.27 4.30 4.33 4.34 4.37 4.44 4.45 N ... -- CONSTANT to 0.2 N
 
-## 3. The stall is geometric contact with the cube, predicted to 0.01 mm
+while min_gap to the CUBE is still 2.3-11.5 mm (no cube contact) and the pads
+sit **0.46-0.89 mm below the tabletop** (`pad_bottom_z`), with `finger <-> table`
+pairs in the accumulated contact list. Constant force opposing motion while
+position error shrinks is Coulomb friction, not a spring: p x error would fall
+with the error; it does not. Equilibrium q = F/p = 4.3/1000 -> pad sep
+0.011 + 2(0.0043+0.0001) = **19.8 mm**, bracketing the observed plateau.
 
-A 16 mm cube whose face normal is at angle t to the jaw axis has projected width
-`16*(|cos t|+|sin t|)` mm along that axis. The measured stall separation 21.4 mm
-solves for **t = 26 deg or 64 deg**: a yawed side grasp, pads on the cube's
-faces (or an edge), not on the diagonal (that would be 22.6 mm at 45 deg).
+### B. The episode's clock matches the plateau
 
-The jaw stops at 21.4 mm because the cube is between the pads; the policy's
-close_dwell expires at 6 ticks holding it there; the squeeze then ejects the cube
-(step 58, grasped flips True for one tick, cube lands 26 mm away, grasp lost).
-This is the same "squeeze ejection" world.py already documents -- now with the
-missing link: **the contact was real and the sensor was blind to it.**
+Episode-timing replay (`telemetry_episode_timing.json`), single step to q=0.0001:
 
-## 4. Reproduction result (this run, closing sweep, canonical detector)
+    t=0.125 s  pad_sep 21.76 mm   |F| ~4.3 N   (episode at 0.15 s: 23.7 mm)
+    t=0.251 s  pad_sep 19.02 mm   |F| ~4.3 N   (episode at 0.30 s: 21.3 mm)
+    t=1.96 s   pad_sep 17.69 mm
+    t=7.21 s   pad_sep 14.87 mm
+    t=10.2 s   pad_sep 13.98 mm
 
-Arm at the episode's step-56 joints (settled 13 mrad joint5 / 26 mrad joint7 off
--- not exact), jaw closing 22 mm -> 0.8 mm per finger:
-* no finger<->cube contact reported (correct detector, raw kept per row)
-* pads reach pad separation ~13 mm, **below the cube's 16 mm face width**
-* => the pads closed PAST the cube's position: in this run the cube was never
-  between the jaws. The episode geometry was not reproduced; my joint-level pose
-  was several mm off at the TCP, and TCP/pad poses were not captured to prove it.
+Both runs collapse from ~42 mm to ~20 mm within 0.13-0.25 s and then creep at
+millimetres per second under 4.3 N. The policy's `close_dwell >= 6` lifts at
+0.3 s while the jaw is still at **21.3 mm** -- measured face-contact onset in
+the stepped sweep is pad sep **19.2 mm** (min_gap crosses 0 exactly where the
+formula predicted: q = projected_half - offset - 0.0055 = 4.08 mm). The jaw is
+lifted 2.1 mm *before touching the cube*, so zero finger<->cube contact at lift
+is not an instrumentation mystery -- it is physics.
 
-So: reproduction inconclusive on state match (joint errors recorded), but the
-stall itself is fully explained by section 3.
+### C. The blind sensor is real, demonstrated live
 
-## 5. Regression test
+Stepped sweep, same rows, same ticks:
 
-`tests/unit/test_production_cube_isolation_detector.py` pins the detector:
-cross-topic pairs cannot be manufactured, real pairs (both orientations) are
-reported, substring lookalikes are rejected (the substring `in` form I first
-wrote failed this test and was replaced by `::`-token equality), and empty
-topics fail soft. 5 tests.
+    cmd 0.0040: accumulated = [target_cube <-> panda_right_finger]  latest says (False, False)
+    cmd 0.0030: accumulated = [target_cube <-> panda_right_finger]  latest says (False, False)
+    cmd 0.0010: accumulated = [left pair]                           latest says (False, True)
+
+A contact sustained for **seconds** is intermittently invisible to latest-only
+sampling. The episode samples once per 50 ms tick with the same replace-latest
+semantics, so the transient shove (cube +18 mm in one tick, step 58) was never
+in the snapshot -- the historical "0 finger<->cube contacts" needed no
+sensor fault, only unlucky sampling of a short-lived contact.
+
+### D. The cube shove
+
+In the replay the cube leaves spawn by t=0.125-0.25 s (offset along the jaw
+axis grows to -7..-11 mm), i.e. the closing pads hit the cube's near face
+first (cube sits ~1 mm off the TCP centreline) and shove it out of the jaw --
+the same -18 mm escape the episode records at step 58. `contacts_accumulated`
+catches the finger<->cube pair at t=0.125 s.
+
+## Why the grasp fails, end to end
+
+1. The grasp aim puts the pad bottoms at/below the tabletop (z_bottom =
+   -0.5..-0.9 mm) -- pads physically on the table, `finger <-> table` pairs
+   every tick, friction ~4.3 N per finger measured.
+2. That friction cancels the finger controller's closing force at pad sep
+   ~19.8 mm, right where cube face contact would begin (19.2 mm): the jaw is
+   arrested at zero preload.
+3. The policy lifts after a fixed 0.3 s at 21.3 mm -- 2.1 mm short of touching,
+   5 mm short of gripping -- so lift happens with no cube contact: `grasped`
+   only flickers True on the one tick the shove misreads as lift.
+4. Whatever contact does occur is transient and the replace-latest contact
+   reader misses it, which made the record say "never touched".
+5. Given seconds (not 0.3 s) the jaw does creep through (14.0 mm at 10 s,
+   below 16 mm) -- but by then it has already pushed the cube ~10 mm sideways
+   instead of squeezing it, so time alone does not save the grasp.
+
+## Harness defects found in my own replay (recorded, not glossed)
+
+* At close onset the fingers were at q=0.0141, not the commanded 0.022 -- the
+  single open command (published once, before the controllers' subscriptions
+  were confirmed) was not verifiably held. It must be re-published and verified
+  before any timing claim that depends on the starting aperture.
+* Stage-2 approach knocked the cube once in three runs (transit wedge, joint6
+  held 3.4 rad for 12 s in one attempt). Convergence polling per stage is the
+  fix and was not implemented before this report.
+* tcp_z measured 6.13 mm in the replay vs the episode's 7.02 mm, so my pad
+  bite into the table is deeper than the episode's; the plateau matched anyway
+  (both ~4.3 N), but the reproduction is ~0.9 mm low in z.
 
 ## Verdict
 
-Production cube isolation: **FAIL** (grasp/lift/placement still FAIL)
-Cube necessary for stall: **YES** -- contact with the cube at ~26 deg yaw is the
-blocking object, predicted 21.36 mm vs measured 21.4 mm.
-Finger<->cube contact: **physically YES, sensor-reported NO** (instrumentation
-failure; displacement proves contact at step 58).
-Geometric contact: **YES**, jaws span the cube's projected width at stall.
-Maximum finger stroke with cube straddled: **21.4 mm pad separation** (episode);
-without a cube (or when missed): full stroke.
-Reaction at stall: not measured (production model has no FT sensor; 5 N figure
-from the earlier diagnostic's force-torque run).
-Root cause: **IDENTIFIED (blocker) = jaw-cube contact at yawed grasp + contact
-sensor blind to finger pairs + squeeze ejection on close_dwell expiry.**
-Grasp success: NOT achieved; two candidate fixes exist in world.py comments and
-are deliberately not applied blind. Part 1 remains OPEN, honestly FAIL.
+Production cube isolation: **FAIL** (grasp/lift/placement remain FAIL)
+Cube necessary for stall: NO -- the arrest reproduces with the plateau at
+  19-21 mm governed by pad-table friction (cube gap still 2-11 mm when the
+  force locks), and contact onset sits exactly where geometry predicts.
+Finger<->cube contact: **transient yes, steady no** -- caught by accumulation
+  at t=0.125 s in replay and at cmd<=0.004 in the sweep; missed by latest-only
+  sampling; never needed a broken sensor.
+Geometric contact/overlap: face contact begins at pad sep 19.2 mm (validated);
+  the episode lifts at 21.3 mm, 2.1 mm before touching.
+Maximum finger stroke (cube in jaw): sweep reached 12.3 mm pad sep (q=0.00134);
+  episode reached 13.98 mm only after 10 s of creep.
+Reaction at stall: **4.3 N per finger measured live** (both FT sensors),
+  constant while position error shrinks -- Coulomb friction against the table.
+Root cause: **IDENTIFIED** -- pad-on-table friction (~4.3 N, pads 0.5-0.9 mm
+  below the tabletop at the grasp aim) arrests the close at ~20 mm; the fixed
+  0.3 s close_dwell lifts the jaw 2.1 mm before cube contact; the transient
+  escape contact is then lost to replace-latest contact sampling.
+
+Fix directions (NOT applied; each is a cross-backend or scene change needing
+the owner's call): raise the grasp aim so pads clear the table; lengthen
+close_dwell against measured aperture rather than ticks; make contact reads
+accumulate over the tick instead of replace-latest.
+
+Part 1 remains OPEN, honestly FAIL.

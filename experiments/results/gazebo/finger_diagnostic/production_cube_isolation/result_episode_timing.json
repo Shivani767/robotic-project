@@ -1,0 +1,224 @@
+{
+  "world_name": "robot_ci_pick_place",
+  "arm_pose_commanded": [
+    1.75834,
+    0.44239,
+    -0.0236,
+    -2.72086,
+    2.41011,
+    3.11683,
+    0.09254
+  ],
+  "cube_pose_expected": [
+    0.02259,
+    0.22558,
+    0.008
+  ],
+  "sweep_q_m": [
+    0.022,
+    0.02,
+    0.015,
+    0.01,
+    0.008,
+    0.007,
+    0.006,
+    0.0055,
+    0.005,
+    0.0045,
+    0.004,
+    0.003,
+    0.002,
+    0.001,
+    0.0001
+  ],
+  "startup_wait_s": -20.8,
+  "joint_state_present": true,
+  "finger_ft_topics": [
+    "/finger_ft_left_finger",
+    "/finger_ft_right_finger"
+  ],
+  "finger_ft_present": true,
+  "object_contact_topic_present": true,
+  "table_contact_topic_present": true,
+  "pose_info_topic_present": true,
+  "all_relevant_topics": [
+    "/world/robot_ci_pick_place/dynamic_pose/info",
+    "/world/robot_ci_pick_place/model/panda/joint_state",
+    "/world/robot_ci_pick_place/model/table/link/link/sensor/table_contacts/contact",
+    "/world/robot_ci_pick_place/model/target_cube/link/link/sensor/object_contacts/contact",
+    "/world/robot_ci_pick_place/pose/info"
+  ],
+  "approach": [
+    {
+      "stage": 0,
+      "worst_joint_error_rad": 0.036254,
+      "cube_knock_from_spawn_m": 4e-06
+    },
+    {
+      "stage": 1,
+      "worst_joint_error_rad": 0.030627,
+      "cube_knock_from_spawn_m": 4e-06
+    },
+    {
+      "stage": 2,
+      "worst_joint_error_rad": 0.027191,
+      "cube_knock_from_spawn_m": 4e-06
+    }
+  ],
+  "arm_settled": {
+    "joint1": {
+      "position": 1.758411819638615,
+      "velocity": -0.7152686474333532
+    },
+    "joint2": {
+      "position": 0.4450105454643653,
+      "velocity": -0.013152014236885265
+    },
+    "joint3": {
+      "position": -0.023660380115674586,
+      "velocity": 0.8461910227389847
+    },
+    "joint4": {
+      "position": -2.7211415151906135,
+      "velocity": -0.03498074705365148
+    },
+    "joint5": {
+      "position": 2.397825177528504,
+      "velocity": -0.6792199145696488
+    },
+    "joint6": {
+      "position": 3.1154168804691156,
+      "velocity": 0.43232752104761496
+    },
+    "joint7": {
+      "position": 0.12129631040332867,
+      "velocity": 1.215815432535438
+    }
+  },
+  "arm_settled_worst_error_rad": 0.028756,
+  "arm_converged": false,
+  "tcp_alignment": [
+    {
+      "attempt": 0,
+      "error_m": 0.000916
+    }
+  ],
+  "arm_final_worst_error_rad": 0.028756,
+  "episode_timing_0p3s": {
+    "t_s": 0.377,
+    "left_q_m": 0.007715014831300262,
+    "right_q_m": 0.00012089523141464758,
+    "pad_sep_m": 0.01884,
+    "force_y_N": {
+      "left_finger": 4.3391,
+      "right_finger": 4.3386
+    },
+    "contacts_accumulated": [
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision",
+      "table::link::collision <-> target_cube::link::collision",
+      "target_cube::link::collision <-> panda::panda_right_finger::panda_right_finger_collision",
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "geometry": {
+      "tcp": [
+        0.019941,
+        0.224754,
+        0.006129
+      ],
+      "jaw_axis": [
+        0.031574,
+        -0.9995,
+        0.001396
+      ],
+      "tcp_to_cube_m": 0.005335,
+      "left_pad_centre": [
+        0.020601,
+        0.20405,
+        0.006658
+      ],
+      "left_inner_face_offset_m": 0.013215,
+      "left_pad_bottom_z_m": -0.000842,
+      "right_pad_centre": [
+        0.019533,
+        0.237869,
+        0.00661
+      ],
+      "right_inner_face_offset_m": 0.005621,
+      "right_pad_bottom_z_m": -0.00089,
+      "cube_projected_half_width_m": 0.00826,
+      "clearance_to_cube_m": 0.001158,
+      "predicted_stall_q_m": 0.00276,
+      "cube_offset_along_axis_m": 0.003974,
+      "pad_cube_gaps_m": [
+        0.000982,
+        0.008929,
+        -0.006612,
+        0.001335
+      ],
+      "min_gap_m": -0.006612
+    },
+    "cube_live_xyz": [
+      0.02310601002447841,
+      0.22088090418779296,
+      0.007985105061024988
+    ]
+  },
+  "episode_timing_final": {
+    "t_s": 11.952,
+    "left_q_m": 0.00231504495776168,
+    "right_q_m": 0.00035422624313149575,
+    "pad_sep_m": 0.01367,
+    "force_y_N": {
+      "left_finger": -4.3148,
+      "right_finger": -2.1812
+    },
+    "contacts_accumulated": [
+      "table::link::collision <-> panda::panda_right_finger::panda_right_finger_collision",
+      "table::link::collision <-> target_cube::link::collision",
+      "target_cube::link::collision <-> table::link::collision"
+    ],
+    "geometry": {
+      "tcp": [
+        0.01963,
+        0.224165,
+        0.006145
+      ],
+      "jaw_axis": [
+        0.037203,
+        -0.999307,
+        0.001373
+      ],
+      "tcp_to_cube_m": 0.01922,
+      "left_pad_centre": [
+        0.020205,
+        0.208862,
+        0.006666
+      ],
+      "left_inner_face_offset_m": 0.007815,
+      "left_pad_bottom_z_m": -0.000834,
+      "right_pad_centre": [
+        0.019139,
+        0.237511,
+        0.006627
+      ],
+      "right_inner_face_offset_m": 0.005854,
+      "right_pad_bottom_z_m": -0.000873,
+      "cube_projected_half_width_m": 0.008303,
+      "clearance_to_cube_m": -0.001468,
+      "predicted_stall_q_m": 0.002803,
+      "cube_offset_along_axis_m": 0.001345,
+      "pad_cube_gaps_m": [
+        -0.001833,
+        0.000857,
+        -0.003794,
+        -0.001104
+      ],
+      "min_gap_m": -0.003794
+    },
+    "cube_live_xyz": [
+      0.03875034534512714,
+      0.22353369249827784,
+      0.007999988163521906
+    ]
+  }
+}
