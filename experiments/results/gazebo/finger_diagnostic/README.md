@@ -139,6 +139,33 @@ velocity limit, which DART enforces by scaling the applied force. Raising it
 tenfold moved the stall into a limit cycle rather than removing it, which is
 consistent with that mechanism but does not confirm it.
 
+## Removing the velocity limit altogether
+
+`finger_hold_no_object_ft_novel.json` deletes `<velocity>` from both finger
+joints rather than raising it. This does not confirm the velocity-limiter theory;
+it produces a different and sharper result:
+
+    t=0.05 s  L 0.03713  R 0.00006   force.y = 96.7 N on BOTH
+    t=1.20 s  L 0.04000  R 0.00001   force.y = 96.6 N on BOTH
+
+Two things follow.
+
+**The controller saturates.** With no velocity limit it applies its full
+`cmd_max` of 100 N and the reading sits at 96.7 N. So the force really was being
+capped at 5 N before, by the limiter -- the limiter is doing something.
+
+**The fingers do not move symmetrically.** The left finger is pinned at 0.0400,
+which is its upper joint limit, while the right finger goes to the commanded
+0.0001. Two mirror-image joints under two identical commands, one of which
+cannot be driven off its stop at all. That asymmetry is not explained by
+anything recorded so far, and it is new information: it was invisible in every
+velocity-limited run because there the limiter dominated.
+
+So: the limiter is real and it is what capped the force at 5 N, but removing it
+exposes a second, larger problem underneath. Part 1B is **not complete** -- the
+root cause is still not identified, and two distinct defects are now on the
+record rather than one.
+
 ## The fix this implies, and why it is not applied here
 
 Two candidate fixes, neither applied:

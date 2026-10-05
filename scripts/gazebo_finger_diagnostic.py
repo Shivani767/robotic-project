@@ -200,6 +200,7 @@ def ablate(
     no_finger_collision: bool,
     finger_velocity_limit: float | None = None,
     finger_force_torque: bool = False,
+    remove_finger_velocity: bool = False,
 ) -> str:
     """Return the world with the requested parts removed, one variable at a time.
 
@@ -221,6 +222,21 @@ def ablate(
         name = model.get("name")
         if (name == "target_cube" and no_object) or (name == "table" and no_table):
             world.remove(model)
+    if remove_finger_velocity:
+        # Delete the element rather than raise it. Raising it tenfold only moved
+        # the stall into a limit cycle, so the question this answers is whether
+        # the engine's velocity limiter is the constraint at all, and only its
+        # absence answers that.
+        for joint in root.iter("joint"):
+            if "finger" not in (joint.get("name") or ""):
+                continue
+            axis = joint.find("axis")
+            limit = None if axis is None else axis.find("limit")
+            if limit is None:
+                continue
+            velocity = limit.find("velocity")
+            if velocity is not None:
+                limit.remove(velocity)
     if finger_force_torque:
         # A sensor does nothing without its system plugin: the world still
         # loads, the sensor still appears in the SDF, and the topic simply never
@@ -417,6 +433,7 @@ def hold_trace(
     ramp_m_s: float | None = None,
     no_finger_collision: bool = False,
     finger_force_torque: bool = False,
+    remove_finger_velocity: bool = False,
 ) -> dict[str, Any]:
     """Command one aperture and watch the fingers for a long time.
 
@@ -436,6 +453,7 @@ def hold_trace(
         no_finger_collision=no_finger_collision,
         finger_velocity_limit=finger_velocity_limit,
         finger_force_torque=finger_force_torque,
+        remove_finger_velocity=remove_finger_velocity,
     )
     world_file = Path(f"/tmp/finger_hold_{label}.sdf")
     world_file.write_text(sdf, encoding="utf-8")
@@ -571,6 +589,7 @@ def hold_trace(
                 "finger_velocity_limit": finger_velocity_limit,
                 "no_finger_collision": no_finger_collision,
                 "finger_force_torque": finger_force_torque,
+                "remove_finger_velocity": remove_finger_velocity,
             },
             "samples": samples,
             "reader": {"messages": health.joint_messages, "errors": list(health.errors)},
@@ -601,6 +620,7 @@ def main() -> int:
     parser.add_argument("--ramp-mps", type=float, default=None)
     parser.add_argument("--no-finger-collision", action="store_true")
     parser.add_argument("--finger-ft", action="store_true")
+    parser.add_argument("--remove-finger-velocity", action="store_true")
     parser.add_argument("--no-object", action="store_true")
     parser.add_argument("--no-table", action="store_true")
     parser.add_argument("--only", choices=("left_finger", "right_finger"), default=None)
@@ -630,6 +650,8 @@ def main() -> int:
         label = f"{label}_nocoll"
     if args.finger_ft:
         label = f"{label}_ft"
+    if args.remove_finger_velocity:
+        label = f"{label}_novel"
         result = hold_trace(
             label=label,
             aperture=args.aperture,
@@ -641,6 +663,7 @@ def main() -> int:
             ramp_m_s=args.ramp_mps,
             no_finger_collision=args.no_finger_collision,
             finger_force_torque=args.finger_ft,
+            remove_finger_velocity=args.remove_finger_velocity,
         )
         if "error" in result:
             print(f"hold: ERROR {result['error']}")
