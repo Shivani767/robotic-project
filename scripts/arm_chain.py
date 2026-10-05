@@ -146,8 +146,23 @@ def build(
     gravity: bool = True,
     disable_arm_controller: str | None = None,
     gripper_collision: bool = False,
+    use_project_world: bool = False,
 ) -> str:
-    """Render one variant's world. Each argument is exactly one variable."""
+    """Render one variant's world. Each argument is exactly one variable.
+
+    ``use_project_world`` swaps in the project's own ``world_sdf`` -- the real
+    placement, the real table, the real plugin set -- with the cube removed. That
+    is the one configuration matching the failing episode except for the object,
+    so it tests the table directly instead of approximating it.
+    """
+    if use_project_world:
+        from robot_ci.gazebo.world import world_sdf
+        from robot_ci.scenarios import default_scenario
+
+        return world_sdf(
+            default_scenario(), include_object=False, include_table=True, finger_collisions=True
+        )
+
     model = load_chain()
     # model_sdf.txt already carries the world anchor and all nine controllers.
     # Strip every model-level plugin first, then add back exactly what this
@@ -252,7 +267,13 @@ def run(**kwargs: Any) -> dict[str, Any]:
     """
     label = kwargs.pop("label", "run")
     sdf_path = Path(f"/tmp/armchain_{label}.sdf")
-    sdf_path.write_text(build(**kwargs))
+    sdf_text = build(**kwargs)
+    sdf_path.write_text(sdf_text)
+    # Read the world name out of the SDF. It is not always WORLD: the project
+    # world is robot_ci_pick_place, and assuming otherwise silently produced a
+    # run with no joint_state topic and every reading null.
+    world = ET.fromstring(sdf_text).find("world")
+    world_name = world.get("name") if world is not None else WORLD
     sim_log = Path(f"/tmp/armchain_{label}_sim.log").open("w+")  # noqa: SIM115 - outlives try
     process = subprocess.Popen(
         # -s: server only, or it opens a GUI and dies advertising nothing.
@@ -260,13 +281,18 @@ def run(**kwargs: Any) -> dict[str, Any]:
         stdout=sim_log,
         stderr=subprocess.STDOUT,
     )
-    result: dict[str, Any] = {"label": label, "config": dict(kwargs), "sdf_path": str(sdf_path)}
+    result: dict[str, Any] = {
+        "label": label,
+        "config": dict(kwargs),
+        "sdf_path": str(sdf_path),
+        "world_name": world_name,
+    }
     try:
         time.sleep(14.0)
         topics = _topics()
-        state_topic = f"/world/{WORLD}/model/{MODEL}/joint_state"
-        ft_topic = f"/world/{WORLD}/model/{MODEL}/joint/{FINGER}/sensor/finger_ft/forcetorque"
-        link7_topic = f"/world/{WORLD}/model/{MODEL}/link/panda_link7/pose"
+        state_topic = f"/world/{world_name}/model/{MODEL}/joint_state"
+        ft_topic = f"/world/{world_name}/model/{MODEL}/joint/{FINGER}/sensor/finger_ft/forcetorque"
+        link7_topic = f"/world/{world_name}/model/{MODEL}/link/panda_link7/pose"
         result["topics_present"] = {
             "joint_state": state_topic in topics,
             "finger_ft": ft_topic in topics,
@@ -367,6 +393,16 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--variant", default="D", choices=sorted(VARIANTS))
     parser.add_argument("--disable-arm-controller", default=None, choices=list(ARM))
+    parser.add_argument(
+        "--project-world",
+        action="store_true",
+        help="use the project's own world_sdf (real placement and table), cube removed",
+    )
+    parser.add_argument(
+        "--gripper-collision",
+        action="store_true",
+        help="keep the gripper link collisions that variant D strips",
+    )
     parser.add_argument("--emit-sdf")
     parser.add_argument("--result")
     args = parser.parse_args()
@@ -374,9 +410,17 @@ def main() -> int:
     config: dict[str, Any] = dict(VARIANTS[args.variant])
     if args.disable_arm_controller:
         config["disable_arm_controller"] = args.disable_arm_controller
+    if args.gripper_collision:
+        config["gripper_collision"] = True
+    if args.project_world:
+        config["use_project_world"] = True
     name = args.variant + (
         f"_no_{args.disable_arm_controller}" if args.disable_arm_controller else ""
     )
+    if args.gripper_collision:
+        name += "_coll"
+    if args.project_world:
+        name += "_projworld"
 
     if args.emit_sdf:
         Path(args.emit_sdf).write_text(build(**config))

@@ -5,15 +5,36 @@
   "rows": [
     {
       "variant": "D",
-      "arm_chain": "exact Panda (link0 anchor, 7 revolute, link7)",
-      "arm_controllers": "exact Panda gains",
+      "arm_chain": "exact Panda",
+      "arm_controllers": "exact gains",
       "gravity": "ON",
+      "gripper_collision": "stripped",
       "finger_full_stroke": true,
       "max_q_mm": 38.604,
-      "final_error_mm": -1.396,
-      "reaction_N": "sensor topic absent (0 msgs)",
-      "max_arm_drift_rad": 0.002175,
+      "final_err_mm": -1.396,
       "result": "FINGER TRACKS"
+    },
+    {
+      "variant": "D+coll",
+      "arm_chain": "exact Panda",
+      "arm_controllers": "exact gains",
+      "gravity": "ON",
+      "gripper_collision": "RESTORED",
+      "finger_full_stroke": true,
+      "max_q_mm": 38.597,
+      "final_err_mm": -1.403,
+      "result": "FINGER TRACKS - no change"
+    },
+    {
+      "variant": "D+projworld",
+      "arm_chain": "exact Panda",
+      "arm_controllers": "exact gains",
+      "gravity": "ON",
+      "gripper_collision": "project default",
+      "finger_full_stroke": null,
+      "max_q_mm": null,
+      "final_err_mm": null,
+      "result": "NOT READABLE - world robot_ci_pick_place advertised no joint_state within the 14 s window; world name was wrong on the first attempt and fixed, but the topic still did not appear. No conclusion drawn."
     }
   ],
   "not_run": [
@@ -39,11 +60,11 @@
     "consequence": "The finger is not blocked at 21 mm by a static reaction. It is rate-limited and still converging when the sample is taken. Whatever produces the full Panda's flat ~21 mm stall is therefore NOT the arm chain and NOT present in variant D."
   },
   "what_variant_D_still_lacks_versus_the_failing_full_panda": [
-    "gripper link collisions (stripped here, per the brief)",
-    "the table and the target cube",
-    "the Contact and Sensors systems",
-    "the right_finger is present but never commanded in this sweep"
+    "the table (the project world places the pads millimetres above it, per world.py comment)",
+    "the target cube",
+    "the real robot placement in the scene"
   ],
-  "next_single_experiment": "Re-run D with gripper collisions restored (--gripper-collision), changing nothing else. If the stall appears, collision self-interaction in the gripper is the cause and it can be isolated link by link. If it still tracks, the remaining difference is the table/cube and the search must move to the scene rather than the mechanism.",
-  "root_cause": "NOT IDENTIFIED"
+  "next_single_experiment": "Make the project-world run readable (the world robot_ci_pick_place loads more plugins and needs longer than 14 s, or the robot model name differs) and command the finger there with the cube removed. That is the failing episode minus the object, and it is the only configuration left that contains the table.",
+  "root_cause": "NOT IDENTIFIED",
+  "collisions_falsified_at_full_scale": "Restoring all eleven gripper and arm link collisions to variant D changes nothing: max q 38.604 mm -> 38.597 mm, final error -1.396 mm -> -1.403 mm. Candidates 11 and 12 are falsified again, now at the scale of the real chain rather than a minimal model."
 }

@@ -1,0 +1,469 @@
+{
+  "label": "D_projworld",
+  "config": {
+    "arm_mode": "dynamic",
+    "arm_controllers": "panda",
+    "use_project_world": true
+  },
+  "sdf_path": "/tmp/armchain_D_projworld.sdf",
+  "world_name": "robot_ci_pick_place",
+  "topics_present": {
+    "joint_state": false,
+    "finger_ft": false,
+    "link7_pose": false
+  },
+  "joints_reported": [],
+  "rows": [
+    {
+      "commanded_q_m": 0.0,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.005,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.01,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.015,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.02,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.025,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.03,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.035,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.04,
+      "measured_q_m": null,
+      "qdot_m_s": null,
+      "error_m": null,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint2": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint3": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint4": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint5": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint6": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        },
+        "joint7": {
+          "position": null,
+          "velocity": null,
+          "drift": null
+        }
+      }
+    }
+  ],
+  "max_q_m": null,
+  "full_stroke": false,
+  "final_error_m": null,
+  "final_reaction_N": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 0.0
+  },
+  "max_arm_drift_rad": 0.0,
+  "sim_log_tail": "\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mGazebo Sim Server v\u001b[0m\u001b[1;32m8.15.0\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mLoading SDF world file[\u001b[0m\u001b[1;32m/tmp/armchain_D_projworld.sdf\u001b[0m\u001b[1;32m].\u001b[0m\n\u001b[1;33mWarning [Utils.cc:132]\u001b[0m [/sdf/world[@name=\"robot_ci_pick_place\"]/model[@name=\"camera_rig\"]/link[@name=\"link\"]/sensor[@name=\"robot_ci_camera\"]/camera[@name=\"robot_ci_camera\"]/depth_camera/noise:/tmp/armchain_D_projworld.sdf:L129]: XML Element[noise], child of element[depth_camera], not defined in SDF. Copying[noise] as children of [depth_camera].\n\u001b[1;31m[Err] [Server.cc:86] \u001b[0m\u001b[1;31mError Code \u001b[0m\u001b[1;31m14\u001b[0m\u001b[1;31m: \u001b[0m\u001b[1;31m[/sdf/world[@name=\"robot_ci_pick_place\"]/include[0]/uri:/tmp/armchain_D_projworld.sdf:L60]: \u001b[0m\u001b[1;31mMsg: \u001b[0m\u001b[1;31mUnable to find uri[panda]\u001b[0m\u001b[1;31m\u001b[0m\n\u001b[1;36m[Dbg] [gz.cc:434] \u001b[0m\u001b[1;36mShutting down gz-sim-server\u001b[0m\u001b[1;36m\u001b[0m\n"
+}
