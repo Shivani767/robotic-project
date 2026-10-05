@@ -1,0 +1,479 @@
+{
+  "label": "D",
+  "config": {
+    "arm_mode": "dynamic",
+    "arm_controllers": "panda"
+  },
+  "sdf_path": "/tmp/armchain_D.sdf",
+  "topics_present": {
+    "joint_state": true,
+    "finger_ft": false,
+    "link7_pose": false
+  },
+  "joints_reported": [
+    "joint1",
+    "joint2",
+    "joint3",
+    "joint4",
+    "joint5",
+    "joint6",
+    "joint7",
+    "left_finger",
+    "panda",
+    "right_finger",
+    "world_to_panda_base"
+  ],
+  "rows": [
+    {
+      "commanded_q_m": 0.0,
+      "measured_q_m": 0.0003373459327006896,
+      "qdot_m_s": 0.20000000024047845,
+      "error_m": 0.000337,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.016726056063459286,
+          "velocity": 1.65759946064233,
+          "drift": null
+        },
+        "joint2": {
+          "position": 0.0007628007243020543,
+          "velocity": 0.0020087840919054134,
+          "drift": null
+        },
+        "joint3": {
+          "position": -0.0005279806959462058,
+          "velocity": -2.175000002156329,
+          "drift": null
+        },
+        "joint4": {
+          "position": -0.06979999999938105,
+          "velocity": -1.182217657103024e-10,
+          "drift": null
+        },
+        "joint5": {
+          "position": 0.00956891192566898,
+          "velocity": 0.5645267896958743,
+          "drift": null
+        },
+        "joint6": {
+          "position": -0.0008662097733501114,
+          "velocity": -0.12402678496248562,
+          "drift": null
+        },
+        "joint7": {
+          "position": 0.012709972803931513,
+          "velocity": -0.8131207261570927,
+          "drift": null
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.005,
+      "measured_q_m": 0.0008177386003734554,
+      "qdot_m_s": -0.1990537760043065,
+      "error_m": -0.004182,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.018411604933831958,
+          "velocity": -1.6385560067292253,
+          "drift": -0.001685549
+        },
+        "joint2": {
+          "position": 0.0007314627452604917,
+          "velocity": -0.0023477482888480394,
+          "drift": -3.1338e-05
+        },
+        "joint3": {
+          "position": 0.0016470192987308255,
+          "velocity": 2.1750000021375326,
+          "drift": 0.002175
+        },
+        "joint4": {
+          "position": -0.06979999999926279,
+          "velocity": 1.1589074144779943e-10,
+          "drift": 0.0
+        },
+        "joint5": {
+          "position": 0.009062388329816394,
+          "velocity": -0.6076403803865509,
+          "drift": -0.000506524
+        },
+        "joint6": {
+          "position": -0.0007074928964329659,
+          "velocity": 0.12547379449256182,
+          "drift": 0.000158717
+        },
+        "joint7": {
+          "position": 0.013696233074032236,
+          "velocity": 0.8038126755823531,
+          "drift": 0.00098626
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.01,
+      "measured_q_m": 0.006623333318470295,
+      "qdot_m_s": 0.20000000055288447,
+      "error_m": -0.003377,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.0167324035468082,
+          "velocity": 1.6408154079522579,
+          "drift": -6.347e-06
+        },
+        "joint2": {
+          "position": 0.0007060981175051853,
+          "velocity": 0.0022425125477107954,
+          "drift": -5.6703e-05
+        },
+        "joint3": {
+          "position": -0.0005279807108645533,
+          "velocity": -2.1750000021542446,
+          "drift": -0.0
+        },
+        "joint4": {
+          "position": -0.06979999999938095,
+          "velocity": -1.1814815792376976e-10,
+          "drift": 0.0
+        },
+        "joint5": {
+          "position": 0.009634826693231421,
+          "velocity": 0.6095044662465213,
+          "drift": 6.5915e-05
+        },
+        "joint6": {
+          "position": -0.0008091259726865295,
+          "velocity": -0.11891851296427088,
+          "drift": 5.7084e-05
+        },
+        "joint7": {
+          "position": 0.013941277261163662,
+          "velocity": -0.7757219508910471,
+          "drift": 0.001231304
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.015,
+      "measured_q_m": 0.012143855733895773,
+      "qdot_m_s": 0.20000000055165923,
+      "error_m": -0.002856,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.016779536802356255,
+          "velocity": 1.6605727932478955,
+          "drift": -5.3481e-05
+        },
+        "joint2": {
+          "position": 0.0006783983154182396,
+          "velocity": 0.0017371133229987235,
+          "drift": -8.4402e-05
+        },
+        "joint3": {
+          "position": -0.0005279807182955247,
+          "velocity": -2.1750000021149978,
+          "drift": -0.0
+        },
+        "joint4": {
+          "position": -0.06979999999937796,
+          "velocity": -1.1518186404657627e-10,
+          "drift": 0.0
+        },
+        "joint5": {
+          "position": 0.009706502839778981,
+          "velocity": 0.5481468954927382,
+          "drift": 0.000137591
+        },
+        "joint6": {
+          "position": -0.0007825522255949376,
+          "velocity": -0.12270042987899905,
+          "drift": 8.3658e-05
+        },
+        "joint7": {
+          "position": 0.013349148873510503,
+          "velocity": -0.8105477557283692,
+          "drift": 0.000639176
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.02,
+      "measured_q_m": 0.017387768509790954,
+      "qdot_m_s": -0.1993669530373139,
+      "error_m": -0.002612,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.01836866328556667,
+          "velocity": -1.6453424009861994,
+          "drift": -0.001642607
+        },
+        "joint2": {
+          "position": 0.000649951911304481,
+          "velocity": -0.002212510277052049,
+          "drift": -0.000112849
+        },
+        "joint3": {
+          "position": 0.0016470192763880292,
+          "velocity": 2.1750000021360507,
+          "drift": 0.002175
+        },
+        "joint4": {
+          "position": -0.06979999999926273,
+          "velocity": 1.1666168031609914e-10,
+          "drift": 0.0
+        },
+        "joint5": {
+          "position": 0.009089979685440237,
+          "velocity": -0.5975896176851643,
+          "drift": -0.000478932
+        },
+        "joint6": {
+          "position": -0.0006378432286954155,
+          "velocity": 0.1219062652765543,
+          "drift": 0.000228367
+        },
+        "joint7": {
+          "position": 0.014581209631530158,
+          "velocity": 0.8179018181908831,
+          "drift": 0.001871237
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.025,
+      "measured_q_m": 0.022767027001767467,
+      "qdot_m_s": -0.1995374179208912,
+      "error_m": -0.002233,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.018349079910149956,
+          "velocity": -1.648404980240864,
+          "drift": -0.001623024
+        },
+        "joint2": {
+          "position": 0.0006240528736580679,
+          "velocity": -0.0023278407890028885,
+          "drift": -0.000138748
+        },
+        "joint3": {
+          "position": 0.001647019268920889,
+          "velocity": 2.175000002135907,
+          "drift": 0.002175
+        },
+        "joint4": {
+          "position": -0.06979999999926262,
+          "velocity": 1.182421938139555e-10,
+          "drift": 0.0
+        },
+        "joint5": {
+          "position": 0.009002104109942509,
+          "velocity": -0.5817408172116263,
+          "drift": -0.000566808
+        },
+        "joint6": {
+          "position": -0.0006029410150638656,
+          "velocity": 0.13383036132410636,
+          "drift": 0.000263269
+        },
+        "joint7": {
+          "position": 0.014165772887696436,
+          "velocity": 0.8387360451230836,
+          "drift": 0.0014558
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.03,
+      "measured_q_m": 0.028090219956772605,
+      "qdot_m_s": -0.19964027240055368,
+      "error_m": -0.00191,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.018416290475925502,
+          "velocity": -1.6495992730540079,
+          "drift": -0.001690234
+        },
+        "joint2": {
+          "position": 0.0006006139446241989,
+          "velocity": -0.002026593031711321,
+          "drift": -0.000162187
+        },
+        "joint3": {
+          "position": 0.0016470192614422572,
+          "velocity": 2.175000002135724,
+          "drift": 0.002175
+        },
+        "joint4": {
+          "position": -0.06979999999926267,
+          "velocity": 1.183189102249571e-10,
+          "drift": 0.0
+        },
+        "joint5": {
+          "position": 0.009055983996599834,
+          "velocity": -0.5670735671677534,
+          "drift": -0.000512928
+        },
+        "joint6": {
+          "position": -0.000584278925885151,
+          "velocity": 0.13106071669272432,
+          "drift": 0.000281931
+        },
+        "joint7": {
+          "position": 0.013880180804594376,
+          "velocity": 0.8302067241780406,
+          "drift": 0.001170208
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.035,
+      "measured_q_m": 0.03336671551424391,
+      "qdot_m_s": -0.19958329306453565,
+      "error_m": -0.001633,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.018324355930035396,
+          "velocity": -1.6414658828457893,
+          "drift": -0.0015983
+        },
+        "joint2": {
+          "position": 0.0005789911244813554,
+          "velocity": -0.00225808966448926,
+          "drift": -0.00018381
+        },
+        "joint3": {
+          "position": 0.001647019254005416,
+          "velocity": 2.175000002134645,
+          "drift": 0.002175
+        },
+        "joint4": {
+          "position": -0.0697999999992627,
+          "velocity": 1.1650735931567624e-10,
+          "drift": 0.0
+        },
+        "joint5": {
+          "position": 0.009067366528874913,
+          "velocity": -0.6003235751627793,
+          "drift": -0.000501545
+        },
+        "joint6": {
+          "position": -0.0005702291145216631,
+          "velocity": 0.1225446586735639,
+          "drift": 0.000295981
+        },
+        "joint7": {
+          "position": 0.014239747935767641,
+          "velocity": 0.8001937024064133,
+          "drift": 0.001529775
+        }
+      }
+    },
+    {
+      "commanded_q_m": 0.04,
+      "measured_q_m": 0.03860360684238022,
+      "qdot_m_s": -0.19976022952334357,
+      "error_m": -0.001396,
+      "reaction_N": {
+        "x": 0.0,
+        "y": 0.0,
+        "z": 0.0
+      },
+      "reaction_messages": 0,
+      "arm": {
+        "joint1": {
+          "position": -0.018391951971319643,
+          "velocity": -1.6494105899520535,
+          "drift": -0.001665896
+        },
+        "joint2": {
+          "position": 0.0005563473979768618,
+          "velocity": -0.001947561011957366,
+          "drift": -0.000206453
+        },
+        "joint3": {
+          "position": 0.0016470192465196769,
+          "velocity": 2.1750000021348024,
+          "drift": 0.002175
+        },
+        "joint4": {
+          "position": -0.0697999999992627,
+          "velocity": 1.1849088377147154e-10,
+          "drift": 0.0
+        },
+        "joint5": {
+          "position": 0.009125849080151956,
+          "velocity": -0.5714524388228481,
+          "drift": -0.000443063
+        },
+        "joint6": {
+          "position": -0.0005485562843313677,
+          "velocity": 0.1241130810671239,
+          "drift": 0.000317653
+        },
+        "joint7": {
+          "position": 0.014132572744494263,
+          "velocity": 0.8448132652464788,
+          "drift": 0.0014226
+        }
+      }
+    }
+  ],
+  "max_q_m": 0.03860360684238022,
+  "full_stroke": true,
+  "final_error_m": -0.001396,
+  "final_reaction_N": {
+    "x": 0.0,
+    "y": 0.0,
+    "z": 0.0
+  },
+  "max_arm_drift_rad": 0.002175,
+  "sim_log_tail": "ource_paths\u001b[0m\u001b[1;32m].\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mServer control service on [\u001b[0m\u001b[1;32m/server_control\u001b[0m\u001b[1;32m].\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mFound no publishers on /stats, adding root stats topic\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;32m[Msg] \u001b[0m\u001b[1;32mFound no publishers on /clock, adding root clock topic\u001b[0m\u001b[1;32m\u001b[0m\n\u001b[1;36m[Dbg] [SimulationRunner.cc:627] \u001b[0m\u001b[1;36mCreating PostUpdate worker threads: \u001b[0m\u001b[1;36m3\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [SimulationRunner.cc:638] \u001b[0m\u001b[1;36mCreating postupdate worker thread (\u001b[0m\u001b[1;36m0\u001b[0m\u001b[1;36m)\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [SimulationRunner.cc:638] \u001b[0m\u001b[1;36mCreating postupdate worker thread (\u001b[0m\u001b[1;36m1\u001b[0m\u001b[1;36m)\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mleft_finger\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m34\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mjoint1\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m27\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mjoint2\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m28\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mjoint3\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m29\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mjoint4\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m30\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mjoint5\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m31\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mjoint6\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m32\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [JointPositionController.cc:376] \u001b[0m\u001b[1;36mIdentified joint [\u001b[0m\u001b[1;36mjoint7\u001b[0m\u001b[1;36m] as Entity [\u001b[0m\u001b[1;36m33\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [ForceTorque.cc:154] \u001b[0m\u001b[1;36mAdding JointTransmittedWrench to: \u001b[0m\u001b[1;36m34\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [SignalHandler.cc:142] \u001b[0m\u001b[1;36mReceived signal[\u001b[0m\u001b[1;36m15\u001b[0m\u001b[1;36m].\u001b[0m\n\u001b[1;36m[Dbg] [ServerPrivate.cc:122] \u001b[0m\u001b[1;36mServer received signal[\u001b[0m\u001b[1;36m15\u001b[0m\u001b[1;36m]\u001b[0m\n\u001b[1;36m[Dbg] [gz.cc:434] \u001b[0m\u001b[1;36mShutting down gz-sim-server\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [SimulationRunner.cc:654] \u001b[0m\u001b[1;36mExiting postupdate worker thread (\u001b[0m\u001b[1;36m1\u001b[0m\u001b[1;36m)\u001b[0m\u001b[1;36m\u001b[0m\n\u001b[1;36m[Dbg] [SimulationRunner.cc:654] \u001b[0m\u001b[1;36mExiting postupdate worker thread (\u001b[0m\u001b[1;36m0\u001b[0m\u001b[1;36m)\u001b[0m\u001b[1;36m\u001b[0m\n"
+}
