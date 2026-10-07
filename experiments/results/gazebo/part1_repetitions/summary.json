@@ -1,0 +1,76 @@
+{
+  "experiment": "PickAndPlace seed=3 0mm policy_v1 GazeboBackend (committed 7a9014e)",
+  "verdict": "PART 1: INCOMPLETE",
+  "success_rate": "0/5",
+  "runs": [
+    {
+      "run": 1,
+      "status": "failure",
+      "steps": 173,
+      "settled_tcp_z_m": 0.008,
+      "pad_bottom_m": -0.0005,
+      "grasp_aperture_mm": 9.8,
+      "finger_cube_contact_steps": [],
+      "cube_flick_dy_mm": -22.1,
+      "max_lift_mm": 12.0,
+      "placement_err_mm": 184.0,
+      "grasped_ticks": 1
+    },
+    {
+      "run": 2,
+      "status": "failure",
+      "steps": 173,
+      "settled_tcp_z_m": 0.008,
+      "pad_bottom_m": -0.0005,
+      "grasp_aperture_mm": 9.4,
+      "finger_cube_contact_steps": [
+        70
+      ],
+      "cube_flick_dy_mm": -24.5,
+      "max_lift_mm": 14.3,
+      "placement_err_mm": 164.5,
+      "grasped_ticks": 1
+    },
+    {
+      "run": 3,
+      "status": "failure",
+      "steps": 173,
+      "settled_tcp_z_m": 0.008,
+      "pad_bottom_m": -0.0005,
+      "grasp_aperture_mm": 8.6,
+      "finger_cube_contact_steps": [
+        70
+      ],
+      "cube_flick_dy_mm": -27.9,
+      "max_lift_mm": 12.5,
+      "placement_err_mm": 176.8,
+      "grasped_ticks": 1
+    },
+    {
+      "run": 4,
+      "status": "failure",
+      "steps": 173,
+      "settled_tcp_z_m": 0.008,
+      "pad_bottom_m": -0.0005,
+      "grasp_aperture_mm": 9.2,
+      "finger_cube_contact_steps": [],
+      "cube_flick_dy_mm": -25.2,
+      "max_lift_mm": 12.8,
+      "placement_err_mm": 180.4,
+      "grasped_ticks": 1
+    },
+    {
+      "run": 5,
+      "status": "failure",
+      "steps": 173,
+      "settled_tcp_z_m": 0.008,
+      "pad_bottom_m": -0.0005,
+      "grasp_aperture_mm": 9.3,
+      "finger_cube_contact_steps": [],
+      "cube_flick_dy_mm": -22.5,
+      "max_lift_mm": 10.7,
+      "placement_err_mm": 178.2,
+      "grasped_ticks": 1
+    }
+  ]
+}
