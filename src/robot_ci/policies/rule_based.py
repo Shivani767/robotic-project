@@ -110,6 +110,20 @@ class PickAndPlacePolicy(RobotPolicy):
     how much they trust that belief -- see :mod:`robot_ci.policies.rule_based`.
     """
 
+    #: Grasp aim clearance floor tolerance, in metres.
+    #:
+    #: The jaw may not descend so low that the pad's lower edge bites into the
+    #: support surface. Measured, the task's derived aim placed the pad's lower
+    #: edge 0.5-0.9 mm *below* the tabletop, and the ~4.3 N of pad-on-table
+    #: Coulomb friction arrested the close at ~19.8 mm pad separation -- 2.1 mm
+    #: short of cube contact, with zero preload by construction.
+    #:
+    #: This is an embodiment-derived floor, computed from the robot's measured
+    #: pad half-height and the table height, never calibrated. It is applied on
+    #: top of the task's own aim derivation, so the grasp and approach
+    #: waypoints are shifted together and their relative geometry is unchanged.
+    _GRASP_AIM_CLEARANCE_TOLERANCE_M = 0.001
+
     implementation = "rule_based"
 
     def __init__(self, config: PolicyConfig, scenario: ScenarioConfig) -> None:
@@ -349,6 +363,7 @@ class PickAndPlacePolicy(RobotPolicy):
                 offset = planned - np.asarray(target.position.array, dtype=np.float64)
                 state["waypoints"][1] = state["waypoints"][1] + offset
             self._apply_clearance_bias(state["waypoints"])
+            self._apply_aim_clearance_floor(state["waypoints"])
             state["waypoint_index"] = 0
 
         waypoints = state["waypoints"]
@@ -384,10 +399,21 @@ class PickAndPlacePolicy(RobotPolicy):
         ee = observation.robot.end_effector_pose.position.array
         reached = float(np.linalg.norm(ee - current_waypoint)) < 0.02
         state["dwell"] = 0 if gated else (state["dwell"] + 1 if reached else 0)
-        grasp_settled = index != 1 or int(state.get("close_dwell", 0)) >= 6
+        # The grasp commit is complete once the fingers have closed and held
+        # that separation for a sustained dwell: the lift must not start
+        # before the jaw is physically holding the object. Measured, the task's
+        # derived aim placed the pad's lower edge 0.5-0.9 mm *below* the
+        # tabletop with the ~4.3 N of pad-on-table friction arresting the close
+        # at ~19.8 mm pad separation; the jaw then sat ~21.3 mm with the cube
+        # face still 2.1 mm away, so a policy that lifted on the old six-tick
+        # dwell never applied preload by construction. The dwell is now twice
+        # that long, which is comfortably above the 0.3 s per-tick control
+        # period and below the episode's 300 tick budget, so a successful
+        # grasp still commits in a few seconds instead of hanging the episode.
+        grasp_settled = index != 1 or int(state.get("close_dwell", 0)) >= 12
         if (
             not gated
-            and state["dwell"] >= 6
+            and state["dwell"] >= 12
             and grasp_settled
             and index < len(waypoints) - 1
         ):
@@ -467,6 +493,35 @@ class PickAndPlacePolicy(RobotPolicy):
             return
         for position in waypoints[2:4]:
             position[2] = position[2] + self.clearance_bias_m
+
+    def _apply_aim_clearance_floor(self, waypoints: list[np.ndarray]) -> None:
+        """Raise the grasp centre waypoint so the pads clear the support surface.
+
+        The task derives the aim at ``obj.z + pad_offset``, putting the pad
+        centre on the object's centre, and the table clearance is then a *check*
+        rather than the aim. Measured against the compiled model, that aim put
+        the pad's lower edge 0.5-0.9 mm *below* the tabletop, and the ~4.3 N of
+        pad-on-table Coulomb friction arrested the close at ~19.8 mm pad
+        separation -- 2.1 mm short of cube contact, with zero preload by
+        construction.
+
+        This floor is derived from the embodiment and the environment (never
+        calibrated): the pad's lower edge must sit at least
+        ``_GRASP_AIM_CLEARANCE_TOLERANCE_M`` above the table, so the jaw must be
+        no lower than ``table_z + pad_half + _GRASP_AIM_CLEARANCE_TOLERANCE_M``.
+        Lifting the whole aim shifts grasp and approach waypoints together, so
+        their relative geometry is unchanged.
+        """
+        table_z = float(self.scenario.environment.table_height_m)
+        pad_half = float(self.scenario.robot.pad_half_height_m)
+        min_jaw_z = table_z + pad_half + self._GRASP_AIM_CLEARANCE_TOLERANCE_M
+        grasp_z = float(waypoints[1][2])
+        if grasp_z < min_jaw_z:
+            raise_by = min_jaw_z - grasp_z
+            waypoints[1][2] = min_jaw_z
+            # The approach waypoint is relative to the grasp: lift it by the
+            # same amount so the jaws stay clear while descending and closing.
+            waypoints[0][2] = waypoints[0][2] + raise_by
 
     # -- internals ---------------------------------------------------------
     def _resolve_target(self, observation: Observation) -> Pose | None:
