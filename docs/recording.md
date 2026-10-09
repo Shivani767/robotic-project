@@ -108,12 +108,40 @@ the factor the manifest records.
 ## 6. Concurrency
 
 Gazebo's transport bus is global to the container, and the live viewer bridge and
-a recorded episode both use the same world name. Two runs at once would corrupt
-each other's joint state, so `robot_ci.recording.launcher` takes a lock and
-refuses a second start while one is in flight, and the dashboard's Start button
-reports which run holds it.
+a recorded episode both use the same world name (`robot_ci_pick_place`). Two
+recordings at once would corrupt each other's joint state, so
+`robot_ci.recording.launcher` takes a status lock and refuses a second start
+while one is in flight; the dashboard's Start button reports which run holds it
+(HTTP 409).
 
-## 7. Encoder
+One case is *not* prevented, and is worth knowing before you hit it: a recording
+started while `docker compose up` is serving the live viewer runs its own
+`gz sim` process against the same topic names. Verified behaviour and
+recommendation:
+
+* the recording still produces a package — the launcher run below completed with
+  `stage=done` — but both consumers see both publishers, so a viewer that is
+  watching during a recording should not be trusted as a record of that episode;
+* for a run whose artifacts will be published, stop the viewer first
+  (`docker compose down`), or use `docker compose run --rm gazebo-demo ...`,
+  which does not start one.
+
+## 7. Browser launcher
+
+Verified live against `docker compose up` on this machine:
+
+| Request | Result |
+|---|---|
+| `GET /healthz` | `ready: true`, joint stream and camera stream both detected |
+| `GET /experiments.json` | 10 suite entries with their recorded statuses, plus the artifact index |
+| `POST /experiments/start` `{"key":"nominal_baseline","seed":5}` | `started: true`; the run completed as `FAIL` with `zip=nominal_baseline.zip` |
+| a second start while one runs | `409 an experiment is already running: nominal_baseline` |
+| malformed body | `400 invalid JSON body` |
+| `POST` with a declared-unavailable key | `409 unknown or unavailable suite key: boundary_search` |
+| `GET /artifacts/<key>/<file>` | `200` with the right content type (`image/png`, `video/mp4`, `application/zip`) |
+| `GET /artifacts/../../etc/passwd` | `404`; paths are resolved and checked against the artifacts root |
+
+## 8. Encoder
 
 Encoding needs `ffmpeg`. It is looked up on `PATH` first, then inside the
 `imageio-ffmpeg` wheel, which the demo image installs — so no system package and
@@ -121,7 +149,7 @@ no GPU are required. When neither exists the stills, JSON and ZIP are still
 written and the package records `No video in this package` instead of implying
 one exists.
 
-## 8. Adding a condition
+## 9. Adding a condition
 
 Conditions live in `robot_ci/recording/suite.py`. An entry declares a `build()`
 that returns the `ScenarioConfig` for that condition; if the backend genuinely

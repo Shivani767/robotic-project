@@ -118,7 +118,7 @@ class ObjectSpec(VersionedModel):
             "declare a size the physics does not use.\n\n"
             "The default is 8 mm (a 16 mm object), which is 17% of the Panda's "
             "measured 91 mm jaw opening -- at the small end of the range that "
-            "gives a stable parallel-jaw grasp. See PHASE2_STATUS.md."
+            "gives a stable parallel-jaw grasp."
         ),
     )
     is_target: bool = Field(default=True, description="Whether this is the task target.")

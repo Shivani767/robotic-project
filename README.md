@@ -1,5 +1,105 @@
 # ROBOT CI
 
+**Robot manipulation experiments, measured on real simulators — recorded, packaged, and reproducible.**
+
+ROBOT CI runs a Panda arm through pick-and-place tasks in a physics
+simulator, records every tick of real joint state, and turns each run into a
+synchronized video, figures, a JSON results file, and a downloadable ZIP. The
+core idea is **evidence over assertion**: every claim the platform makes —
+success, placement error, collisions — is measured from simulator telemetry and
+hashed into a manifest, never narrated. A run that fails is reported as failed.
+
+## What it does
+
+1. **Control a Panda arm** in Gazebo Harmonic (and MuJoCo) through inverse
+   kinematics, with real joint-state feedback each control tick.
+2. **Record each experiment**: actual joint states, simulation time, task
+   events, metrics, success/failure, and runtime versions — timestamped.
+3. **Render a video** of the run: a live-joint-state 3D view of the Panda
+   combined with the actual Gazebo camera frame in a synchronized split screen.
+4. **Package the evidence**: MP4 + PNG figures + `results.json` +
+   `manifest.json` (SHA-256 of every artifact) + logs + telemetry, zipped per
+   experiment.
+5. **Run a suite** of experiment categories (baseline, perturbations,
+   repeated seeds) with honest PASS / FAIL / NOT_RUN / NOT_SUPPORTED /
+   NOT_IMPLEMENTED status.
+
+No trajectories are fabricated or replayed. If a source is unavailable (for
+example, no camera stream for a given episode), it is marked unavailable — never
+manufactured.
+
+## Measured outcome (the headline result)
+
+The verified Part 1 integration achieves a **complete physical pick-and-place
+in Gazebo** — the arm approaches, grasps, lifts 65 mm, transports, and places
+the object **22 mm from the target** (50 mm tolerance):
+
+| Metric | Measured |
+|---|---|
+| Task success | **true** (grasp + lift + placement all pass) |
+| Object lift | 0.0657 m (≥ 0.05 required) |
+| Placement error | 0.0221 m (≤ 0.05 tolerance) |
+| Ticks with the object grasped | 45 / 115 |
+
+This is evidence from a real Gazebo run, not a claim. See
+[`docs/gazebo.md`](docs/gazebo.md) for the engineering that got there, and
+[`experiments/results/DEMO.md`](experiments/results/DEMO.md) for how to
+reproduce it.
+
+## Quick start
+
+The platform runs on macOS through Docker Compose (ARM64-compatible).
+
+```bash
+docker compose up --build
+```
+
+Then open the dashboard at **http://localhost:8000** (WebSocket on 8001). From
+the browser you can select an experiment category and condition, set seed /
+policy / repeats, start or stop a run, watch live joint states, and download the
+generated video, images, JSON results, and per-experiment ZIP.
+
+### Run the suite from the command line
+
+```bash
+# Record the full experiment suite (video + artifacts + ZIPs)
+docker compose run --rm gazebo-demo python -m robot_ci.cli.main record --suite
+```
+
+Generated artifacts are written under `artifacts/visual_reports/` and excluded
+from Git (see [`.gitignore`](.gitignore)).
+
+## Repository layout
+
+| Path | Contents |
+|---|---|
+| `src/robot_ci/` | Backends (Gazebo, MuJoCo), policies, tasks, recorder, packaging, CLI, dashboard |
+| `tests/` | Unit + contract tests (recording, hashes, metadata, partial-failure, status) |
+| `scripts/` | Runner entry points and the LinkedIn demo builder |
+| `docs/` | Engineering notes (`gazebo.md` — the failure-and-fix log), dashboard and recording docs |
+| `gazebo/` | Panda URDF and world models |
+| `experiments/` | Scenario/condition definitions and recorded evidence under `results/` |
+
+## Status and limitations (stated honestly)
+
+- **What is measured:** the full pick-and-place run above, in Gazebo Harmonic.
+- **Known limitation:** the Pandas's absence from the Gazebo camera is a real
+  constraint. Where no camera stream exists for an episode, the 3D pane is a
+  kinematic projection of *measured* joint states (not a re-simulation), and the
+  camera pane is labelled as a reference still. This is disclosed in each
+  package's `README.md`, never faked into the live stream.
+- **Suite statuses** (PASS / FAIL / NOT_RUN / NOT_SUPPORTED / NOT_IMPLEMENTED)
+  are recorded per experiment in the suite index. Categories the backend cannot
+  perform are marked, not implied.
+
+## Versions
+
+ROS 2 Jazzy + Gazebo Harmonic, running in Docker (see `docker-compose.yml`).
+Full environment details are in [`ENVIRONMENT_REPORT.md`](ENVIRONMENT_REPORT.md);
+the curated research write-up is
+[`experiments/research_report.md`](experiments/research_report.md).
+
+
 **Automated behavioural regression testing, counterexample discovery and
 boundary mapping for physical AI.**
 
@@ -12,239 +112,3 @@ boundary mapping for physical AI.**
 ROBOT CI is not a robot-control demo. The primary artifact is a **reproducible
 evaluation and verification framework**; the simulator is the laboratory.
 
----
-
-## 1. Problem
-
-Aggregate benchmark numbers hide localized failures. A new perception model can
-raise overall success from 92% to 94% while collapsing from 82% to 51% once depth
-noise exceeds ~8 mm. Engineering teams ship that change because the headline
-metric improved.
-
-ROBOT CI makes the hidden regression the *object of study*.
-
-## 2. Research contribution
-
-| Contribution | What it produces |
-|---|---|
-| Controlled regression testing | Per-condition baseline vs candidate with sample counts and intervals |
-| Counterexample discovery | Search for `x` where baseline succeeds and the candidate fails |
-| Minimal counterexamples | A portable, replayable YAML artifact reproducing the failure |
-| Boundary mapping | Estimated scalar boundary (1-D) and behavioural maps (2-D) |
-| Evidence-based diagnosis | Ablations + hedged claims traceable to recorded evidence |
-| Reproducible evaluation | Git commit, config hash, seed, backend and simulator version on every result |
-
-## 3. Architecture
-
-```
-                 robot_ci.regression / counterexamples / boundary
-                 robot_ci.statistics / diagnosis        <-- NO simulator import
-                                 |
-                          SimulatorBackend (ABC)
-                    /            |             \
-             MockBackend  SyntheticBackend  MuJoCoBackend     [Gazebo: later]
-                    \            |             /
-                     +-----------+-------------+
-                                 |
-              Observation | Action | RobotState | GroundTruthState
-                                 |
-              sensors (corruption) -> perception -> sensor_fusion
-                                 |
-                          world_model            (belief, never truth)
-                                 |
-                      RobotPolicy -> Task -> metrics -> results
-                                 |
-                    SQLite + JSONL + CSV + HTML artifacts
-```
-
-**The research engine never imports MuJoCo.** That is the single most important
-architectural rule, and it is what lets regression analysis, search and statistics
-run anywhere.
-
-**Ground truth never reaches a policy.** `Observation` has no ground-truth field;
-truth is a separate type reachable only by the evaluator. This is enforced by
-tests, not convention.
-
-## 4. Why MuJoCo
-
-* Runs on Apple Silicon with **no GPU and no CUDA** (verified: OSMesa/CGL offscreen rendering).
-* Fast rigid-body physics with real contact dynamics, friction and grasping.
-* Programmatic MJCF generation keeps the scenario YAML the single source of truth.
-* Freely available, so results are reproducible by anyone.
-
-Isaac Sim is **not** used. ROS 2 and MoveIt 2 are **optional adapters** (remote
-Linux only) and never dependencies of the research engine.
-
-## 5. Quickstart (macOS, CPU only)
-
-```bash
-git clone <repo> && cd robot-ci
-python3.12 -m venv .venv && source .venv/bin/activate
-pip install -e ".[dev]"
-
-robot-ci init          # create the directory layout
-robot-ci validate      # acceptance gate: must exit 0
-robot-ci scenario list
-robot-ci backend list
-```
-
-## 5a. Watch the Panda run in Gazebo, live, in a browser
-
-One command, then one URL. No ROS 2, Gazebo or Python robotics install on
-macOS: everything simulation-side runs in Docker on Apple Silicon.
-
-```bash
-cd "/Users/shivanibhandari/Downloads/Robotic Project"
-docker compose up
-```
-
-When the container reports ready, open:
-
-```
-http://localhost:8000
-```
-
-The startup prints what it has actually observed, and refuses to say "ready"
-before the data is real:
-
-```
-[robot-ci] Gazebo 8.15.0
-[robot-ci] Gazebo ready; Panda loaded with 9 joint controllers
-[robot-ci] joint-state stream detected
-[robot-ci] camera stream detected
-[robot-ci] viewer ready -> http://localhost:8000
-```
-
-What the page shows, and where each thing comes from:
-
-| Panel | Source | Live? |
-|---|---|---|
-| 3D Panda | `/world/robot_ci_pick_place/model/panda/joint_state` | yes — angles are Gazebo's |
-| Joint state table (9 joints) | same topic | yes |
-| RGB camera | `.../sensor/robot_ci_camera/image` | yes — real frames |
-| Status | seed, depth noise, condition, sim time, health | yes |
-
-The 3D arm is built from the joint origins, axes and limits in
-`gazebo/models/panda/panda.urdf` (the same URDF Gazebo loads), then posed by
-whatever angles Gazebo publishes. If the simulation stops, the arm stops.
-
-**Correction:** the RGB panel *does* show the Panda's own links as well as the
-table, the object and the target zone. An earlier version of this README said it
-did not; that was a camera-pose artefact, re-measured since. See
-`docs/gazebo.md` section 6.
-
-To stop: `Ctrl-C`, then `docker compose down`.
-
-## 5b. Recorded experiment videos, images and ZIP reports
-
-One headless command records the whole suite through the real Gazebo backend
-and writes a package per condition:
-
-```bash
-cd "/Users/shivanibhandari/Downloads/Robotic Project"
-docker compose run --rm gazebo-demo \
-  python3 scripts/record_suite.py --out artifacts/visual_reports
-```
-
-Per-condition entry points for batch runs and single runs:
-
-```bash
-python3 -m robot_ci.cli.main record suite --only depth_noise_8mm
-python3 -m robot_ci.cli.main record one joint_perturbation
-```
-
-The dashboard also exposes this: the launcher panel at `http://localhost:8000`
-lists conditions, starts a recording, shows progress and links the MP4s, PNGs
-and ZIPs once they verify. Concurrent runs are refused because the simulator is
-shared.
-
-What a package contains, and where each thing comes from, is specified in
-`docs/recording.md`. Generated MP4s and ZIPs are intentionally not committed;
-`artifacts/visual_reports/suite_summary.json` and `SUITE.md` are, because the
-seed, commit and config hash needed to rebuild every file are recorded there.
-
-
-## 6. Status
-
-Each phase below is marked from evidence, not intent: what exists, what was run,
-and what was never run. `docs/verification.md` holds the full split.
-
-| Phase | Scope | State |
-|---|---|---|
-| 0 | Environment probe and report | **done** — `ENVIRONMENT_REPORT.md`, observed on this machine |
-| 1 | Schemas, config, CLI, backend interface, Mock/Synthetic/MuJoCo backends, scenarios | **done** |
-| 2 | Robot, table, objects, cameras, tasks | **done** — programmatic MJCF; 120/120 nominal |
-| 3 | Policies | **done** — `policy_v1` (reference), `policy_v2` (confidence gate, measured inert), `policy_v3` (averaging) |
-| 4 | Metrics suite + SQLite store | **done** |
-| 5 | Sensor corruption engine | **done** — axes swept in RQ5; four faults recorded as *not effective* rather than approximated |
-| 6 | Conditional regression detection | **done** — per-cell rates with intervals; found the project's worst bug |
-| 7 | Counterexample search + minimisation | **done** — RQ1 strategies, RQ4 reproduction rate |
-| 8 | Behavioural boundary mapping | **done** — RQ5: 1 boundary of 7 axes swept |
-| 9 | Failure taxonomy, evidence, ablation, diagnosis | **done** — RQ3, scored against injected ground truth |
-| 10 | ROS 2 interfaces (**remote only**) | **not started** — `ros2_ws/` holds no files |
-| 11 | MoveIt 2 planner (**remote only**) | **not started** |
-| 12 | Dashboard | **not started** — `dashboard/` holds no files; `robot-ci dashboard` exists as a stub |
-| 13 | Colab/Kaggle runners, export/import | **not started** — `notebooks/` is empty |
-| 14 | Benchmark suite + RQ1–RQ5 | **done** — 20 benchmarks, 0 expectation mismatches; RQ2's strong form demonstrated |
-| 15 | Verification path | **`verify.sh` verified locally; the Linux workflow has never run** — `.github/workflows/verify.yml` |
-
-## 5c. Reproducing this
-
-```bash
-bash scripts/verify.sh            # one definition of "verified", ~12 min
-bash scripts/verify.sh --quick    # skip the experiments, ~1 min
-echo $?                           # 0 only if every check exited 0
-```
-
-`scripts/verify.sh` is the single entry point, shared with CI. It checks **exit
-codes, not output text**, and writes a machine-readable record to
-`experiments/results/verification_baseline.json`.
-
-That rule was not a style preference. For several rounds this project reported
-"ruff clean" while a `B905` violation sat above the summary line, because the
-checks were piped through `tail -n 1`, which prints "All checks passed!" as the
-last line of a run that also printed a violation. Writing the script then found a
-**second** hole on its first run: `ruff format` had never been run at all, and
-reported 40 files. Two independent gaps in the checker, one invisible to the tool
-that had been run every time.
-
-This is the project's thesis turned on itself: a mechanism that looks correct and
-does less than it appears to is the failure mode this project exists to detect,
-and it was present in the verification process before it was present in the robot.
-
-## 7. Documentation
-
-* [`research_report_generated.md`](research_report_generated.md) - the research
-  report, generated from the artifacts by
-  `experiments/make_research_report.py`. No number in it is transcribed.
-* [`docs/verification.md`](docs/verification.md) - what is verified locally and
-  what is not, including the two failures of the verification process itself
-* `ENVIRONMENT_REPORT.md` - measured machine capabilities and the MuJoCo finding
-* `IMPLEMENTATION_PLAN.md` - phase map, acceptance criteria, risk register
-* [`docs/`](docs/README.md) - architecture, backends, methodology and
-  troubleshooting. Every page carries an evidence label: **Verified locally**,
-  **Implemented but unverified**, or **Unavailable on current macOS**
-
-## 8. Limitations (stated honestly)
-
-* The Phase 1 arm is a DH-derived kinematic approximation of a Panda, not the
-  official MJCF. This is documented in the builder and replaced in Phase 2.
-* MuJoCo on macOS uses software OpenGL. At 160x120 it renders in ~6.5 ms, which
-  is adequate for batch sweeps but not for photorealism.
-* The Mock and Synthetic backends do not model contact dynamics; manipulation
-  claims must come from `--backend mujoco`.
-* ROS 2 / MoveIt 2 cannot be validated on macOS and are not yet built.
-  `ros2_ws/src/` holds three **empty directories** — 0 files. No scaffolding was
-  written to make the tree look more complete than it is.
-* The Isaac Sim adapter is **implemented but unverified**. It has never been
-  executed, because Isaac has no macOS build. Its contract is tested against
-  mocks; the live `IsaacSession` is **not implemented**.
-* `.github/workflows/verify.yml` has **never run**. It is the path toward Linux
-  verification, not a verification.
-* `ruff format` reports 40 files it would restyle. `ruff check` (the linter)
-  passes on all of them; `ruff format` is a different tool that had not been run
-  until `scripts/verify.sh` was written.
-
-## 9. License
-
-MIT - see `LICENSE`.

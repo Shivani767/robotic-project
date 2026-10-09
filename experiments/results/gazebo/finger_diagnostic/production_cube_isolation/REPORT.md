@@ -128,3 +128,57 @@ close_dwell against measured aperture rather than ticks; make contact reads
 accumulate over the tick instead of replace-latest.
 
 Part 1 remains OPEN, honestly FAIL.
+
+---
+
+# Addendum: the three fixes applied, and what the live run then showed
+
+All three fix directions above were applied and re-measured live (seed 3,
+0 mm, `scripts/gazebo_pick_place_evidence.py`).
+
+1. **Raise the aim** — `PickAndPlacePolicy._MEASURED_SETTLE_SHORTFALL_M`
+   (1.5 mm) is added to the clearance floor, so the *achieved* pad bottom
+   clears the table (command 0.0095 m, achieved 0.0080 m on all five prior
+   runs). The aim-clearance test now pins this floor.
+2. **Gate the lift on measured aperture** — `PickAndPlacePolicy._aperture_seated`
+   requires the measured aperture within 1.1 mm of the on-cube mark before the
+   lift may fire; `_APERTURE_SEATED_TOLERANCE_M` documents the band.
+3. **Accumulate contacts over the tick** — `_ContactStream` now unions every
+   pair since `begin_tick()` instead of returning only the latest message;
+   `step()` opens a fresh window before physics advances. A unit test pins the
+   transient-contact-preserved / per-tick-reset semantics.
+
+## Live result (seed 3, 0 mm): two stages fixed, a new bottleneck surfaced
+
+```
+2_gripper_enclosed_the_object: PASS   (closest tcp->object 1.99 mm,
+                                       min aperture 7.86 mm)
+3_object_lifted_by_contact:  FAIL    (0 ticks grasped, max height 0.008 m)
+```
+
+Fixes #1 and #2 are confirmed working: the cube is **no longer knocked** (it
+holds x/y/z at spawn for the whole episode; the old -18 mm escape is gone),
+and the lift correctly **holds** instead of firing into a flick. The old
+pad-on-table friction arrest is gone — there are now **zero** finger<->cube
+and finger<->table contacts in the record, and the pads close in free air.
+
+The failure is now a **close-speed** limit, not a friction or geometry one:
+
+* the close collapses 44 -> 9.9 mm in the first few ticks, then **creeps at a
+  constant ~0.04 mm/step (0.8 mm/s)** under the overdamped finger PD
+  (`left/right_finger` p=1000, d=50, joint damping 1.0, velocity limit 0.2);
+* at that rate the jaw reaches only **7.86 mm** aperture (18.86 mm pad
+  separation) by the end — still ~2.9 mm wide of the 5 mm on-cube mark;
+* the aperture gate (#2) therefore correctly refuses the lift, the waypoint
+  cursor never advances, and `_StallTracker` ends the episode at step 107
+  (`stage_ticks >= STALL_LIMIT_STEPS = 60`) with the arm still at waypoint 1.
+
+So the measured bottleneck moved from *pad-on-table friction arresting the
+close at ~20 mm* to *the free-air close being too slow to seat within the
+stall window*. The next fix is a close-speed one (stiffer finger PD, a
+closure ramp via `GripperControlMode.BOUNDED`, or a larger stall budget for
+the close stage) — recorded, not applied, pending the owner's call.
+
+Part 1 is still not a success, but the failure mode is now a single, isolated,
+close-rate limit rather than the three-way interaction it was.
+

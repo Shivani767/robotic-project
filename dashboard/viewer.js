@@ -419,14 +419,14 @@ function renderArtifacts(suite) {
       ['experiment.mp4', 'overview.png', 'camera_view.png', 'metrics.png', 'results.json', 'manifest.json']
         .forEach((file) => {
           const link = document.createElement('a');
-          link.href = `artifacts/visual_reports/${entry.package}/${file}`;
+          link.href = `${entry.package}/${file}`;
           link.textContent = file.replace('.mp4', '').replace('.png', '').replace('.json', '');
           files.append(link, document.createTextNode(' '));
         });
     }
     if (entry.zip) {
       const link = document.createElement('a');
-      link.href = `artifacts/visual_reports/${entry.zip}`;
+      link.href = entry.zip;
       link.innerHTML = '<b>zip</b>';
       files.append(link);
     }

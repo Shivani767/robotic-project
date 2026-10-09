@@ -25,7 +25,7 @@
 | 8 | ROS 2 availability | **ABSENT** — no `ros2`, no `colcon`, no `/opt/ros`, `ROS_DISTRO` unset |
 | 9 | RAM / disk | **16 GiB RAM**, **272 GiB free** of 460 GiB |
 | 10 | Recommended local architecture | CPU-only MuJoCo + Mock/Synthetic backends; ROS 2 / MoveIt 2 remote-only; Colab/Kaggle *optional* |
-| 11 | Phase 1 plan | §15 below, and `IMPLEMENTATION_PLAN.md` |
+| 11 | Phase 1 plan | §15 below |
 
 **Headline result:** MuJoCo runs natively on this machine **including offscreen RGB
 rendering through OSMesa software rasterization**. The full research loop — scenario →

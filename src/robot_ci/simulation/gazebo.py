@@ -260,12 +260,22 @@ class _PoseStream:
 
 
 class _ContactStream:
-    """Latest contact pairs touching a given collision, from Gazebo itself.
+    """Contact pairs touching a given collision, accumulated over a tick.
 
     This is the answer to "what is the gripper actually touching, and how
     hard". Every attempt to infer it from the object's velocity -- how fast it
     left the jaws, how far it was carried -- describes the consequence and not
     the cause, and the two gave different stories while the question was open.
+
+    The reading is the **union** of every pair Gazebo published since the last
+    :meth:`begin_tick`, not the single most recent message. A contact sensor
+    publishes at its own rate (100 Hz) inside a control tick (50 ms), so a
+    transient contact -- the finger<->cube shove, a pad grazing the table -- can
+    appear in one message and be absent from the next. Replace-latest sampling
+    reported that as "nothing is touching it", which is how a real, seconds-long
+    contact read as never having happened. Accumulating over the tick reports
+    the contact the physics engine actually produced; see the finger-diagnostic
+    report for the measured evidence.
     """
 
     def __init__(self, world: str, entity: str, sensor: str) -> None:
@@ -287,6 +297,11 @@ class _ContactStream:
 
         self._lock = threading.Lock()
         self._pairs: dict[str, dict[str, float]] = {}
+        #: The union of every pair seen since the last :meth:`begin_tick`. This
+        #: is what :meth:`pairs` reports; ``_pairs`` is the most recent message
+        #: only and is kept for :meth:`health`, which describes the live sensor
+        #: rather than the tick window.
+        self._tick_pairs: dict[str, dict[str, float]] = {}
         #: A callback that raises delivers nothing, and a subscriber that
         #: delivers nothing is indistinguishable from a sensor reporting no
         #: contacts. Counting messages and keeping the first error makes the
@@ -347,11 +362,30 @@ class _ContactStream:
             snapshot[key] = {"in_contact": True}
         with self._lock:
             self._pairs = snapshot
+            # Union into the tick window rather than replacing it: a contact
+            # that appeared in an earlier message this tick and has since
+            # separated must still be reported, because the physics engine
+            # produced it. Replace-latest is exactly what lost the transient
+            # finger<->cube shove to sampling.
+            self._tick_pairs.update(snapshot)
+
+    def begin_tick(self) -> None:
+        """Open a fresh accumulation window for the next control tick.
+
+        Called once per :meth:`GazeboBackend.step`, before physics advances, so
+        :meth:`pairs` reports only what happened during that tick and not a
+        stale contact from the one before. A contact sustained across ticks is
+        re-published by the sensor every tick, so it reappears in each window;
+        what the window preserves is the *transient* contact that replace-latest
+        sampling dropped.
+        """
+        with self._lock:
+            self._tick_pairs = {}
 
     def pairs(self) -> dict[str, dict[str, float]]:
-        """Return the contact pairs seen in the most recent message."""
+        """Return the contact pairs accumulated since the last ``begin_tick``."""
         with self._lock:
-            return dict(self._pairs)
+            return dict(self._tick_pairs)
 
     def health(self) -> dict[str, Any]:
         """Report whether this stream is actually working.
@@ -740,6 +774,14 @@ class GazeboBackend(SimulatorBackend):
         width = controller.step(requested_width_m=float(width), measured_width_m=measured_width)
 
         before_time = self._sim_time(handle)
+        # Open a fresh contact window before physics advances, so the pairs
+        # reported in ``info`` below cover exactly this tick and nothing stale.
+        # Accumulating here (rather than replace-latest) is what makes a
+        # transient contact -- the finger<->cube shove, a pad grazing the table
+        # for one message -- survive into the record instead of vanishing between
+        # the sensor's publish and this tick's read.
+        state["object_contacts"].begin_tick()
+        state["table_contacts"].begin_tick()
         self._publish(handle, targets, width)
         # Keep commanding while physics advances: the controllers are
         # position-holding, so an uncommanded tick would let gravity win.

@@ -98,6 +98,17 @@ GRASP_DWELL_STEPS = 12
 RELEASE_DWELL_STEPS = 10
 
 
+#: Grasp aperture seated band, in metres.
+#:
+#: How far above the on-cube reading (``object_width - closed_separation``)
+#: the measured finger travel may sit before the jaw is judged to have stopped
+#: short of the object. Live, the close creeps toward the 5 mm on-cube mark
+#: at ~4 mm/s and still reads 9.33 mm at the old twelve-tick dwell, so the
+#: band must exclude anything near 9 mm while admitting steady-state tracking
+#: noise around 5 mm; 1.1 mm does both with margin.
+_APERTURE_SEATED_TOLERANCE_M = 0.0011
+
+
 class PickAndPlacePolicy(RobotPolicy):
     """Execute a task's waypoint sequence using inverse kinematics.
 
@@ -123,6 +134,21 @@ class PickAndPlacePolicy(RobotPolicy):
     #: top of the task's own aim derivation, so the grasp and approach
     #: waypoints are shifted together and their relative geometry is unchanged.
     _GRASP_AIM_CLEARANCE_TOLERANCE_M = 0.001
+
+    #: Measured aim execution shortfall, in metres.
+    #:
+    #: The live Gazebo evidence for the floor above (five seed-3/0 mm runs at
+    #: commit 7a9014e) showed the commanded grasp waypoint is not the achieved
+    #: pose: the policy commanded jaw_z = 0.0095 m on every run while the
+    #: end-effector settled at 0.0080 m on every run (IK residual 0.77 mm the
+    #: rest of the way down as execution tracking), so the *achieved* pad
+    #: bottom sat at -0.5 mm and the table friction persisted -- the command
+    #: was above the table but the pads were not. The deficit is identical
+    #: (1.5 mm) in all five runs, so the floor compensates it explicitly:
+    #: commanding the floor *plus this shortfall* is what puts the achieved
+    #: pose back on the commanded floor. If future runs show a different
+    #: deficit, this constant -- not the floor itself -- is what moves.
+    _MEASURED_SETTLE_SHORTFALL_M = 0.0015
 
     implementation = "rule_based"
 
@@ -410,7 +436,19 @@ class PickAndPlacePolicy(RobotPolicy):
         # that long, which is comfortably above the 0.3 s per-tick control
         # period and below the episode's 300 tick budget, so a successful
         # grasp still commits in a few seconds instead of hanging the episode.
-        grasp_settled = index != 1 or int(state.get("close_dwell", 0)) >= 12
+        #
+        # Dwell alone proved insufficient a second time: with the aim fixed,
+        # the close still creeps from open to the cube at ~4 mm/s under the
+        # overdamped finger PD, so at close_dwell 12 the aperture still sits
+        # ~4 mm wide of the cube (9.33 mm measured vs 5 mm on-cube) and the
+        # lift fires into a flick. The lift therefore additionally requires
+        # the measured aperture to have converged to the cube's width: the
+        # grasp is not "settled" until the fingers have demonstrably closed
+        # onto the object, not merely been commanded to.
+        grasp_settled = index != 1 or (
+            int(state.get("close_dwell", 0)) >= 12
+            and self._aperture_seated(observation)
+        )
         if (
             not gated
             and state["dwell"] >= 12
@@ -509,12 +547,22 @@ class PickAndPlacePolicy(RobotPolicy):
         calibrated): the pad's lower edge must sit at least
         ``_GRASP_AIM_CLEARANCE_TOLERANCE_M`` above the table, so the jaw must be
         no lower than ``table_z + pad_half + _GRASP_AIM_CLEARANCE_TOLERANCE_M``.
-        Lifting the whole aim shifts grasp and approach waypoints together, so
-        their relative geometry is unchanged.
+        Commanded and achieved poses differ by the measured execution
+        shortfall (``_MEASURED_SETTLE_SHORTFALL_M``: command 0.0095 m achieved
+        0.0080 m on all five reporting runs), so the floor adds the shortfall
+        explicitly -- what is measured at the end-effector, not what is sent
+        to the planner, is what must sit above the table. Lifting the whole
+        aim shifts grasp and approach waypoints together, so their relative
+        geometry is unchanged.
         """
         table_z = float(self.scenario.environment.table_height_m)
         pad_half = float(self.scenario.robot.pad_half_height_m)
-        min_jaw_z = table_z + pad_half + self._GRASP_AIM_CLEARANCE_TOLERANCE_M
+        min_jaw_z = (
+            table_z
+            + pad_half
+            + self._GRASP_AIM_CLEARANCE_TOLERANCE_M
+            + self._MEASURED_SETTLE_SHORTFALL_M
+        )
         grasp_z = float(waypoints[1][2])
         if grasp_z < min_jaw_z:
             raise_by = min_jaw_z - grasp_z
@@ -858,6 +906,32 @@ class PickAndPlacePolicy(RobotPolicy):
             return OPEN_WIDTH_M if state["dwell"] >= 4 else self.hold_width_m
         # Lifting, in transit, or placing: keep holding the grasp.
         return self.hold_width_m
+
+    # -- grasp contact gate ------------------------------------------------
+    def _aperture_seated(self, observation: Observation) -> bool:
+        """Whether the measured jaw aperture has converged onto the object.
+
+        The gripper's ``width_m`` is the sum of the two finger joint travels,
+        and the pad separation is ``closed_separation + measured width``. The
+        back end admits the grasp only once the measured width sits within
+        ``_GRASP_APERTURE_TOLERANCE_M`` (4 mm) of the object width; this gate
+        requires the same relationship up front, so the lift cannot fire
+        while the fingers are still travelling.
+
+        Live, the close creeps from open to the cube at ~4 mm/s and the old
+        twelve-tick dwell fired it at 9.33 mm measured -- 4.3 mm past the
+        cube's 5 mm mark -- straight into a flick. That failure is exactly
+        what this test refuses: anything above the mark plus tolerance is
+        still in flight.
+        """
+        try:
+            measured = float(observation.robot.gripper.width_m)
+        except (AttributeError, TypeError, ValueError):
+            return False
+        contact_mark = 2.0 * float(self.scenario.target.size_m) - float(
+            self.scenario.robot.gripper_closed_separation_m
+        )
+        return measured <= contact_mark + _APERTURE_SEATED_TOLERANCE_M
 
     def _compose(self, joints: np.ndarray, gripper_width_m: float) -> Action:
         """Combine the arm and gripper commands into one backend action.

@@ -103,3 +103,14 @@ experiments/results/ros2/bag_*/
 
 *.mcap
 *.db3
+
+# Generated LinkedIn demo package (large; not committed)
+artifacts/linkedin/
+
+# Local scratch: Gazebo screenshots, launcher state, ad-hoc working dirs
+.gzshots/
+.scratch/
+artifacts/visual_reports/.launcher.json
+
+# Machine-generated research report (regenerate with experiments/make_research_report.py)
+research_report_generated.md

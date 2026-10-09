@@ -145,7 +145,6 @@ class ExperimentLauncher:
                     "detail": entry.reason or prior.get("detail", ""),
                     "seed": prior.get("seed", entry.seed),
                     "policy": prior.get("policy", entry.policy),
-                    "repeats": entry.repeats,
                     "runnable": entry.runnable,
                     "has_archive": archive.exists(),
                     "zip": f"{entry.key}.zip" if archive.exists() else None,

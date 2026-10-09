@@ -1669,10 +1669,14 @@ def record_one(
     if package.directory is None:
         fail(f"{key} produced no package: {package.entry.reason or 'not run'}")
         raise typer.Exit(EXIT_BACKEND_UNAVAILABLE)
+    experiment = package.experiment
+    if experiment is None:
+        fail(f"{key} produced a package but no recorded experiment: {package.entry.reason or 'not run'}")
+        raise typer.Exit(EXIT_BACKEND_UNAVAILABLE)
     archive = zip_package(package.directory, package.directory.with_suffix(".zip"))
     console.print(
-        f"{key}: {package.status.value}  steps={package.experiment.steps}  "
-        f"motion={package.experiment.joint_motion_rad():.4f} rad  video="
+        f"{key}: {package.status.value}  steps={experiment.steps}  "
+        f"motion={experiment.joint_motion_rad():.4f} rad  video="
         f"{'yes' if package.artifacts and package.artifacts.video else 'no'}"
     )
     console.print(f"zip: {archive}")

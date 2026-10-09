@@ -281,8 +281,25 @@ def _joint_controller_plugin() -> str:
         "joint5": (4000.0, 100.0, 100.0, 10.0, -10.0, 12.0),
         "joint6": (4000.0, 100.0, 100.0, 10.0, -10.0, 12.0),
         "joint7": (4000.0, 100.0, 100.0, 10.0, -10.0, 12.0),
-        "left_finger": (1000.0, 100.0, 50.0, 4.0, -4.0, 100.0),
-        "right_finger": (1000.0, 100.0, 50.0, 4.0, -4.0, 100.0),
+        # ``d_gain`` on the fingers is 25, halved from the 50 first tried. The
+        # close is not the failure -- it is the *tail* of the close. Measured on
+        # the seed-3/0 mm run, the aperture fell 48->8.6 mm in ten ticks (fast,
+        # against nothing) but then crawled 8.0->7.0 mm over the next ~28 ticks
+        # at ~3.7e-5 m/tick, because the pads press the cube, the cube presses
+        # back, and the PD equilibrium (``hold_width`` squeezing past the object)
+        # is approached asymptotically. At that decaying rate the aperture
+        # reaches the lift gate's seated band (6.1 mm) only around step 102, and
+        # the episode's 106-tick budget expired first -- still in DESCEND, so the
+        # gate never opened and the object was never lifted. The gate itself is
+        # correct: it waits for the pads to be genuinely on the cube. The tail
+        # was too slow to fit. Halving ``d_gain`` halves the damping ratio on the
+        # same ``p`` (d scales as sqrt(p); p is unchanged so this is a real
+        # reduction, still stable because the finger loop stays under-damped,
+        # not just slow) and roughly doubles the tail speed, so the close
+        # converges within the budget. If a future run still times out in
+        # DESCEND, this constant -- not the gate -- is what moves.
+        "left_finger": (1000.0, 100.0, 25.0, 4.0, -4.0, 100.0),
+        "right_finger": (1000.0, 100.0, 25.0, 4.0, -4.0, 100.0),
     }
     blocks = []
     for name in names:

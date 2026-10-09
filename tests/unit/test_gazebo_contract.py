@@ -105,6 +105,9 @@ class _FakeContacts:
         self.data: dict[str, dict[str, float]] = {}
         self.topic = ""
 
+    def begin_tick(self) -> None:
+        """No-op window open: the fake reports whatever the test set directly."""
+
     def pairs(self) -> dict[str, dict[str, float]]:
         return dict(self.data)
 

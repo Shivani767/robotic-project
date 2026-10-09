@@ -352,6 +352,30 @@ def test_suite_resolves_policy_configs() -> None:
             assert _policy_config(entry.policy).implementation
 
 
+def test_repeated_seed_entries_cover_three_seeds_independently() -> None:
+    """Repeated-seed variability is three packages, not one package plus prose.
+
+    Each of seeds 3, 11 and 42 has its own suite key, runnable builder and
+    episode seed, so filtering by ``--only`` cannot silently drop two-thirds of
+    the evidence. Each package carries the same cross-reference note and caveat
+    so a single package read in isolation still names the other two.
+    """
+    from robot_ci.recording.suite import _notes
+
+    suite = {entry.key: entry for entry in default_suite()}
+    seeds = {"repeated_seed_3": 3, "repeated_seed_11": 11, "repeated_seed_42": 42}
+    assert set(seeds) <= set(suite), "all three seeds must be separate suite keys"
+    for key, seed in seeds.items():
+        entry = suite[key]
+        assert entry.runnable is True
+        assert entry.category == "repeated_seed"
+        assert entry.seed == seed
+        assert entry.condition == f"seed={seed}"
+        note = " ".join([*_notes(entry), *entry.limitations])
+        assert "3" in note and "11" in note and "42" in note
+        assert "variability" in note.lower()
+
+
 # --------------------------------------------------------------------- video
 def test_compose_frames_are_1080p_and_labelled() -> None:
     """Every composed frame is the declared size and labels both panes."""
@@ -437,9 +461,10 @@ def test_artifact_index_lists_disk_contents(tmp_path: Path) -> None:
     index = _artifact_index(tmp_path)
     package_entry = next(entry for entry in index if entry.get("files") == ["experiment.mp4"])
     assert package_entry["key"] == "nominal_baseline"
-    assert package_entry["zip"].endswith("/nominal_baseline.zip")
+    assert package_entry["package"] == "artifacts/nominal_baseline"
+    assert package_entry["zip"] == "artifacts/nominal_baseline.zip"
     suite_entry = next(entry for entry in index if "files" not in entry)
-    assert suite_entry["zip"].endswith("/complete_experiment_suite.zip")
+    assert suite_entry["zip"] == "artifacts/complete_experiment_suite.zip"
 def test_encode_video_leaves_no_file_when_it_cannot(tmp_path: Path) -> None:
     """A failed encode leaves no partial MP4 behind."""
     destination = tmp_path / "experiment.mp4"

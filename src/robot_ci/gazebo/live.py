@@ -578,9 +578,11 @@ def _artifact_index(root: Path) -> list[dict[str, Any]]:
         entries.append(
             {
                 "key": package.name,
-                "package": f"artifacts/{root.name}/{package.name}",
+                # URL paths are relative to the artifacts root that /artifacts/
+                # serves, so the root's own name appears exactly once.
+                "package": f"artifacts/{package.name}",
                 "files": files,
-                "zip": f"artifacts/{root.name}/{package.name}.zip"
+                "zip": f"artifacts/{package.name}.zip"
                 if (root / f"{package.name}.zip").exists()
                 else None,
             }
@@ -588,7 +590,7 @@ def _artifact_index(root: Path) -> list[dict[str, Any]]:
     for archive in sorted(root.glob("*.zip")):
         if (root / archive.stem).is_dir():
             continue  # already listed above with the package it belongs to
-        entries.append({"key": archive.stem, "zip": f"artifacts/{root.name}/{archive.name}"})
+        entries.append({"key": archive.stem, "zip": f"artifacts/{archive.name}"})
     return entries
 
 

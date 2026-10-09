@@ -10,6 +10,7 @@ on every machine that is not the container, which is most of them.
 from __future__ import annotations
 
 import shutil
+import threading
 from pathlib import Path
 from xml.etree import ElementTree
 
@@ -533,6 +534,70 @@ def test_urdf_jacobian_position_rows_match_central_differences() -> None:
         minus, _ = provider.forward(q - delta)
         central = (plus - minus) / (2 * step)
         assert jac[:3, column] == pytest.approx(central, abs=1e-4)
+
+
+# ------------------------------------------------------------------ contacts
+def test_contact_stream_accumulates_a_transient_contact_over_the_tick() -> None:
+    """A contact that appears in one message and vanishes from the next is kept.
+
+    The measured defect: the finger<->cube shove -- and a pad grazing the table
+    for a single sensor message -- was invisible to replace-latest sampling,
+    because the contact sensor publishes at 100 Hz inside a 50 ms tick, so a
+    contact can be present in one message and absent from the very next. The
+    backend read only the most recent message and reported "nothing is touching
+    it" for a contact the physics engine had actually produced. ``pairs`` must
+    return the union over the tick, and ``begin_tick`` must reset that union so
+    a contact from the previous tick does not leak into this one.
+    """
+    from robot_ci.simulation import gazebo as gazebo_module
+
+    class _Named:
+        def __init__(self, name: str) -> None:
+            self.name = name
+
+    class _Contact:
+        def __init__(self, a: str, b: str) -> None:
+            self.collision1 = _Named(a)
+            self.collision2 = _Named(b)
+
+    class _Message:
+        def __init__(self, *pairs: tuple[str, str]) -> None:
+            self.contact = [_Contact(a, b) for a, b in pairs]
+
+    # Build the stream without its Gazebo subscription: the accumulation logic
+    # is what is under test, and ``__init__`` opens a real transport node.
+    stream = object.__new__(gazebo_module._ContactStream)
+    stream._lock = threading.Lock()
+    stream._pairs = {}
+    stream._tick_pairs = {}
+    stream.messages = 0
+    stream.errors = []
+
+    finger_cube = ("panda_left_finger", "target_cube")
+    cube_table = ("target_cube", "table")
+
+    stream.begin_tick()
+    # A message carrying the finger<->cube shove, then a message without it (the
+    # cube has been shoved clear) -- exactly the two-message sequence that
+    # replace-latest sampling dropped on the floor.
+    stream._on_contacts(_Message(finger_cube, cube_table))
+    stream._on_contacts(_Message(cube_table))
+
+    reported = stream.pairs()
+    assert "panda_left_finger <-> target_cube" in reported, (
+        "a transient contact seen earlier in the tick must survive to pairs()"
+    )
+    assert "target_cube <-> table" in reported
+
+    # The next tick opens a fresh window: a contact that has since separated
+    # must not be reported again, and health must still describe the live sensor.
+    stream.begin_tick()
+    stream._on_contacts(_Message(cube_table))
+    fresh = stream.pairs()
+    assert "panda_left_finger <-> target_cube" not in fresh, (
+        "begin_tick must reset the window so a separated contact is not re-reported"
+    )
+    assert "target_cube <-> table" in fresh
 
 
 # ------------------------------------------------------------------ scenario

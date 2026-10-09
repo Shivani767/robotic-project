@@ -54,8 +54,8 @@ def arm_joints(model) -> dict:
 
     ``model.jnt_range[:7]`` is **wrong** here: joint 0 is the object's free
     joint, so positional slicing reads the free-joint range as joint1's limits
-    and shifts every arm limit by one. That trap is bug #1/#7 in
-    PHASE2_STATUS.md and is re-checked by the regression tests.
+    and shifts every arm limit by one. That trap is re-checked by the
+    regression tests.
     """
     names = [f"joint{i + 1}" for i in range(7)]
     ids = [mujoco.mj_name2id(model, mujoco.mjtObj.mjOBJ_JOINT, n) for n in names]
