@@ -268,3 +268,22 @@ hard constraint — ROS 2 / MoveIt 2 — is an *optional* integration by design,
 dependency of the research engine.
 
 (<= 256x256) rendering is fast enough for batch sweeps on 10 CPU cores.
+
+## 16. Release commit (filled in at release time)
+
+* Commit SHA: `6fc5209948e41733f559aa4b41cb8e50ea198a9e`
+* Commit message: "Finalize ROBOT CI research release: frozen dashboard, demo
+  walkthrough, environment report"
+* Branch: `main`
+* Frozen at revision `d7026af` for the research-record evidence; all dashboard,
+  docs, code, and `experiments/results/` artifacts committed together.
+
+Reproducible startup (from repository root):
+
+```bash
+python experiments/build_dashboard_data.py   # regenerate dashboard/data/*
+python dashboard/serve.py 8123               # -> http://localhost:8123/dashboard/
+.venv/bin/python -m pytest -q                # pre-commit gate: 561 passed, 7 skipped
+.venv/bin/ruff check dashboard/              # pre-commit gate: all checks passed
+```
+

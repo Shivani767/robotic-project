@@ -11,9 +11,9 @@
       "rate": 1.0,
       "ci_low": 0.9689808335812966,
       "ci_high": 1.0,
-      "steps_mean": 76.41666666666667,
-      "steps_min": 76,
-      "steps_max": 78,
+      "steps_mean": 103.83333333333333,
+      "steps_min": 102,
+      "steps_max": 105,
       "failures": []
     },
     "policy_v2": {
@@ -24,9 +24,9 @@
       "rate": 1.0,
       "ci_low": 0.9689808335812966,
       "ci_high": 1.0,
-      "steps_mean": 76.41666666666667,
-      "steps_min": 76,
-      "steps_max": 78,
+      "steps_mean": 103.83333333333333,
+      "steps_min": 102,
+      "steps_max": 105,
       "failures": []
     },
     "policy_v3": {
@@ -37,9 +37,9 @@
       "rate": 1.0,
       "ci_low": 0.9689808335812966,
       "ci_high": 1.0,
-      "steps_mean": 81.41666666666667,
-      "steps_min": 81,
-      "steps_max": 83,
+      "steps_mean": 108.83333333333333,
+      "steps_min": 107,
+      "steps_max": 110,
       "failures": []
     }
   }

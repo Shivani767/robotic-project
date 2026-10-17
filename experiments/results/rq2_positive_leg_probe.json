@@ -1,0 +1,2154 @@
+{
+  "experiment": "rq2_positive_leg_probe",
+  "revision": "d7026af",
+  "config_hash": "sha256:2d48f8aa612ea38e9396742f8743c0f38ad6990b071538701825a31552581b46",
+  "backend": "mujoco",
+  "baseline_policy": "policy_v1",
+  "candidate_policy": "policy_v3",
+  "seeds": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    21,
+    22,
+    23,
+    24,
+    25,
+    26,
+    27,
+    28,
+    29,
+    30,
+    31,
+    32,
+    33,
+    34,
+    35,
+    36,
+    37,
+    38,
+    39,
+    40,
+    41,
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51,
+    52,
+    53,
+    54,
+    55,
+    56,
+    57,
+    58,
+    59,
+    60,
+    61,
+    62,
+    63,
+    64,
+    65,
+    66,
+    67,
+    68,
+    69,
+    70,
+    71,
+    72,
+    73,
+    74,
+    75,
+    76,
+    77,
+    78,
+    79,
+    80,
+    81,
+    82,
+    83,
+    84,
+    85,
+    86,
+    87,
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    105,
+    106,
+    107,
+    108,
+    109,
+    110,
+    111,
+    112,
+    113,
+    114,
+    115,
+    116,
+    117,
+    118,
+    119,
+    120,
+    121,
+    122,
+    123,
+    124,
+    125,
+    126,
+    127,
+    128,
+    129,
+    130,
+    131,
+    132,
+    133,
+    134,
+    135,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141,
+    142,
+    143,
+    144,
+    145,
+    146,
+    147,
+    148,
+    149,
+    150
+  ],
+  "duration_wall_s": 317.3,
+  "completed": true,
+  "evaluation": {
+    "question": "At noise=1 mm uncapped (budget 300), is the candidate (policy_v3, settle_steps=6) genuinely more successful than baseline (policy_v1)?",
+    "noise_mm": 1.0,
+    "budget": 300,
+    "n_seeds": 150,
+    "baseline_rate": 0.94,
+    "baseline_ci": [
+      0.8899102291652979,
+      0.9681159557907947
+    ],
+    "candidate_rate": 0.96,
+    "candidate_ci": [
+      0.915486535783444,
+      0.9815408393979256
+    ],
+    "point_delta_candidate_minus_baseline": 0.020000000000000018,
+    "paired_bootstrap_delta": {
+      "mean": 0.02,
+      "ci": [
+        -0.02666666666666667,
+        0.07333333333333333
+      ],
+      "method": "bootstrap"
+    },
+    "cohens_h": 0.09221828476023397,
+    "discordant": {
+      "candidate_only_wins": 9,
+      "baseline_only_wins": 6,
+      "both_succeeded": 135,
+      "neither_succeeded": 0
+    },
+    "mcnemar_exact": {
+      "p_value": 0.6072387695312499,
+      "n_discordant": 15,
+      "method": "exact-binomial"
+    },
+    "primary_decision_rule": "reject H0 iff McNemar p < 0.05 AND point estimate > 0",
+    "verdict": "uncapped advantage NOT distinguished from zero (RQ2 is a one-sided deadline penalty, not a two-sided opposing effect)",
+    "verdict_flag": "NOT-DEMONSTRATED"
+  },
+  "per_seed": [
+    {
+      "seed": 1,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 2,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 3,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 4,
+      "policy_v1": {
+        "success": false,
+        "steps": 156,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 5,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": false,
+        "steps": 161,
+        "status": "failure"
+      }
+    },
+    {
+      "seed": 6,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 7,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 8,
+      "policy_v1": {
+        "success": false,
+        "steps": 155,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 9,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 10,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 11,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 12,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 13,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 14,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 15,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 16,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 17,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 18,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 19,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 20,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 21,
+      "policy_v1": {
+        "success": false,
+        "steps": 155,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 22,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 23,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 24,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 25,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 26,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 27,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 28,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 29,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 30,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 31,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 32,
+      "policy_v1": {
+        "success": true,
+        "steps": 85,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 33,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 34,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 35,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 36,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 37,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 38,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 39,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 40,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 107,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 41,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 42,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 43,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 44,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 45,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 46,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 47,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 48,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": false,
+        "steps": 160,
+        "status": "failure"
+      }
+    },
+    {
+      "seed": 49,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 50,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 51,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": false,
+        "steps": 160,
+        "status": "failure"
+      }
+    },
+    {
+      "seed": 52,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 53,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 54,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 55,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 56,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 57,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 58,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 59,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 60,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 61,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 62,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 63,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 64,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 65,
+      "policy_v1": {
+        "success": false,
+        "steps": 157,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 66,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 67,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 107,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 68,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 69,
+      "policy_v1": {
+        "success": true,
+        "steps": 106,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 70,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 71,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 72,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 73,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 74,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": false,
+        "steps": 160,
+        "status": "failure"
+      }
+    },
+    {
+      "seed": 75,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 76,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 77,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 78,
+      "policy_v1": {
+        "success": true,
+        "steps": 106,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 79,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 80,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": false,
+        "steps": 160,
+        "status": "failure"
+      }
+    },
+    {
+      "seed": 81,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 82,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 83,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 107,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 84,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 85,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 107,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 86,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 87,
+      "policy_v1": {
+        "success": true,
+        "steps": 106,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 88,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 89,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 90,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 91,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 92,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 93,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 94,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 95,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 96,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 107,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 97,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 98,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 99,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 100,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 101,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 102,
+      "policy_v1": {
+        "success": false,
+        "steps": 156,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 103,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 104,
+      "policy_v1": {
+        "success": false,
+        "steps": 156,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 105,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 106,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 107,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 111,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 108,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 109,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 110,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 107,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 111,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 112,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 113,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 114,
+      "policy_v1": {
+        "success": true,
+        "steps": 106,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 115,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 116,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 117,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 118,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 119,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 120,
+      "policy_v1": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 121,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 122,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 123,
+      "policy_v1": {
+        "success": false,
+        "steps": 155,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 124,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 125,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 126,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 107,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 127,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 128,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 129,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 130,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 131,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 132,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 133,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 134,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 135,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 107,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 136,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 137,
+      "policy_v1": {
+        "success": true,
+        "steps": 106,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 138,
+      "policy_v1": {
+        "success": true,
+        "steps": 102,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 139,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 140,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 141,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": false,
+        "steps": 160,
+        "status": "failure"
+      }
+    },
+    {
+      "seed": 142,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 143,
+      "policy_v1": {
+        "success": false,
+        "steps": 157,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 144,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 145,
+      "policy_v1": {
+        "success": true,
+        "steps": 106,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 108,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 146,
+      "policy_v1": {
+        "success": false,
+        "steps": 157,
+        "status": "failure"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 147,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 148,
+      "policy_v1": {
+        "success": true,
+        "steps": 104,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 109,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 149,
+      "policy_v1": {
+        "success": true,
+        "steps": 103,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    },
+    {
+      "seed": 150,
+      "policy_v1": {
+        "success": true,
+        "steps": 105,
+        "status": "success"
+      },
+      "policy_v3": {
+        "success": true,
+        "steps": 110,
+        "status": "success"
+      }
+    }
+  ]
+}

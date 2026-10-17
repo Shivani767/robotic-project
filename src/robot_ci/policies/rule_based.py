@@ -19,6 +19,7 @@ true, is a Phase 6 question and is **not** asserted here.
 
 from __future__ import annotations
 
+from itertools import pairwise
 from typing import Any
 
 import numpy as np
@@ -98,15 +99,32 @@ GRASP_DWELL_STEPS = 12
 RELEASE_DWELL_STEPS = 10
 
 
-#: Grasp aperture seated band, in metres.
+#: Aperture stability gate, in metres per tick.
 #:
-#: How far above the on-cube reading (``object_width - closed_separation``)
-#: the measured finger travel may sit before the jaw is judged to have stopped
-#: short of the object. Live, the close creeps toward the 5 mm on-cube mark
-#: at ~4 mm/s and still reads 9.33 mm at the old twelve-tick dwell, so the
-#: band must exclude anything near 9 mm while admitting steady-state tracking
-#: noise around 5 mm; 1.1 mm does both with margin.
-_APERTURE_SEATED_TOLERANCE_M = 0.0011
+#: The lift must not fire while the fingers are still travelling. The previous
+#: gate compared the measured aperture against an absolute on-cube mark
+#: (``2*size - closed_separation + band``) derived from the *live Gazebo*
+#: backend's width semantics. That mark is falsified by MuJoCo: measured on
+#: this model, a successful 16 mm grasp settles at a ``width_m`` of 11.6 mm
+#: (fingers squeezing the cube ~2 mm per side under the position actuators),
+#: never at the 5 mm the Gazebo formula predicts, so the gate never opened and
+#: every nominal MuJoCo episode stalled at the grasp waypoint (0/12 seeds at
+#: commit d7026af; see ``tests/integration/test_default_scenario_solvable.py``).
+#:
+#: The physical fact the gate needs is *convergence*, and convergence is
+#: measurable on any backend without knowing its width semantics: the close is
+#: settled when the measured aperture stops changing. Measured: MuJoCo's
+#: steady-state drift after settling is ~1e-7 m/tick; the live Gazebo close
+#: creeps at ~4 mm/s = 1.2 mm/tick at the 0.3 s control period, which this
+#: threshold refuses. 0.2 mm/tick sits two orders of magnitude above the
+#: settled drift and an order below the creep.
+_APERTURE_STABLE_EPS_M = 0.0002
+
+#: Consecutive ticks the aperture must hold within ``_APERTURE_STABLE_EPS_M``
+#: before the grasp counts as settled. Three ticks is one second of silence at
+#: the control period -- long enough that a momentary contact bounce cannot
+#: masquerade as convergence, short enough not to dominate the step budget.
+_APERTURE_STABLE_TICKS = 3
 
 
 class PickAndPlacePolicy(RobotPolicy):
@@ -135,20 +153,27 @@ class PickAndPlacePolicy(RobotPolicy):
     #: waypoints are shifted together and their relative geometry is unchanged.
     _GRASP_AIM_CLEARANCE_TOLERANCE_M = 0.001
 
-    #: Measured aim execution shortfall, in metres.
+    #: Measured aim execution shortfall, in metres (opt-in per configuration).
     #:
-    #: The live Gazebo evidence for the floor above (five seed-3/0 mm runs at
-    #: commit 7a9014e) showed the commanded grasp waypoint is not the achieved
-    #: pose: the policy commanded jaw_z = 0.0095 m on every run while the
-    #: end-effector settled at 0.0080 m on every run (IK residual 0.77 mm the
-    #: rest of the way down as execution tracking), so the *achieved* pad
-    #: bottom sat at -0.5 mm and the table friction persisted -- the command
-    #: was above the table but the pads were not. The deficit is identical
-    #: (1.5 mm) in all five runs, so the floor compensates it explicitly:
-    #: commanding the floor *plus this shortfall* is what puts the achieved
-    #: pose back on the commanded floor. If future runs show a different
-    #: deficit, this constant -- not the floor itself -- is what moves.
-    _MEASURED_SETTLE_SHORTFALL_M = 0.0015
+    #: The live Gazebo evidence (five seed-3/0 mm runs at commit 7a9014e) showed
+    #: the commanded grasp waypoint is not the achieved pose on that backend:
+    #: the policy commanded jaw_z = 0.0095 m on every run while the end-effector
+    #: settled at 0.0080 m on every run (IK residual 0.77 mm the rest of the way
+    #: down as execution tracking), so the *achieved* pad bottom sat at -0.5 mm
+    #: and the table friction persisted -- the command was above the table but
+    #: the pads were not. Where a backend exhibits such a deficit, the
+    #: clearance floor must be raised by the measured amount so the *achieved*
+    #: pose clears the table.
+    #:
+    #: This is a backend property, not a policy truth: adding it unconditionally
+    #: (as commit d7026af did) overshoots on MuJoCo, which executes the command
+    #: accurately -- the pads then grip 1.5 mm above the object centre and the
+    #: placement orientation error grows past tolerance (measured: 0.485 rad,
+    #: nominal seeds failing). It is therefore a configuration parameter,
+    #: default 0.0, and the Gazebo evidence scripts set it to their measured
+    #: 0.0015. If a backend shows a different deficit, this parameter -- not
+    #: the floor itself -- is what moves.
+    DEFAULT_SETTLE_SHORTFALL_M = 0.0
 
     implementation = "rule_based"
 
@@ -232,6 +257,14 @@ class PickAndPlacePolicy(RobotPolicy):
         self.max_position_sigma_m = float(config.parameters.get("max_position_sigma_m", 1e9))
         #: Extra clearance added to every waypoint above the support surface.
         self.clearance_bias_m = float(config.parameters.get("clearance_bias_m", 0.0))
+        #: Backend-measured execution shortfall compensation, in metres. See
+        #: :attr:`DEFAULT_SETTLE_SHORTFALL_M` for why this is opt-in: only the
+        #: backend whose tracking deficit was actually measured (live Gazebo,
+        #: 0.0015 m) should set it, and a backend that executes commands
+        #: accurately (MuJoCo) must leave it at zero.
+        self.settle_shortfall_m = float(
+            config.parameters.get("settle_shortfall_m", self.DEFAULT_SETTLE_SHORTFALL_M)
+        )
         #: Grasp offset applied along the approach axis, to sit between the
         #: fingers rather than on the object centre.
         self.grasp_bias_m = float(config.parameters.get("grasp_bias_m", 0.0))
@@ -330,6 +363,9 @@ class PickAndPlacePolicy(RobotPolicy):
             "belief_sigma_m": 0.0,
             "gate_holds": 0,
             "gate_cleared": False,
+            # Rolling aperture trace for the stability gate; reset with the
+            # episode so a previous episode's convergence cannot leak in.
+            "aperture_trace": [],
         }
         self.task = create_task(self.scenario)
         self.jacobian_provider = None
@@ -440,14 +476,15 @@ class PickAndPlacePolicy(RobotPolicy):
         # Dwell alone proved insufficient a second time: with the aim fixed,
         # the close still creeps from open to the cube at ~4 mm/s under the
         # overdamped finger PD, so at close_dwell 12 the aperture still sits
-        # ~4 mm wide of the cube (9.33 mm measured vs 5 mm on-cube) and the
-        # lift fires into a flick. The lift therefore additionally requires
-        # the measured aperture to have converged to the cube's width: the
-        # grasp is not "settled" until the fingers have demonstrably closed
-        # onto the object, not merely been commanded to.
+        # ~4 mm wide of the object and the lift fires into a flick. The lift
+        # therefore additionally requires the measured aperture to have
+        # *stopped moving*: the grasp is not "settled" until the fingers have
+        # demonstrably finished travelling, not merely been commanded to. The
+        # convergence test (rather than an absolute on-cube mark) is what makes
+        # it valid on every backend -- see ``_aperture_settled``.
         grasp_settled = index != 1 or (
             int(state.get("close_dwell", 0)) >= 12
-            and self._aperture_seated(observation)
+            and self._aperture_settled(observation, state)
         )
         if (
             not gated
@@ -547,13 +584,26 @@ class PickAndPlacePolicy(RobotPolicy):
         calibrated): the pad's lower edge must sit at least
         ``_GRASP_AIM_CLEARANCE_TOLERANCE_M`` above the table, so the jaw must be
         no lower than ``table_z + pad_half + _GRASP_AIM_CLEARANCE_TOLERANCE_M``.
-        Commanded and achieved poses differ by the measured execution
-        shortfall (``_MEASURED_SETTLE_SHORTFALL_M``: command 0.0095 m achieved
-        0.0080 m on all five reporting runs), so the floor adds the shortfall
-        explicitly -- what is measured at the end-effector, not what is sent
-        to the planner, is what must sit above the table. Lifting the whole
+        On a backend whose tracking deficit has been measured (live Gazebo:
+        command 0.0095 m, achieved 0.0080 m, five for five runs), the floor also
+        adds ``settle_shortfall_m`` so the *achieved* pose -- not the command --
+        is what sits above the table; on a backend that executes commands
+        accurately the parameter stays at its default of zero. Lifting the whole
         aim shifts grasp and approach waypoints together, so their relative
         geometry is unchanged.
+
+        Raising the grasp aim also shifts where the object rides in the grip by
+        the same amount: the pads close on the object at a higher point, so the
+        object hangs lower relative to the tool centre point by exactly
+        ``raise_by``. The lift and transit waypoints are derived as
+        ``obj.z + clearance`` under the unreraised assumption, so they must be
+        raised by ``raise_by`` too or the carried object silently travels
+        ``raise_by`` below its clearance. Measured: at seed 8 that deficit was
+        the whole margin (object peak 49.3 mm against a 50 mm lift criterion,
+        after the 1 mm floor), so this compensation is load-bearing, not
+        cosmetic. The place waypoint is deliberately untouched, mirroring
+        ``_apply_clearance_bias``: the object is released from the place pose,
+        so raising it would change placement, not protection.
         """
         table_z = float(self.scenario.environment.table_height_m)
         pad_half = float(self.scenario.robot.pad_half_height_m)
@@ -561,7 +611,7 @@ class PickAndPlacePolicy(RobotPolicy):
             table_z
             + pad_half
             + self._GRASP_AIM_CLEARANCE_TOLERANCE_M
-            + self._MEASURED_SETTLE_SHORTFALL_M
+            + self.settle_shortfall_m
         )
         grasp_z = float(waypoints[1][2])
         if grasp_z < min_jaw_z:
@@ -570,6 +620,11 @@ class PickAndPlacePolicy(RobotPolicy):
             # The approach waypoint is relative to the grasp: lift it by the
             # same amount so the jaws stay clear while descending and closing.
             waypoints[0][2] = waypoints[0][2] + raise_by
+            # The carry waypoints are relative to the object's unreraised
+            # height: raise them by the same amount so the object, now riding
+            # lower in the grip, still travels at its intended clearance.
+            for position in waypoints[2:4]:
+                position[2] = position[2] + raise_by
 
     # -- internals ---------------------------------------------------------
     def _resolve_target(self, observation: Observation) -> Pose | None:
@@ -908,30 +963,48 @@ class PickAndPlacePolicy(RobotPolicy):
         return self.hold_width_m
 
     # -- grasp contact gate ------------------------------------------------
-    def _aperture_seated(self, observation: Observation) -> bool:
-        """Whether the measured jaw aperture has converged onto the object.
+    def _aperture_settled(self, observation: Observation, state: dict[str, Any]) -> bool:
+        """Whether the measured jaw aperture has stopped changing.
 
-        The gripper's ``width_m`` is the sum of the two finger joint travels,
-        and the pad separation is ``closed_separation + measured width``. The
-        back end admits the grasp only once the measured width sits within
-        ``_GRASP_APERTURE_TOLERANCE_M`` (4 mm) of the object width; this gate
-        requires the same relationship up front, so the lift cannot fire
-        while the fingers are still travelling.
+        The physical requirement for lifting is that the fingers have
+        *finished travelling* -- either they closed onto the object and the
+        object holds them still, or they are blocked and will go no further.
+        Convergence is observable on any backend without assuming anything
+        about its width semantics, which is the whole point: the previous gate
+        compared against an absolute on-cube mark (``2*size -
+        closed_separation``) derived from live-Gazebo readings, and MuJoCo
+        falsified that mark -- a successful 16 mm grasp settles at ``width_m``
+        = 11.6 mm there, so the gate never opened and every nominal episode
+        stalled at the grasp (commit d7026af, 0/12 seeds, caught by
+        ``tests/integration/test_default_scenario_solvable.py``).
 
-        Live, the close creeps from open to the cube at ~4 mm/s and the old
-        twelve-tick dwell fired it at 9.33 mm measured -- 4.3 mm past the
-        cube's 5 mm mark -- straight into a flick. That failure is exactly
-        what this test refuses: anything above the mark plus tolerance is
-        still in flight.
+        The rule: keep a rolling trace of the measured aperture and declare it
+        settled when the last ``_APERTURE_STABLE_TICKS`` consecutive changes
+        each fall within ``_APERTURE_STABLE_EPS_M``. Measured separation of
+        the two regimes: MuJoCo's settled drift is ~1e-7 m/tick; the live
+        Gazebo close creeps ~1.2 mm/tick (4 mm/s at 0.3 s/tick) while still
+        travelling. The 0.2 mm/tick threshold sits between them by two orders
+        of magnitude on the settled side.
+
+        A closed-out early (blocked wide) jaw also passes this gate -- that is
+        correct: a finger that cannot move will not move during the lift
+        either. Whether the *object* is actually held is the grasp metric's
+        job at episode end, not the lift gate's.
         """
         try:
             measured = float(observation.robot.gripper.width_m)
         except (AttributeError, TypeError, ValueError):
             return False
-        contact_mark = 2.0 * float(self.scenario.target.size_m) - float(
-            self.scenario.robot.gripper_closed_separation_m
-        )
-        return measured <= contact_mark + _APERTURE_SEATED_TOLERANCE_M
+        trace: list[float] = state.setdefault("aperture_trace", [])
+        trace.append(measured)
+        # Keep only the most recent window: N stable changes need N+1 samples.
+        excess = len(trace) - (_APERTURE_STABLE_TICKS + 1)
+        if excess > 0:
+            del trace[:excess]
+        if len(trace) < _APERTURE_STABLE_TICKS + 1:
+            return False
+        changes = [abs(b - a) for a, b in pairwise(trace)]
+        return all(delta <= _APERTURE_STABLE_EPS_M for delta in changes)
 
     def _compose(self, joints: np.ndarray, gripper_width_m: float) -> Action:
         """Combine the arm and gripper commands into one backend action.

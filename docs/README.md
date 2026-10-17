@@ -17,6 +17,7 @@ A claim without one of these labels should be treated as unproven.
 | File | Covers | Status |
 |---|---|---|
 | [architecture.md](architecture.md) | Layers, the backend boundary, data flow, why the seams are where they are | Verified locally |
+| [dashboard.md](dashboard.md) | The research dashboard: recorded-evidence console, data layer, panels | Verified locally |
 | [mujoco.md](mujoco.md) | The MuJoCo backend, embodiment, task, measured behaviour and limits | Verified locally |
 | [isaac.md](isaac.md) | The Isaac Sim adapter, its contract, and what is *not* proven | Implemented but unverified |
 | [ros2.md](ros2.md) | Intended ROS 2 architecture and the current state of the workspace | Unavailable on current macOS |

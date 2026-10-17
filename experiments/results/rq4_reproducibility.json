@@ -2,7 +2,7 @@
   "question": "RQ4: reproduction rate of a discovered counterexample",
   "status": "MEASURED",
   "condition": {
-    "depth_noise_mm": 2.0
+    "depth_noise_mm": 3.0
   },
   "baseline": "policy_v3",
   "candidate": "policy_v1",
@@ -20,15 +20,15 @@
     22,
     24
   ],
-  "reproduced": 3,
+  "reproduced": 4,
   "replay_count": 11,
-  "reproduction_rate": 0.2727272727272727,
+  "reproduction_rate": 0.36363636363636365,
   "trials": [
     {
       "seed": 1,
-      "baseline_success": false,
-      "candidate_success": true,
-      "reproduced": false
+      "baseline_success": true,
+      "candidate_success": false,
+      "reproduced": true
     },
     {
       "seed": 4,
@@ -45,8 +45,8 @@
     {
       "seed": 8,
       "baseline_success": true,
-      "candidate_success": true,
-      "reproduced": false
+      "candidate_success": false,
+      "reproduced": true
     },
     {
       "seed": 9,
@@ -57,13 +57,13 @@
     {
       "seed": 12,
       "baseline_success": true,
-      "candidate_success": false,
-      "reproduced": true
+      "candidate_success": true,
+      "reproduced": false
     },
     {
       "seed": 13,
       "baseline_success": false,
-      "candidate_success": false,
+      "candidate_success": true,
       "reproduced": false
     },
     {
@@ -86,8 +86,8 @@
     },
     {
       "seed": 24,
-      "baseline_success": true,
-      "candidate_success": true,
+      "baseline_success": false,
+      "candidate_success": false,
       "reproduced": false
     }
   ],

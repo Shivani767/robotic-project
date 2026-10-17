@@ -3,96 +3,58 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>ROBOT CI — Gazebo Live Demo</title>
+    <title>ROBOT CI — Automated Policy Testing &amp; Behavioral Boundary Discovery</title>
     <link rel="stylesheet" href="style.css" />
     <script type="importmap">
       { "imports": { "three": "./vendor/three.module.js" } }
     </script>
   </head>
   <body>
-    <header>
-      <h1>ROBOT CI — Gazebo Live Demo</h1>
-      <span id="connection" class="badge pending">connecting…</span>
+    <!-- ================= Top navigation ================= -->
+    <header class="topbar">
+      <div class="brand">
+        <svg class="brand-icon" viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="7" y="8" width="10" height="8" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.4"/>
+          <circle cx="10" cy="12" r="1" fill="currentColor"/><circle cx="14" cy="12" r="1" fill="currentColor"/>
+          <path d="M12 8V4M9 4h6" stroke="currentColor" stroke-width="1.4" fill="none"/>
+          <path d="M7 10H4M17 10h3" stroke="currentColor" stroke-width="1.4"/>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-name">ROBOT CI</span>
+          <span class="brand-sub">Automated Policy Testing &amp; Behavioral Boundary Discovery</span>
+        </div>
+      </div>
+
+      <nav class="mainnav" id="mainnav" aria-label="Primary">
+        <button class="nav-item active" data-view="overview">Overview</button>
+        <button class="nav-item" data-view="discovery">Discovery</button>
+        <button class="nav-item" data-view="boundary">Boundary Map</button>
+        <button class="nav-item" data-view="comparison">Policy Comparison</button>
+        <button class="nav-item" data-view="results">Results</button>
+        <button class="nav-item" data-view="logs">Logs</button>
+      </nav>
+
+      <div class="status-area">
+        <div class="status-line">
+          <span class="status-k">Simulator</span>
+          <span class="status-v" id="status-sim">MuJoCo</span>
+        </div>
+        <div class="status-line">
+          <span class="status-k">Evidence</span>
+          <span class="status-v mono" id="status-rev">—</span>
+        </div>
+        <div class="mode-badge" id="mode-badge" title="Replays recorded evidence; not connected to a running simulator.">
+          <span class="dot"></span><span id="mode-label">RECORDED EXPERIMENT</span>
+        </div>
+      </div>
     </header>
 
-    <main>
-      <section class="panel wide">
-        <h2>Live Panda <small id="sim-clock">sim t = 0.000 s</small></h2>
-        <div id="viewport"></div>
-        <p class="hint">
-          Link lengths, joint axes and limits are read from
-          <code>gazebo/models/panda/panda.urdf</code>; the angles are the ones
-          Gazebo reports on its own joint-state topic.
-        </p>
-      </section>
-
-      <section class="panel">
-        <h2>Status</h2>
-        <dl id="status"></dl>
-      </section>
-
-      <section class="panel">
-        <h2>Live RGB camera</h2>
-        <img id="camera" alt="Waiting for the first frame from Gazebo" />
-        <p class="hint" id="camera-hint">waiting for a frame…</p>
-      </section>
-
-      <section class="panel">
-        <h2>Experiment launcher</h2>
-        <p class="hint">
-          One experiment at a time: the simulator is shared, so a second start
-          is refused while one run holds it.
-        </p>
-        <label>
-          condition
-          <select id="experiment-key"></select>
-        </label>
-        <label>
-          task
-          <input id="experiment-task" readonly value="pick_and_place" />
-        </label>
-        <label>
-          policy
-          <select id="experiment-policy">
-            <option value="policy_v1">policy_v1 (baseline)</option>
-            <option value="policy_v3">policy_v3 (candidate)</option>
-          </select>
-        </label>
-        <label>
-          seed
-          <input id="experiment-seed" type="number" value="3" min="0" />
-        </label>
-        <button id="experiment-start" type="button">Start recording</button>
-        <div id="recording-progress" class="hint">idle</div>
-        <dl id="recording-result"></dl>
-      </section>
-
-      <section class="panel">
-        <h2>Recorded experiments</h2>
-        <table id="artifacts">
-          <thead>
-            <tr><th>experiment</th><th>status</th><th>files</th></tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <p class="hint">Registered only after a real run completes and its ZIP verifies.</p>
-      </section>
-
-      <section class="panel">
-        <h2>Joint state</h2>
-        <table id="joints">
-          <thead>
-            <tr>
-              <th>joint</th>
-              <th>position (rad / m)</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </section>
+    <main class="console" id="console">
+      <!-- Body injected by viewer.js -->
     </main>
 
-    <script type="module" src="viewer.js"></script>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script type="module" src="viewer.js?v=3"></script>
   </body>
 </html>

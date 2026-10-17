@@ -59,6 +59,21 @@ the browser you can select an experiment category and condition, set seed /
 policy / repeats, start or stop a run, watch live joint states, and download the
 generated video, images, JSON results, and per-experiment ZIP.
 
+### Research dashboard (recorded evidence)
+
+The frozen research record has its own read-only console — no Docker or
+simulator needed:
+
+```bash
+python experiments/build_dashboard_data.py   # regenerate dashboard/data/*.json
+python dashboard/serve.py 8123              # → http://localhost:8123/dashboard/
+```
+
+It renders the counterexample search, boundary maps, RQ1–RQ5 findings and the
+telemetry-driven Panda replay against revision `d7026af`, recomputing every
+aggregate from `experiments/results/` (30 consistency checks; missing metrics
+say "Not measured"). See [`docs/dashboard.md`](docs/dashboard.md).
+
 ### Run the suite from the command line
 
 ```bash
@@ -79,6 +94,7 @@ from Git (see [`.gitignore`](.gitignore)).
 | `docs/` | Engineering notes (`gazebo.md` — the failure-and-fix log), dashboard and recording docs |
 | `gazebo/` | Panda URDF and world models |
 | `experiments/` | Scenario/condition definitions and recorded evidence under `results/` |
+| `dashboard/` | Static research dashboard (`index.html`, `viewer.js`, `serve.py`) over `build_dashboard_data.py` |
 
 ## Status and limitations (stated honestly)
 

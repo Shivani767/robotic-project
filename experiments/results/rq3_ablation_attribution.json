@@ -6,11 +6,15 @@
     "parameter": "settle_steps",
     "reason": "policy_v1 and policy_v3 differ in exactly one subsystem: v3 averages pose samples before committing to a plan, which is a perception-stage change"
   },
-  "baseline": "policy_v3",
-  "candidate": "policy_v1",
+  "baseline": "policy_v1",
+  "candidate": "policy_v3",
   "grid": {
     "levels_mm": [
-      2.0
+      0.0,
+      1.0,
+      2.0,
+      4.0,
+      8.0
     ],
     "seeds": [
       1,
@@ -24,20 +28,20 @@
   "methods": {
     "correlation_only": {
       "implicated": "planner",
-      "cost_episodes": 12,
+      "cost_episodes": 60,
       "correct": false
     },
     "ofat": {
-      "implicated": "perception",
-      "effect": 0.0833,
-      "cost_episodes": 216,
-      "correct": true
+      "implicated": "gripper",
+      "effect": 0.0667,
+      "cost_episodes": 1080,
+      "correct": false
     },
     "interaction_aware": {
-      "implicated": "perception",
-      "effect": 0.0833,
-      "cost_episodes": 216,
-      "correct": true
+      "implicated": "gripper",
+      "effect": 0.0667,
+      "cost_episodes": 1080,
+      "correct": false
     }
   },
   "correlation_detail": {
@@ -46,34 +50,44 @@
     "ranking": [
       {
         "metric": "trajectory_deviation_m",
-        "correlation": -0.9929,
+        "correlation": -0.9959,
         "subsystem": "planner"
       },
       {
         "metric": "placement_error_m",
-        "correlation": -0.4227,
+        "correlation": -0.5749,
         "subsystem": "planner"
       },
       {
-        "metric": "pose_sigma_m",
-        "correlation": 0.3651,
+        "metric": "sensor_consistency",
+        "correlation": 0.5205,
         "subsystem": "perception"
       },
       {
         "metric": "grasp_error_m",
-        "correlation": -0.1942,
+        "correlation": -0.5176,
+        "subsystem": "gripper"
+      },
+      {
+        "metric": "pose_sigma_m",
+        "correlation": -0.4994,
+        "subsystem": "perception"
+      },
+      {
+        "metric": "grasp_success",
+        "correlation": 0.2728,
         "subsystem": "gripper"
       }
     ]
   },
   "attribution_ofat": [
     {
-      "subsystem": "perception",
-      "effect": 0.0833
+      "subsystem": "gripper",
+      "effect": 0.0667
     },
     {
-      "subsystem": "gripper",
-      "effect": 0.0833
+      "subsystem": "perception",
+      "effect": 0.0417
     },
     {
       "subsystem": "planner",
@@ -86,12 +100,12 @@
   ],
   "attribution_interaction_aware": [
     {
-      "subsystem": "perception",
-      "effect": 0.0833
+      "subsystem": "gripper",
+      "effect": 0.0667
     },
     {
-      "subsystem": "gripper",
-      "effect": 0.0833
+      "subsystem": "perception",
+      "effect": 0.0417
     },
     {
       "subsystem": "planner",
@@ -102,5 +116,5 @@
       "effect": 0.0
     }
   ],
-  "conclusion": "OFAT and interaction-aware analysis both recover the injected cause; correlation-only analysis does not"
+  "conclusion": "see methods.correct per method"
 }

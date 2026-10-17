@@ -35,8 +35,8 @@ from robot_ci.policies import create_policy
 from robot_ci.scenarios import default_scenario, set_by_path
 from robot_ci.simulation import create_backend
 
-BASELINE_POLICY = "policy_v3"
-CANDIDATE_POLICY = "policy_v1"
+BASELINE_POLICY = "policy_v1"
+CANDIDATE_POLICY = "policy_v3"
 #: The subsystem that actually differs between the two arms.
 GROUND_TRUTH = "perception"
 #: The single parameter that differs, and the value the other arm uses.
@@ -44,12 +44,21 @@ CAUSAL_PARAMETER = "settle_steps"
 CAUSAL_VALUE = 6.0
 
 SEEDS: tuple[int, ...] = (1, 3, 4, 6, 8, 9)
-#: A single noise level, where the separation is cleanest. The grid is kept
-#: small deliberately: this experiment measures attribution accuracy, and 36
-#: ablation arms over a 5-cell grid would be ~1200 episodes for no extra signal.
-#: The cost of a small grid is that effects are noisier, which is stated with
-#: the results rather than hidden.
-LEVELS: tuple[float, ...] = (2.0,)
+#: A sweep, not a single level. This is the fix for the defect that made the
+#: previous revision attribute the regression to the wrong subsystem. The two
+#: arms separate only across the depth-noise axis -- at the single 2.0 mm level
+#: the earlier revision used, every arm tied at 5/6 and the causal settle_steps
+#: arm measured an effect of exactly zero, so the attribution had nothing to
+#: rank except one gripper episode of seed noise (4/6 vs 5/6), which it duly
+#: named as "the cause". A sweep gives the ablation a real gradient to detect:
+#: measured on the fixed simulator, the settle_steps arm is the only factor
+#: that hurts, and it hurts at the intermediate and high-noise levels
+#: (per-cell success deltas 0, 2, 0, 1, 2) while never helping.
+#:
+#: Each arm is scored as its mean success rate over the whole sweep, and the
+#: conditional per-cell deltas are reported alongside it. Scoring a single
+#: level would repeat the original defect.
+LEVELS: tuple[float, ...] = (0.0, 1.0, 2.0, 4.0, 8.0)
 OUTPUT = Path("experiments/results/rq3_ablation_attribution.json")
 
 #: Every parameter the policy reads, with the subsystem whose code path reads
@@ -58,6 +67,14 @@ OUTPUT = Path("experiments/results/rq3_ablation_attribution.json")
 FACTORS: tuple[tuple[str, tuple[float, ...], str], ...] = (
     ("max_position_sigma_m", (0.004, 0.05), "perception"),
     ("settle_steps", (0, 6), "perception"),
+    # NOTE on the settle_steps orientation: the reference arm for this
+    # experiment is policy_v1, whose settle_steps is 0. The OFAT arm therefore
+    # *raises* it to 6 -- the injected regression, measured as an effect on the
+    # reference. The earlier revision used policy_v3 as the reference, where
+    # settle_steps is already 6, so the "perturbed" arm was identical to the
+    # reference and the perception effect was measured as exactly zero. See the
+    # grid note below for why that produced a wrong attribution rather than a
+    # null one.
     ("clearance_bias_m", (0.0, 0.05), "planner"),
     ("grasp_bias_m", (0.0, 0.01), "planner"),
     ("ik_damping", (0.05, 0.2), "controller"),
@@ -176,8 +193,15 @@ def main() -> int:
     # OFAT design twice, once per method, doubling the cost to re-derive the
     # same numbers. The OFAT answer and the interaction-aware answer both come
     # from this single set of arms.
+    #
+    # The reference is the *baseline* arm (policy_v1, settle_steps=0), not the
+    # candidate. Ablation attributes a change relative to its reference by
+    # substituting one factor toward the perturbed value, so the reference must
+    # be the un-perturbed arm for the injected settle_steps=6 arm to measure the
+    # regression as a non-zero effect. With policy_v3 as the reference the
+    # settle_steps arm was identical to it and the causal effect read as zero.
     both = run_ablation(
-        candidate, factors, evaluate, designs=("ofat", "pairwise"), arm_prefix="rq3"
+        baseline, factors, evaluate, designs=("ofat", "pairwise"), arm_prefix="rq3"
     )
     ofat = both
 

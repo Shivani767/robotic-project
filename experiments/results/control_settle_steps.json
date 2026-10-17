@@ -1,0 +1,302 @@
+{
+  "base": {
+    "cell_success": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      1,
+      0,
+      0,
+      0,
+      1,
+      0,
+      0
+    ],
+    "levels": [
+      0.0,
+      1.0,
+      2.0,
+      4.0,
+      8.0
+    ],
+    "seeds": [
+      1,
+      3,
+      4,
+      6,
+      8,
+      9
+    ],
+    "per_level": {
+      "0.0": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "1.0": [
+        1,
+        1,
+        0,
+        1,
+        0,
+        1
+      ],
+      "2.0": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "4.0": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        1
+      ],
+      "8.0": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ]
+    }
+  },
+  "perturbed": {
+    "cell_success": [
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      1,
+      1,
+      1,
+      1,
+      0,
+      1,
+      0,
+      0,
+      1,
+      1,
+      0,
+      1,
+      0,
+      1,
+      0,
+      1
+    ],
+    "levels": [
+      0.0,
+      1.0,
+      2.0,
+      4.0,
+      8.0
+    ],
+    "seeds": [
+      1,
+      3,
+      4,
+      6,
+      8,
+      9
+    ],
+    "per_level": {
+      "0.0": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "1.0": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "2.0": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "4.0": [
+        0,
+        1,
+        0,
+        0,
+        1,
+        1
+      ],
+      "8.0": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        1
+      ]
+    }
+  },
+  "cells": [
+    {
+      "level": 0.0,
+      "base_rate": 1.0,
+      "pert_rate": 1.0,
+      "cell_delta": 0.0,
+      "base_cells": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "pert_cells": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "level": 1.0,
+      "base_rate": 0.6667,
+      "pert_rate": 1.0,
+      "cell_delta": 0.3333,
+      "base_cells": [
+        1,
+        1,
+        0,
+        1,
+        0,
+        1
+      ],
+      "pert_cells": [
+        1,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "level": 2.0,
+      "base_rate": 0.8333,
+      "pert_rate": 0.8333,
+      "cell_delta": 0.0,
+      "base_cells": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ],
+      "pert_cells": [
+        0,
+        1,
+        1,
+        1,
+        1,
+        1
+      ]
+    },
+    {
+      "level": 4.0,
+      "base_rate": 0.3333,
+      "pert_rate": 0.5,
+      "cell_delta": 0.1667,
+      "base_cells": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        1
+      ],
+      "pert_cells": [
+        0,
+        1,
+        0,
+        0,
+        1,
+        1
+      ]
+    },
+    {
+      "level": 8.0,
+      "base_rate": 0.1667,
+      "pert_rate": 0.5,
+      "cell_delta": 0.3333,
+      "base_cells": [
+        0,
+        0,
+        0,
+        1,
+        0,
+        0
+      ],
+      "pert_cells": [
+        0,
+        1,
+        0,
+        1,
+        0,
+        1
+      ]
+    }
+  ],
+  "overall_delta": 0.1667,
+  "base_overall_rate": 0.6,
+  "pert_overall_rate": 0.7667,
+  "levels_helped": 3,
+  "levels_hurt": 0,
+  "implication": "settle_steps is NOT behaviour-neutral on the fixed simulator: overall delta +0.1667, helping 3/5 levels and hurting 0/5. A single-parameter swap on policy_v1 moves the outcome, so the parameter is a live causal knob."
+}

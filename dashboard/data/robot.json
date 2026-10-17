@@ -1,0 +1,488 @@
+{
+ "name": "panda",
+ "joints": [
+  {
+   "name": "joint1",
+   "type": "revolute",
+   "parent": "panda_link0",
+   "child": "panda_link1",
+   "xyz": [
+    0.0,
+    0.0,
+    0.333
+   ],
+   "rpy": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "lower": -2.8973,
+   "upper": 2.8973
+  },
+  {
+   "name": "joint2",
+   "type": "revolute",
+   "parent": "panda_link1",
+   "child": "panda_link2",
+   "xyz": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpy": [
+    -1.5707963,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "lower": -1.7628,
+   "upper": 1.7628
+  },
+  {
+   "name": "joint3",
+   "type": "revolute",
+   "parent": "panda_link2",
+   "child": "panda_link3",
+   "xyz": [
+    0.0,
+    -0.316,
+    0.0
+   ],
+   "rpy": [
+    1.5707963,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "lower": -2.8973,
+   "upper": 2.8973
+  },
+  {
+   "name": "joint4",
+   "type": "revolute",
+   "parent": "panda_link3",
+   "child": "panda_link4",
+   "xyz": [
+    0.0825,
+    0.0,
+    0.0
+   ],
+   "rpy": [
+    1.5707963,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "lower": -3.0718,
+   "upper": -0.0698
+  },
+  {
+   "name": "joint5",
+   "type": "revolute",
+   "parent": "panda_link4",
+   "child": "panda_link5",
+   "xyz": [
+    -0.0825,
+    0.384,
+    0.0
+   ],
+   "rpy": [
+    -1.5707963,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "lower": -2.8973,
+   "upper": 2.8973
+  },
+  {
+   "name": "joint6",
+   "type": "revolute",
+   "parent": "panda_link5",
+   "child": "panda_link6",
+   "xyz": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "rpy": [
+    1.5707963,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "lower": -0.0175,
+   "upper": 3.7525
+  },
+  {
+   "name": "joint7",
+   "type": "revolute",
+   "parent": "panda_link6",
+   "child": "panda_link7",
+   "xyz": [
+    0.088,
+    0.0,
+    0.0
+   ],
+   "rpy": [
+    1.5707963,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "lower": -2.8973,
+   "upper": 2.8973
+  },
+  {
+   "name": "hand_joint",
+   "type": "fixed",
+   "parent": "panda_link7",
+   "child": "panda_hand",
+   "xyz": [
+    0.0,
+    0.0,
+    0.107
+   ],
+   "rpy": [
+    0.0,
+    0.0,
+    -0.7853982
+   ],
+   "axis": [
+    0.0,
+    0.0,
+    1.0
+   ],
+   "lower": -3.0,
+   "upper": 3.0
+  },
+  {
+   "name": "left_finger",
+   "type": "prismatic",
+   "parent": "panda_hand",
+   "child": "panda_left_finger",
+   "xyz": [
+    0.0,
+    0.0055,
+    0.0445
+   ],
+   "rpy": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    1.0,
+    0.0
+   ],
+   "lower": 0.0,
+   "upper": 0.04
+  },
+  {
+   "name": "right_finger",
+   "type": "prismatic",
+   "parent": "panda_hand",
+   "child": "panda_right_finger",
+   "xyz": [
+    0.0,
+    -0.0055,
+    0.0445
+   ],
+   "rpy": [
+    0.0,
+    0.0,
+    0.0
+   ],
+   "axis": [
+    0.0,
+    -1.0,
+    0.0
+   ],
+   "lower": 0.0,
+   "upper": 0.04
+  }
+ ],
+ "links": [
+  {
+   "name": "panda_link0",
+   "visuals": [
+    {
+     "xyz": [
+      0.0,
+      0.0,
+      0.05
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "cylinder",
+      "radius": 0.07,
+      "length": 0.14
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_link1",
+   "visuals": [
+    {
+     "xyz": [
+      0.0,
+      0.0,
+      -0.1
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "cylinder",
+      "radius": 0.06,
+      "length": 0.24
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_link2",
+   "visuals": [
+    {
+     "xyz": [
+      0.0,
+      0.0,
+      0.1
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "cylinder",
+      "radius": 0.06,
+      "length": 0.24
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_link3",
+   "visuals": [
+    {
+     "xyz": [
+      0.05,
+      0.0,
+      0.05
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "cylinder",
+      "radius": 0.06,
+      "length": 0.2
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_link4",
+   "visuals": [
+    {
+     "xyz": [
+      -0.02,
+      0.0,
+      0.06
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "cylinder",
+      "radius": 0.06,
+      "length": 0.19
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_link5",
+   "visuals": [
+    {
+     "xyz": [
+      0.0,
+      0.0,
+      0.05
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "cylinder",
+      "radius": 0.055,
+      "length": 0.15
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_link6",
+   "visuals": [
+    {
+     "xyz": [
+      0.03,
+      0.0,
+      0.03
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "cylinder",
+      "radius": 0.05,
+      "length": 0.13
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_link7",
+   "visuals": [
+    {
+     "xyz": [
+      0.0,
+      0.0,
+      0.04
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "cylinder",
+      "radius": 0.045,
+      "length": 0.1
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_hand",
+   "visuals": [
+    {
+     "xyz": [
+      0.0,
+      0.0,
+      0.04
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "box",
+      "size": [
+       0.05,
+       0.1,
+       0.06
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_left_finger",
+   "visuals": [
+    {
+     "xyz": [
+      0.0,
+      0.0075,
+      0.0584
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "box",
+      "size": [
+       0.02,
+       0.015,
+       0.013
+      ]
+     }
+    }
+   ]
+  },
+  {
+   "name": "panda_right_finger",
+   "visuals": [
+    {
+     "xyz": [
+      0.0,
+      -0.0075,
+      0.0584
+     ],
+     "rpy": [
+      0.0,
+      0.0,
+      0.0
+     ],
+     "shape": {
+      "kind": "box",
+      "size": [
+       0.02,
+       0.015,
+       0.013
+      ]
+     }
+    }
+   ]
+  }
+ ]
+}
