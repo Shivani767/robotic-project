@@ -9,6 +9,8 @@ conditions, and because of **which** subsystem. Every claim — success, placeme
 error, collisions — is measured from simulator telemetry and hashed into a
 manifest; nothing is narrated. A run that fails is reported as failed.
 
+**Release:** [`v1.0.0`](https://github.com/Shivani767/robotic-project/releases/tag/v1.0.0) — frozen dashboard, demo walkthrough, and research report (commit `4663c46`).
+
 ## What it does
 
 1. **Controls a 7-DOF Panda arm** through pick-and-place in Gazebo Harmonic
@@ -105,16 +107,38 @@ recording, hashes, metadata, partial failure, and statuses (`tests/`).
 
 Six 1920 × 1080 dashboard screenshots are planned for the research release:
 
-`01-overview.png` · `02-panda-replay.png` · `03-boundary-map.png` ·
-`04-counterexample-discovery.png` · `05-subsystem-attribution.png` ·
-`06-evidence-provenance.png`
+| File | Dashboard view | Research-finding purpose |
+|---|---|---|
+| `01-overview.png` | Overview | Full three-column console at rest — config, metrics, policy comparison, RQ3 attribution, reproducibility. |
+| `02-panda-replay.png` | Panda replay | Telemetry-driven Panda viewport (labelled *not* a live camera); play / scrub / 1×–4× speed controls; `t = 0.00 s` clock. |
+| `03-boundary-map.png` | Boundary Map | Depth-noise × settle-window heatmap, one cell clicked to show its cell-detail callout; untested regions hatched, never interpolated. |
+| `04-counterexample-discovery.png` | Discovery | Found counterexample, minimality note, reproduction rate (36.4%), opposing-effect badge (supports RQ4). |
+| `05-subsystem-attribution.png` | Subsystem attribution (RQ3) | Correlation-only / OFAT / interaction-aware rows; implicated subsystem; `correct?` column. |
+| `06-evidence-provenance.png` | Logs | Evidence & Artifacts panel; provenance pinned to source artifacts; SHA-256 fingerprint; 30 consistency checks pass. |
 
-They are captured per [`docs/screenshots/capture.md`](docs/screenshots/capture.md)
-(viewport exactly 1920 × 1080, lossless PNG, no upscaling or retouching).
-**This terminal is headless** — no browser, no display server, no WebGL
-renderer — so the screenshots could not be captured here and must be taken on a
-machine with a display. They are intentionally not fabricated and not committed
-as placeholders; once captured they belong in `docs/screenshots/`.
+**Capture protocol** ([`docs/screenshots/capture.md`](docs/screenshots/capture.md)):
+
+```bash
+# Regenerate the frozen evidence bundle (read-only sources → dashboard/data/*.json)
+python experiments/build_dashboard_data.py
+
+# Serve the dashboard at repo root so evidence links resolve
+python dashboard/serve.py 8123   # → http://localhost:8123/dashboard/
+```
+
+Open `http://localhost:8123/dashboard/`, size the browser window to exactly
+**1920 × 1080**, wait for `evidence.json` to load and the Panda replay /
+boundary map to draw, then capture each nav target above as a lossless PNG. Do
+not upscale, filter, or retouch — the dashboard is the evidence, not an
+illustration.
+
+**Status (headless limitation).** This terminal has no browser, no display
+server, and no WebGL renderer, so none of the six PNGs could be captured here
+and none are committed as placeholders. They must be captured on a machine with
+a display following [`docs/screenshots/capture.md`](docs/screenshots/capture.md),
+then added to `docs/screenshots/` and committed. Once captured, they belong in
+the release; until then, the release notes reference the protocol rather than
+fabricated images.
 
 ---
 

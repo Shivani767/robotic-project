@@ -271,14 +271,14 @@ dependency of the research engine.
 
 ## 16. Release commit
 
-* Commit SHA: recorded in the GitHub release tag & release notes for this
-  release (set at release time; not self-referenced here to avoid a stale SHA
-  after any final amend).
-* Commit message: "Finalize ROBOT CI research release: frozen dashboard, demo
-  walkthrough, environment report"
+* Release tag: `v1.0.0` (published to GitHub)
+* Release commit SHA: `4663c46b896e3a20ecf074f87b9fdcf9acca092b`
 * Branch: `main`
+* Release URL: https://github.com/Shivani767/robotic-project/releases/tag/v1.0.0
 * Frozen at revision `d7026af` for the research-record evidence; all dashboard,
   docs, code, and `experiments/results/` artifacts committed together.
+* Release asset: `video/robot_ci_demo.mp4` (demo walkthrough; intentionally not
+  committed as a binary in the repository).
 
 Reproducible startup (from repository root):
 
