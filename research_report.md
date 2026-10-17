@@ -356,7 +356,7 @@ is quietly dropped or reinterpreted as a success.
 The net effect of H3/H6 is that RQ3's negative result is **not** explained by an
 inert lever, and the old "failure floor" narrative is withdrawn.
 
-## 5. Limitations
+## 6. Limitations
 
 * **One run per RQ (except the RQ2 re-run).** RQ1, RQ4 and RQ5 are
   single-seed, single-axis sweeps -- they show a trade-off exists, not

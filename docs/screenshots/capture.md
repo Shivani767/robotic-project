@@ -8,6 +8,13 @@ static capture of the frozen research dashboard at revision `d7026af`.
 > cannot be captured here. Capture them on a machine with a display and a
 > desktop browser, at a viewport of exactly **1920 × 1080**, then place the
 > PNGs in this folder (`docs/screenshots/`).
+>
+> **Current status (this environment).** None of `01-overview.png` through
+> `06-evidence-provenance.png` has been captured here, and none will be
+> fabricated or committed as placeholders. They remain to be captured on a
+> machine with a display, following this protocol, then added to
+> `docs/screenshots/`. Do not commit generated or AI-upscaled images as if they
+> were browser captures — the dashboard is the evidence, not an illustration.
 
 ## Prerequisites
 
