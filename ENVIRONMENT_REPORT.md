@@ -269,9 +269,11 @@ dependency of the research engine.
 
 (<= 256x256) rendering is fast enough for batch sweeps on 10 CPU cores.
 
-## 16. Release commit (filled in at release time)
+## 16. Release commit
 
-* Commit SHA: `6fc5209948e41733f559aa4b41cb8e50ea198a9e`
+* Commit SHA: recorded in the GitHub release tag & release notes for this
+  release (set at release time; not self-referenced here to avoid a stale SHA
+  after any final amend).
 * Commit message: "Finalize ROBOT CI research release: frozen dashboard, demo
   walkthrough, environment report"
 * Branch: `main`
