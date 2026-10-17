@@ -148,6 +148,7 @@ A recorded walkthrough video is attached to the GitHub release:
 
 - **GitHub release v1.0.0:** https://github.com/Shivani767/robotic-project/releases/tag/v1.0.0
 - **Demo asset:** `robot_ci_demo.mp4` (release asset)
+- **Dashboard walkthrough video:** `video/robot_ci_dashboard_walkthrough.mp4` (18 s, 1920×1080, committed)
 - **Full CLI walkthrough:** [`experiments/results/DEMO.md`](experiments/results/DEMO.md)
 
 ---
